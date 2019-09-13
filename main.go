@@ -21,7 +21,8 @@ Options:
   -o=<filepath>, --output
   `
 	arguments, _ := docopt.ParseDoc(usage)
-
+	//TODO: add verbose switch to conf this
+	log.SetLevel(log.DebugLevel)
 	udid, _ := arguments.String("--udid")
 	//TODO:add device selection here
 	log.Info(udid)
