@@ -8,9 +8,11 @@ import (
 import "github.com/google/gousb"
 
 type IosDevice struct {
-	usbDevice    *gousb.Device
-	SerialNumber string
-	ProductName  string
+	usbDevice         *gousb.Device
+	SerialNumber      string
+	ProductName       string
+	UsbMuxConfigIndex int
+	QTConfigIndex     int
 }
 
 const (
@@ -34,8 +36,7 @@ func FindIosDevices() ([]IosDevice, error) {
 	devices, err := ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
 		// this function is called for every device present.
 		// Returning true means the device should be opened.
-		b, _, _ := isValidIosDevice(desc)
-		return b
+		return isValidIosDevice(desc)
 	})
 	if err != nil {
 		return nil, err
@@ -59,7 +60,8 @@ func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 		if err != nil {
 			return nil, err
 		}
-		iosDevice := IosDevice{d, serial, product}
+		muxConfigIndex, qtConfigIndex := findConfigurations(d.Desc)
+		iosDevice := IosDevice{d, serial, product, muxConfigIndex, qtConfigIndex}
 		iosDevices[i] = iosDevice
 	}
 	return iosDevices, nil
@@ -68,12 +70,20 @@ func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 func PrintDeviceDetails(devices []IosDevice) string {
 	var sb strings.Builder
 	for _, d := range devices {
-		sb.WriteString(fmt.Sprintf("'%s'  %s serial: %s", d.ProductName, d.usbDevice.String(), d.SerialNumber))
+		sb.WriteString(d.String())
 	}
 	return sb.String()
 }
 
-func isValidIosDevice(desc *gousb.DeviceDesc) (bool, int, int) {
+func isValidIosDevice(desc *gousb.DeviceDesc) bool {
+	muxConfigIndex, qtConfigIndex := findConfigurations(desc)
+	if muxConfigIndex == -1 || qtConfigIndex == -1 {
+		return false
+	}
+	return true
+}
+
+func findConfigurations(desc *gousb.DeviceDesc) (int, int) {
 	var muxConfigIndex = -1
 	var qtConfigIndex = -1
 
@@ -85,10 +95,7 @@ func isValidIosDevice(desc *gousb.DeviceDesc) (bool, int, int) {
 			qtConfigIndex = k
 		}
 	}
-	if muxConfigIndex == -1 || qtConfigIndex == -1 {
-		return false, 0, 0
-	}
-	return true, muxConfigIndex, qtConfigIndex
+	return muxConfigIndex, qtConfigIndex
 }
 
 func isQtConfig(confDesc gousb.ConfigDesc) bool {
@@ -114,13 +121,26 @@ func findInterfaceForSubclass(confDesc gousb.ConfigDesc, subClass gousb.Class) (
 }
 
 func (d *IosDevice) String() string {
-	return "IosDevice"
+	return fmt.Sprintf("'%s'  %s serial: %s", d.ProductName, d.usbDevice.String(), d.SerialNumber)
 }
 
+//Always call this when you're done recording your video to
+//put the device back into non-video mode
 func (d *IosDevice) enableUsbMuxConfig() error {
-	return nil
+	config, err := d.usbDevice.Config(d.UsbMuxConfigIndex)
+	if err != nil {
+		return err
+	}
+	return config.Close()
 }
 
-func (d *IosDevice) enableQuickTimeConfig() error {
-	return nil
+//This enables the config needed for grabbing video of the device
+//it should open two additional bulk endpoints where video frames
+//will be received
+func (d *IosDevice) enableQuickTimeConfig() (*gousb.Config, error) {
+	config, err := d.usbDevice.Config(d.QTConfigIndex)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
 }
