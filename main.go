@@ -12,6 +12,7 @@ func main() {
 
 Usage:
   qvh devices
+  qvh dumpraw
  
 Options:
   -h --help     Show this screen.
@@ -39,7 +40,7 @@ Options:
 		return
 	}
 
-	rawStreamCommand, _ := arguments.Bool("raw")
+	rawStreamCommand, _ := arguments.Bool("dumpraw")
 	if rawStreamCommand {
 		dev := devices[0]
 		usb.StartReading(dev)
