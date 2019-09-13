@@ -22,8 +22,8 @@ Options:
 	devices, _ := arguments.Bool("devices")
 	if devices {
 		log.Info("iOS Devices with QT Endpoint:")
-		devices, error := usb.FindIosDevices()
-		if error != nil {
+		devices, err := usb.FindIosDevices()
+		if err != nil {
 			log.Fatal("Error finding Devices" + error.Error())
 		}
 		output := usb.PrintDeviceDetails(devices)

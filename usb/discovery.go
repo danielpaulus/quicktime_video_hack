@@ -2,6 +2,7 @@ package usb
 
 import (
 	"fmt"
+	"log"
 	"strings"
 )
 import "github.com/google/gousb"
@@ -23,7 +24,12 @@ const (
 
 func FindIosDevices() ([]IosDevice, error) {
 	ctx := gousb.NewContext()
-	defer ctx.Close()
+	defer func() {
+		err := ctx.Close()
+		if err != nil {
+			log.Fatal("Failed while closing usb Context" + err.Error())
+		}
+	}()
 
 	devices, err := ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
 		// this function is called for every device present.
