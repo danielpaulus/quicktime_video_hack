@@ -8,9 +8,10 @@ import (
 
 func main() {
 	usage := `Q.uickTime V.ideo H.ack or qvh client v0.01
+		If you do not specify a udid, the first device will be taken by default.
 
 Usage:
-  qvh devices 
+  qvh devices
  
 Options:
   -h --help     Show this screen.
@@ -19,15 +20,29 @@ Options:
   -o=<filepath>, --output
   `
 	arguments, _ := docopt.ParseDoc(usage)
-	devices, _ := arguments.Bool("devices")
-	if devices {
-		log.Info("iOS Devices with QT Endpoint:")
-		devices, err := usb.FindIosDevices()
-		if err != nil {
-			log.Fatal("Error finding Devices" + error.Error())
-		}
-		output := usb.PrintDeviceDetails(devices)
-		log.Info(output)
+
+	udid, _ := arguments.String("--udid")
+	//TODO:add device selection here
+	log.Info(udid)
+
+	devices, err := usb.FindIosDevices()
+	if err != nil {
+		log.Fatal("Error finding Devices", err)
 	}
 
+	devicesCommand, _ := arguments.Bool("devices")
+	if devicesCommand {
+		log.Info("iOS Devices with QT Endpoint:")
+
+		output := usb.PrintDeviceDetails(devices)
+		log.Info(output)
+		return
+	}
+
+	rawStreamCommand, _ := arguments.Bool("raw")
+	if rawStreamCommand {
+		dev := devices[0]
+		usb.StartReading(dev)
+		return
+	}
 }
