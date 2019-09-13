@@ -1,13 +1,13 @@
 package main
 
 import (
+	"github.com/danielpaulus/quicktime_video_hack/usb"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	log.Info("hi")
-	usage := `iOS client v 0.01
+	usage := `Q.uickTime V.ideo H.ack or qvh client v0.01
 
 Usage:
   qvh devices 
@@ -21,7 +21,8 @@ Options:
 	arguments, _ := docopt.ParseDoc(usage)
 	devices, _ := arguments.Bool("devices")
 	if devices {
-		log.Info("devices")
+		log.Info("iOS Devices with QT Endpoint:")
+		usb.FindIosDevices()
 	}
 
 }
