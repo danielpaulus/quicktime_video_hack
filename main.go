@@ -22,7 +22,12 @@ Options:
 	devices, _ := arguments.Bool("devices")
 	if devices {
 		log.Info("iOS Devices with QT Endpoint:")
-		usb.FindIosDevices()
+		devices, error := usb.FindIosDevices()
+		if error != nil {
+			log.Fatal("Error finding Devices" + error.Error())
+		}
+		output := usb.PrintDeviceDetails(devices)
+		log.Info(output)
 	}
 
 }

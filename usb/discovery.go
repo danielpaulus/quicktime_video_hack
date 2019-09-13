@@ -1,12 +1,15 @@
 package usb
 
 import (
-	"errors"
-	"github.com/sirupsen/logrus"
+	"fmt"
+	"strings"
 )
 import "github.com/google/gousb"
 
 type IosDevice struct {
+	usbDevice    *gousb.Device
+	SerialNumber string
+	ProductName  string
 }
 
 const (
@@ -31,19 +34,37 @@ func FindIosDevices() ([]IosDevice, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, d := range devices {
+	iosDevices, err := mapToIosDevice(devices)
+	if err != nil {
+		return nil, err
+	}
+
+	return iosDevices, nil
+}
+
+func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
+	iosDevices := make([]IosDevice, len(devices))
+	for i, d := range devices {
 		serial, err := d.SerialNumber()
 		if err != nil {
-			logrus.Fatalf("Failed to get Device UDID for '%s'.. what the hell?!", serial)
+			return nil, err
 		}
-		product, err:= d.Product()
-		if err != nil{
-			logrus.Fatalf("Failed to get Device Name for '%s'.. what the hell?!", serial)
+		product, err := d.Product()
+		if err != nil {
+			return nil, err
 		}
-
-		logrus.Infof("'%s'  %s serial: %s",product, d.String(), serial)
+		iosDevice := IosDevice{d, serial, product}
+		iosDevices[i] = iosDevice
 	}
-	return nil, errors.New("bla")
+	return iosDevices, nil
+}
+
+func PrintDeviceDetails(devices []IosDevice) string {
+	var sb strings.Builder
+	for _, d := range devices {
+		sb.WriteString(fmt.Sprintf("'%s'  %s serial: %s", d.ProductName, d.usbDevice.String(), d.SerialNumber))
+	}
+	return sb.String()
 }
 
 func isValidIosDevice(desc *gousb.DeviceDesc) (bool, int, int) {
@@ -76,7 +97,7 @@ func isMuxConfig(confDesc gousb.ConfigDesc) bool {
 
 func findInterfaceForSubclass(confDesc gousb.ConfigDesc, subClass gousb.Class) (bool, int) {
 	for i := range confDesc.Interfaces {
-		//usually those interfaces have only one altsetting
+		//usually the interfaces we care about have only one altsetting
 		isVendorClass := confDesc.Interfaces[i].AltSettings[0].Class == gousb.ClassVendorSpec
 		isCorrectSubClass := confDesc.Interfaces[i].AltSettings[0].SubClass == subClass
 		if isVendorClass && isCorrectSubClass {
