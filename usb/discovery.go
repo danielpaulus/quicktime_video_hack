@@ -87,12 +87,12 @@ func findConfigurations(desc *gousb.DeviceDesc) (int, int) {
 	var muxConfigIndex = -1
 	var qtConfigIndex = -1
 
-	for k, v := range desc.Configs {
+	for _, v := range desc.Configs {
 		if isMuxConfig(v) && !isQtConfig(v) {
-			muxConfigIndex = k
+			muxConfigIndex = v.Number
 		}
 		if isQtConfig(v) {
-			qtConfigIndex = k
+			qtConfigIndex = v.Number
 		}
 	}
 	return muxConfigIndex, qtConfigIndex
@@ -114,7 +114,7 @@ func findInterfaceForSubclass(confDesc gousb.ConfigDesc, subClass gousb.Class) (
 		isVendorClass := confDesc.Interfaces[i].AltSettings[0].Class == gousb.ClassVendorSpec
 		isCorrectSubClass := confDesc.Interfaces[i].AltSettings[0].SubClass == subClass
 		if isVendorClass && isCorrectSubClass {
-			return true, i
+			return true, confDesc.Interfaces[i].Number
 		}
 	}
 	return false, -1
