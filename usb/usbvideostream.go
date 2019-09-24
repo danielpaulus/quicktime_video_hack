@@ -3,10 +3,12 @@ package usb
 import (
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 func StartReading(device IosDevice) {
 	log.Debug("Enabling Quicktime Config for %s", device.SerialNumber)
+
 	config, err := device.enableQuickTimeConfig()
 	defer func() {
 		log.Debug("closing Device")
@@ -27,24 +29,34 @@ func StartReading(device IosDevice) {
 
 	log.Info("QT Config is active: %s", config.String())
 
+	//in idx muss sicher der endpoint rein
+	duration, _ := time.ParseDuration("20ms")
+	device.usbDevice.ControlTimeout = duration
+	val, err := device.usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
+	if err != nil {
+		log.Fatal("failed control", err)
+		return
+	}
+	log.Infof("Got %d as val ", val)
+
 	iface, err := grabQuickTimeInterface(config)
 	if err != nil {
 		log.Fatal("Couldnt get Quicktime Interface")
 		return
 	}
 	inEndpoint, err := iface.InEndpoint(grabInBulk(iface.Setting))
-	if err!=nil{
+	if err != nil {
 		log.Fatal("couldnt get InEndpoint")
 		return
 	}
 	stream, err := inEndpoint.NewStream(8, 3)
-	if err!=nil{
+	if err != nil {
 		log.Fatal("couldnt create stream")
 		return
 	}
 	buffer := make([]byte, 70000)
 	n, err := stream.Read(buffer)
-	if err!=nil{
+	if err != nil {
 		log.Fatal("coudlnt read bytes")
 		return
 	}
