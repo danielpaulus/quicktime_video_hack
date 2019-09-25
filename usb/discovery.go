@@ -24,6 +24,8 @@ const (
 	QuicktimeSubclass gousb.Class = 0x2A
 )
 
+// FindIosDevices finds iOS devices connected on USB ports by looking for their
+// USBMux compatible Bulk Endpoints
 func FindIosDevices() ([]IosDevice, error) {
 	ctx := gousb.NewContext()
 	defer func() {
@@ -76,6 +78,14 @@ func PrintDeviceDetails(devices []IosDevice) string {
 }
 
 func isValidIosDevice(desc *gousb.DeviceDesc) bool {
+	muxConfigIndex, _ := findConfigurations(desc)
+	if muxConfigIndex == -1 {
+		return false
+	}
+	return true
+}
+
+func isValidIosDeviceWithActiveQTConfig(desc *gousb.DeviceDesc) bool {
 	muxConfigIndex, qtConfigIndex := findConfigurations(desc)
 	if muxConfigIndex == -1 || qtConfigIndex == -1 {
 		return false

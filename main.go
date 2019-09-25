@@ -12,6 +12,7 @@ func main() {
 
 Usage:
   qvh devices
+  qvh testenable
   qvh dumpraw
  
 Options:
