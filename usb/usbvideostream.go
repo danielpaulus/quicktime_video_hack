@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+func EnableQTConfig(devices []IosDevice) error{
+	return nil
+	//return errors.New("not implemented")
+}
+
 func StartReading(device IosDevice) {
 	log.Debug("Enabling Quicktime Config for %s", device.SerialNumber)
 
