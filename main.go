@@ -59,8 +59,12 @@ Options:
 			log.Fatal("Error finding QT Devices", err)
 		}
 		qtOutput := usb.PrintDeviceDetails(qtDevices)
+		if len(qtDevices) != len(devices) {
+			log.Warnf("Less qt devices (%d) than plain usbmux devices (%d)", len(qtDevices), len(devices))
+		}
 		log.Info("iOS Devices with QT Endpoint:")
 		log.Info(qtOutput)
+
 		return
 	}
 

@@ -35,7 +35,9 @@ func FindIosDevicesWithQTEnabled() ([]IosDevice, error) {
 func FindIosDevices() ([]IosDevice, error) {
 	return findIosDevices(isValidIosDevice)
 }
+
 var ctx *gousb.Context
+
 func Init() func() {
 	ctx = gousb.NewContext()
 	return func() {
@@ -47,13 +49,10 @@ func Init() func() {
 }
 
 func findIosDevices(validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]IosDevice, error) {
-
-
-
 	devices, err := ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
 		// this function is called for every device present.
 		// Returning true means the device should be opened.
-		return isValidIosDevice(desc)
+		return validDeviceChecker(desc)
 	})
 	if err != nil {
 		return nil, err
@@ -101,8 +100,8 @@ func isValidIosDevice(desc *gousb.DeviceDesc) bool {
 }
 
 func isValidIosDeviceWithActiveQTConfig(desc *gousb.DeviceDesc) bool {
-	muxConfigIndex, qtConfigIndex := findConfigurations(desc)
-	if muxConfigIndex == -1 || qtConfigIndex == -1 {
+	_, qtConfigIndex := findConfigurations(desc)
+	if qtConfigIndex == -1 {
 		return false
 	}
 	return true
