@@ -1,9 +1,11 @@
 package main
 
 import (
+	"github.com/danielpaulus/go-ios/usbmux"
 	"github.com/danielpaulus/quicktime_video_hack/usb"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 func main() {
@@ -70,7 +72,11 @@ func activate(devices []usb.IosDevice) {
 
 	output := usb.PrintDeviceDetails(devices)
 	log.Info(output)
-	err := usb.EnableQTConfig(devices)
+
+	//This channel will get a UDID string whenever a device is connected
+	attachedChannel := make(chan string)
+	listenForDeviceChanges(attachedChannel)
+	err := usb.EnableQTConfig(devices, attachedChannel)
 	if err != nil {
 		log.Fatal("Error enabling QT config", err)
 	}
@@ -85,4 +91,38 @@ func activate(devices []usb.IosDevice) {
 	}
 	log.Info("iOS Devices with QT Endpoint:")
 	log.Info(qtOutput)
+}
+
+func listenForDeviceChanges(attachedChannel chan string) {
+	muxConnection := usbmux.NewUsbMuxConnection()
+
+	usbmuxDeviceEventReader, err := muxConnection.Listen()
+	if err != nil {
+		log.Fatal("Failed issuing LISTEN command", err)
+		os.Exit(1)
+	}
+
+	//read first message and throw away
+	_, err = usbmuxDeviceEventReader()
+	if err != nil {
+		log.Fatalf("error reading from LISTEN command", err)
+		os.Exit(1)
+	}
+
+	//keep reading attached messages and publish on channel
+	go func() {
+		defer muxConnection.Close()
+		for {
+			//the usbmuxDeviceEventReader blocks until a message is received
+			msg, err := usbmuxDeviceEventReader()
+			if err != nil {
+				log.Error("Stopped listening because of error")
+				return
+			}
+			if msg.DeviceAttached() {
+				log.Debugf("Received attached message for %s", msg.Properties.SerialNumber)
+				attachedChannel <- msg.Properties.SerialNumber
+			}
+		}
+	}()
 }
