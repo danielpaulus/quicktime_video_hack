@@ -12,6 +12,11 @@ import (
 // as it will detect it as the device's preferredConfig.
 func EnableQTConfig(devices []IosDevice, attachedDevicesChannel chan string) error {
 	for _, device := range devices {
+		if isValidIosDeviceWithActiveQTConfig(device.usbDevice.Desc) {
+			log.Debugf("Skipping %s because it already has an active QT config", device.SerialNumber)
+			continue
+		}
+
 		var err error = nil
 		err = sendQTConfigControlRequest(device)
 		if err != nil {
