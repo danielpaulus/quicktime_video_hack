@@ -1,6 +1,7 @@
 package usb
 
 import (
+	"encoding/hex"
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -72,30 +73,36 @@ func StartReading(device IosDevice) {
 		log.Fatal("failed control", err)
 		return
 	}
-	log.Infof("Got %d as val ", val)
+	log.Infof("Clear Feature RC: %d", val)
 
 	iface, err := grabQuickTimeInterface(config)
 	if err != nil {
 		log.Fatal("Couldnt get Quicktime Interface")
 		return
 	}
+	log.Debugf("Got QT iface:%s", iface.String())
+
 	inEndpoint, err := iface.InEndpoint(grabInBulk(iface.Setting))
 	if err != nil {
 		log.Fatal("couldnt get InEndpoint")
 		return
 	}
-	stream, err := inEndpoint.NewStream(8, 3)
+	log.Debugf("Inbound Bulk: %s", inEndpoint.String())
+
+	stream, err := inEndpoint.NewStream(512, 1)
 	if err != nil {
 		log.Fatal("couldnt create stream")
 		return
 	}
-	buffer := make([]byte, 70000)
+	log.Debugf("Endpoint claimed: %s", stream)
+
+	buffer := make([]byte, 512)
 	n, err := stream.Read(buffer)
 	if err != nil {
-		log.Fatal("coudlnt read bytes")
+		log.Fatal("coudlnt read bytes", err)
 		return
 	}
-	log.Info("read %d bytes", n)
+	log.Info("read %d bytes:%s", n, hex.Dump(buffer))
 }
 
 func grabInBulk(setting gousb.InterfaceSetting) int {
