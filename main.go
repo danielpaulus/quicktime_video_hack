@@ -12,6 +12,7 @@ func main() {
 
 Usage:
   qvh devices
+  qvh activate
   qvh dumpraw
  
 Options:
@@ -27,24 +28,61 @@ Options:
 	//TODO:add device selection here
 	log.Info(udid)
 
-	devices, err := usb.FindIosDevices()
+	cleanup := usb.Init()
+	defer cleanup()
+	deviceList, err := usb.FindIosDevices()
+
 	if err != nil {
-		log.Fatal("Error finding Devices", err)
+		log.Fatal("Error finding iOS Devices", err)
 	}
 
 	devicesCommand, _ := arguments.Bool("devices")
 	if devicesCommand {
-		log.Info("iOS Devices with QT Endpoint:")
+		devices(deviceList)
+		return
+	}
 
-		output := usb.PrintDeviceDetails(devices)
-		log.Info(output)
+	activateCommand, _ := arguments.Bool("activate")
+	if activateCommand {
+		activate(deviceList)
 		return
 	}
 
 	rawStreamCommand, _ := arguments.Bool("dumpraw")
 	if rawStreamCommand {
-		dev := devices[0]
+		dev := deviceList[0]
 		usb.StartReading(dev)
 		return
 	}
+}
+
+// Just dump a list of what was discovered to the console
+func devices(devices []usb.IosDevice) {
+	log.Info("iOS Devices with UsbMux Endpoint:")
+
+	output := usb.PrintDeviceDetails(devices)
+	log.Info(output)
+}
+
+// This command is for testing if we can enable the hidden Quicktime device config
+func activate(devices []usb.IosDevice) {
+	log.Info("iOS Devices with UsbMux Endpoint:")
+
+	output := usb.PrintDeviceDetails(devices)
+	log.Info(output)
+	err := usb.EnableQTConfig(devices)
+	if err != nil {
+		log.Fatal("Error enabling QT config", err)
+	}
+
+	qtDevices, err := usb.FindIosDevicesWithQTEnabled()
+	if err != nil {
+		log.Fatal("Error finding QT Devices", err)
+	}
+	qtOutput := usb.PrintDeviceDetails(qtDevices)
+	if len(qtDevices) != len(devices) {
+		log.Warnf("Less qt devices (%d) than plain usbmux devices (%d)", len(qtDevices), len(devices))
+	}
+	log.Info("iOS Devices with QT Endpoint:")
+	log.Info(qtOutput)
 }

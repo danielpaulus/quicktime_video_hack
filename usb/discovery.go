@@ -2,7 +2,7 @@ package usb
 
 import (
 	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 import "github.com/google/gousb"
@@ -24,19 +24,35 @@ const (
 	QuicktimeSubclass gousb.Class = 0x2A
 )
 
+// FindIosDevices finds iOS devices connected on USB ports by looking for their
+// USBMux compatible Bulk Endpoints and QuickTime Video Stream compatible Bulk Endpoints
+func FindIosDevicesWithQTEnabled() ([]IosDevice, error) {
+	return findIosDevices(isValidIosDeviceWithActiveQTConfig)
+}
+
+// FindIosDevices finds iOS devices connected on USB ports by looking for their
+// USBMux compatible Bulk Endpoints
 func FindIosDevices() ([]IosDevice, error) {
-	ctx := gousb.NewContext()
-	defer func() {
+	return findIosDevices(isValidIosDevice)
+}
+
+var ctx *gousb.Context
+
+func Init() func() {
+	ctx = gousb.NewContext()
+	return func() {
 		err := ctx.Close()
 		if err != nil {
 			log.Fatal("Failed while closing usb Context" + err.Error())
 		}
-	}()
+	}
+}
 
+func findIosDevices(validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]IosDevice, error) {
 	devices, err := ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
 		// this function is called for every device present.
 		// Returning true means the device should be opened.
-		return isValidIosDevice(desc)
+		return validDeviceChecker(desc)
 	})
 	if err != nil {
 		return nil, err
@@ -76,8 +92,16 @@ func PrintDeviceDetails(devices []IosDevice) string {
 }
 
 func isValidIosDevice(desc *gousb.DeviceDesc) bool {
-	muxConfigIndex, qtConfigIndex := findConfigurations(desc)
-	if muxConfigIndex == -1 || qtConfigIndex == -1 {
+	muxConfigIndex, _ := findConfigurations(desc)
+	if muxConfigIndex == -1 {
+		return false
+	}
+	return true
+}
+
+func isValidIosDeviceWithActiveQTConfig(desc *gousb.DeviceDesc) bool {
+	_, qtConfigIndex := findConfigurations(desc)
+	if qtConfigIndex == -1 {
 		return false
 	}
 	return true
@@ -90,9 +114,11 @@ func findConfigurations(desc *gousb.DeviceDesc) (int, int) {
 	for _, v := range desc.Configs {
 		if isMuxConfig(v) && !isQtConfig(v) {
 			muxConfigIndex = v.Number
+			log.Debugf("Found MuxConfig %d for Device %s", muxConfigIndex, desc.String())
 		}
 		if isQtConfig(v) {
 			qtConfigIndex = v.Number
+			log.Debugf("Found QTConfig %d for Device %s", qtConfigIndex, desc.String())
 		}
 	}
 	return muxConfigIndex, qtConfigIndex
