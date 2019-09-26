@@ -1,43 +1,35 @@
 package usb
 
 import (
-	"encoding/hex"
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
 
+// EnableQTConfig enables the hidden QuickTime Device configuration that will expose two new bulk endpoints.
+// We will send a control transfer to the device via USB which will cause the device to disconnect and then
+// re-connect with a new device configuration. Usually the usbmuxd will automatically enable that new config
+// as it will detect it as the device's preferredConfig.
 func EnableQTConfig(devices []IosDevice) error {
 	for _, device := range devices {
-
 		var err error = nil
-		err = req(3, device)
+		err = sendQTConfigControlRequest(device)
 		if err != nil {
-			log.Fatal("failed control", err)
 			return err
 		}
-		/*
-		err = req(18, device)
-		if err != nil {
-			log.Fatal("failed control", err)
-			return err
-		}
-*/
 	}
 	return nil
-	//return errors.New("not implemented")
 }
 
-func req(length int, device IosDevice) error {
-	log.Debugf("Req: %d", length)
+func sendQTConfigControlRequest(device IosDevice) error {
 	response := make([]byte, 0)
 	val, err := device.usbDevice.Control(0x40, 0x52, 0x00, 0x02, response)
 
 	if err != nil {
-		log.Fatal("failed control", err)
+		log.Fatal("Failed sending control transfer for enabling hidden QT config", err)
 		return err
 	}
-	log.Infof("RC:%d %s", val, hex.Dump(response))
+	log.Debugf("Enabling QT config RC:%d", val)
 	return nil
 }
 
