@@ -60,7 +60,7 @@ Options:
 
 // Just dump a list of what was discovered to the console
 func devices(devices []usb.IosDevice) {
-	log.Info("iOS Devices with UsbMux Endpoint:")
+	log.Infof("(%d) iOS Devices with UsbMux Endpoint:", len(devices))
 
 	output := usb.PrintDeviceDetails(devices)
 	log.Info(output)
