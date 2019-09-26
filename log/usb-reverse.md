@@ -1,7 +1,25 @@
-you can see QT is changing the config because the device "re connects"
-it's failing
 
-checked the logs, "missing entitlement com.apple.ibridge.control" could this be it?
+
+## Notes:
+ doing some of these things on mac will result in the kernel logging:
+ "missing entitlement com.apple.ibridge.control" could this be it?
+ Seems like there is no real way to do all this on a Mac, on the other hand, you have
+ Quicktime there so why would you? :-D
+
+## Steps
+
+run `main.go activate` to do the following stuff for you:
+On a Mac you can see QT is changing the device usb config when you open the video mirroring.
+That config however is usually missing on the ios device, to make it appear issue the following control transfer to the device:
+0000     40 52 00 00 02 00 00 00                           @R......
+The device will then disconnect itself, and reconnect with an additional USB config.
+USBMUXD usually activates the new config automatically and now it is good to use with two additional bulk endpoints
+providing a video stream.
+
+
+
+
+## random observations:
 
 What i can see from the ios qt
 0000   00 01 20 00 12 00 00 00 00 00 00 00 00 00 00 00   .. .............
