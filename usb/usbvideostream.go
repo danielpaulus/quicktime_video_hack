@@ -1,14 +1,44 @@
 package usb
 
 import (
+	"encoding/hex"
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
 
-func EnableQTConfig(devices []IosDevice) error{
+func EnableQTConfig(devices []IosDevice) error {
+	for _, device := range devices {
+
+		var err error = nil
+		err = req(3, device)
+		if err != nil {
+			log.Fatal("failed control", err)
+			return err
+		}
+		/*
+		err = req(18, device)
+		if err != nil {
+			log.Fatal("failed control", err)
+			return err
+		}
+*/
+	}
 	return nil
 	//return errors.New("not implemented")
+}
+
+func req(length int, device IosDevice) error {
+	log.Debugf("Req: %d", length)
+	response := make([]byte, 0)
+	val, err := device.usbDevice.Control(0x40, 0x52, 0x00, 0x02, response)
+
+	if err != nil {
+		log.Fatal("failed control", err)
+		return err
+	}
+	log.Infof("RC:%d %s", val, hex.Dump(response))
+	return nil
 }
 
 func StartReading(device IosDevice) {
