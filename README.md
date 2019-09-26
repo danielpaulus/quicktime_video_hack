@@ -1,3 +1,4 @@
+## Read only branch that contains the Java Decoder 
 ###  Operating System indepedent implementation for Quicktime Screensharing for iOS devices :-)
 This repository contains all the code you will need to grab and record video and audio from your iPhone or iPad 
 without needing one of these expensive MacOS X computers :-D
