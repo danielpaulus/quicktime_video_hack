@@ -10,13 +10,16 @@ import (
 // We will send a control transfer to the device via USB which will cause the device to disconnect and then
 // re-connect with a new device configuration. Usually the usbmuxd will automatically enable that new config
 // as it will detect it as the device's preferredConfig.
-func EnableQTConfig(devices []IosDevice) error {
+func EnableQTConfig(devices []IosDevice, attachedDevicesChannel chan string) error {
 	for _, device := range devices {
 		var err error = nil
 		err = sendQTConfigControlRequest(device)
 		if err != nil {
 			return err
 		}
+		//FIXME: For now we assume just one device on the host
+		attachedUdid := <-attachedDevicesChannel
+		log.Info("Device '%s' reattached", attachedUdid)
 	}
 	return nil
 }
