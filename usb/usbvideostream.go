@@ -42,6 +42,7 @@ func sendQTConfigControlRequest(device IosDevice) error {
 }
 
 func StartReading(device IosDevice) {
+	stopSignal := make(chan interface{})
 	log.Debug("Enabling Quicktime Config for %s", device.SerialNumber)
 
 	config, err := device.enableQuickTimeConfig()
@@ -72,30 +73,72 @@ func StartReading(device IosDevice) {
 		log.Fatal("failed control", err)
 		return
 	}
-	log.Infof("Got %d as val ", val)
+	log.Infof("Clear Feature RC: %d", val)
 
 	iface, err := grabQuickTimeInterface(config)
 	if err != nil {
 		log.Fatal("Couldnt get Quicktime Interface")
 		return
 	}
+	log.Debugf("Got QT iface:%s", iface.String())
+
 	inEndpoint, err := iface.InEndpoint(grabInBulk(iface.Setting))
 	if err != nil {
 		log.Fatal("couldnt get InEndpoint")
 		return
 	}
-	stream, err := inEndpoint.NewStream(8, 3)
+	log.Debugf("Inbound Bulk: %s", inEndpoint.String())
+
+
+	outEndpoint, err := iface.OutEndpoint(grabOutBulk(iface.Setting))
+	if err != nil {
+		log.Fatal("couldnt get OutEndpoint")
+		return
+	}
+	log.Debugf("Outbound Bulk: %s", outEndpoint.String())
+
+
+	stream, err := inEndpoint.NewStream(512, 1)
 	if err != nil {
 		log.Fatal("couldnt create stream")
 		return
 	}
-	buffer := make([]byte, 70000)
-	n, err := stream.Read(buffer)
-	if err != nil {
-		log.Fatal("coudlnt read bytes")
-		return
+	log.Debugf("Endpoint claimed: %s", stream)
+
+	mp:= NewMessageProcessor(func(bytes []byte) {
+		n, err := outEndpoint.Write(bytes)
+		if err!=nil {
+			log.Error("failed sending to usb", err)
+		}
+		log.Debugf("bytes written:%d", n)
+	}, stopSignal)
+
+	go func() {
+		buffer := make([]byte, 512)
+		for {
+			n, err := stream.Read(buffer)
+			if err != nil {
+				log.Fatal("couldn't read bytes", err)
+				return
+			}
+			msg := make([]byte, n)
+			copy(msg, buffer[:n])
+			mp.receiveData(msg)
+		}
+	}()
+	<-stopSignal
+	stream.Close()
+	iface.Close()
+}
+
+func grabOutBulk(setting gousb.InterfaceSetting) int {
+	for _, v := range setting.Endpoints {
+		if v.Direction == gousb.EndpointDirectionOut {
+			return v.Number
+		}
 	}
-	log.Info("read %d bytes", n)
+	//TODO: error
+	return -1
 }
 
 func grabInBulk(setting gousb.InterfaceSetting) int {
