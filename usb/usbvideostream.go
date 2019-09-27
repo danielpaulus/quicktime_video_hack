@@ -1,7 +1,6 @@
 package usb
 
 import (
-	"encoding/hex"
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -43,6 +42,7 @@ func sendQTConfigControlRequest(device IosDevice) error {
 }
 
 func StartReading(device IosDevice) {
+	stopSignal := make(chan interface{})
 	log.Debug("Enabling Quicktime Config for %s", device.SerialNumber)
 
 	config, err := device.enableQuickTimeConfig()
@@ -89,6 +89,15 @@ func StartReading(device IosDevice) {
 	}
 	log.Debugf("Inbound Bulk: %s", inEndpoint.String())
 
+
+	outEndpoint, err := iface.OutEndpoint(grabOutBulk(iface.Setting))
+	if err != nil {
+		log.Fatal("couldnt get OutEndpoint")
+		return
+	}
+	log.Debugf("Outbound Bulk: %s", outEndpoint.String())
+
+
 	stream, err := inEndpoint.NewStream(512, 1)
 	if err != nil {
 		log.Fatal("couldnt create stream")
@@ -96,13 +105,40 @@ func StartReading(device IosDevice) {
 	}
 	log.Debugf("Endpoint claimed: %s", stream)
 
-	buffer := make([]byte, 512)
-	n, err := stream.Read(buffer)
-	if err != nil {
-		log.Fatal("coudlnt read bytes", err)
-		return
+	mp:= NewMessageProcessor(func(bytes []byte) {
+		n, err := outEndpoint.Write(bytes)
+		if err!=nil {
+			log.Error("failed sending to usb", err)
+		}
+		log.Debugf("bytes written:%d", n)
+	}, stopSignal)
+
+	go func() {
+		buffer := make([]byte, 512)
+		for {
+			n, err := stream.Read(buffer)
+			if err != nil {
+				log.Fatal("couldn't read bytes", err)
+				return
+			}
+			msg := make([]byte, n)
+			copy(msg, buffer[:n])
+			mp.receiveData(msg)
+		}
+	}()
+	<-stopSignal
+	stream.Close()
+	iface.Close()
+}
+
+func grabOutBulk(setting gousb.InterfaceSetting) int {
+	for _, v := range setting.Endpoints {
+		if v.Direction == gousb.EndpointDirectionOut {
+			return v.Number
+		}
 	}
-	log.Info("read %d bytes:%s", n, hex.Dump(buffer))
+	//TODO: error
+	return -1
 }
 
 func grabInBulk(setting gousb.InterfaceSetting) int {
