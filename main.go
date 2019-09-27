@@ -53,7 +53,10 @@ Options:
 	rawStreamCommand, _ := arguments.Bool("dumpraw")
 	if rawStreamCommand {
 		dev := deviceList[0]
-		usb.StartReading(dev)
+		//This channel will get a UDID string whenever a device is connected
+		attachedChannel := make(chan string)
+		listenForDeviceChanges(attachedChannel)
+		usb.StartReading(dev, attachedChannel)
 		return
 	}
 }

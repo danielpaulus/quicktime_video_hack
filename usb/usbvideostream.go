@@ -12,20 +12,28 @@ import (
 // as it will detect it as the device's preferredConfig.
 func EnableQTConfig(devices []IosDevice, attachedDevicesChannel chan string) error {
 	for _, device := range devices {
-		if isValidIosDeviceWithActiveQTConfig(device.usbDevice.Desc) {
-			log.Debugf("Skipping %s because it already has an active QT config", device.SerialNumber)
-			continue
-		}
-
-		var err error = nil
-		err = sendQTConfigControlRequest(device)
-		if err != nil {
+		err:= enableQTConfigSingleDevice(device, attachedDevicesChannel)
+		if err!=nil{
 			return err
 		}
-		//FIXME: For now we assume just one device on the host
-		attachedUdid := <-attachedDevicesChannel
-		log.Info("Device '%s' reattached", attachedUdid)
 	}
+	return nil
+}
+
+func enableQTConfigSingleDevice(device IosDevice, attachedDevicesChannel chan string) error{
+	if isValidIosDeviceWithActiveQTConfig(device.usbDevice.Desc) {
+		log.Debugf("Skipping %s because it already has an active QT config", device.SerialNumber)
+		return nil
+	}
+
+	var err error = nil
+	err = sendQTConfigControlRequest(device)
+	if err != nil {
+		return err
+	}
+	//FIXME: For now we assume just one device on the host
+	attachedUdid := <-attachedDevicesChannel
+	log.Info("Device '%s' reattached", attachedUdid)
 	return nil
 }
 
@@ -41,7 +49,12 @@ func sendQTConfigControlRequest(device IosDevice) error {
 	return nil
 }
 
-func StartReading(device IosDevice) {
+func StartReading(device IosDevice, attachedDevicesChannel chan string) {
+	err:= enableQTConfigSingleDevice(device, attachedDevicesChannel)
+	if err!=nil{
+		log.Error("Failed enabling QT Config", err)
+		return
+	}
 	stopSignal := make(chan interface{})
 	log.Debug("Enabling Quicktime Config for %s", device.SerialNumber)
 
