@@ -6,7 +6,7 @@ It probably does something similar to what `QuickTime` and `com.apple.cmio.iOSSc
 Progress:
 1. [~~Write a prototype decoder in Java to reconstruct a Video from a USB Dump taken with Wireshark~~](https://github.com/danielpaulus/quicktime_video_hack/tree/JavaCMSampleBufDecoder/java-x264-decoder) 
 2. ~~Create a Golang App to successfully enable and grab the first video stream data from the iOS Device on Linux~~
-3. Port decoder from Java to Golang
+3. Get a continuous datastream from device working and port decoder from Java to Golang
 4. Generate SPS and PPS dynamically
 5. Generate GStreamer compatible x264 stream
 6. Port to Windows (I don't know why, but still people use Windows nowadays)
