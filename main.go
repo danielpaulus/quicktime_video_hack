@@ -108,7 +108,7 @@ func listenForDeviceChanges(attachedChannel chan string) {
 	//read first message and throw away
 	_, err = usbmuxDeviceEventReader()
 	if err != nil {
-		log.Fatalf("error reading from LISTEN command", err)
+		log.Fatal("error reading from LISTEN command", err)
 		os.Exit(1)
 	}
 

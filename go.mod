@@ -7,4 +7,5 @@ require (
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/google/gousb v0.0.0-20190812193832-18f4c1d8a750
 	github.com/sirupsen/logrus v1.4.2
+	github.com/stretchr/testify v1.2.2
 )
