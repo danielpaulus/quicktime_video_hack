@@ -26,7 +26,7 @@ func (fe *lengthFieldBasedFrameExtractor) ExtractFrame(bytes []byte) ([]byte, bo
 		return fe.handleNewFrame(bytes)
 	}
 	if fe.readyForNextFrame && fe.frameBuffer.Len() != 0 {
-		fe.nextFrameSize = int(binary.LittleEndian.Uint32(fe.frameBuffer.Next(4)))
+		fe.nextFrameSize = int(binary.LittleEndian.Uint32(fe.frameBuffer.Next(4))) - 4
 		fe.readyForNextFrame = false
 		return fe.ExtractFrame(bytes)
 	}
@@ -51,6 +51,10 @@ func (fe *lengthFieldBasedFrameExtractor) handleNewFrame(bytes []byte) ([]byte, 
 	frameLength := int(binary.LittleEndian.Uint32(bytes[:4]))
 	if len(bytes) == frameLength {
 		return bytes[4:], true
+	}
+	if len(bytes) > frameLength {
+		fe.frameBuffer.Write(bytes[frameLength:])
+		return bytes[4:frameLength], true
 	}
 	fe.readyForNextFrame = false
 	fe.frameBuffer.Write(bytes[4:])
