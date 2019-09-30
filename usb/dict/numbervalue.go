@@ -7,7 +7,8 @@ import (
 	"math"
 )
 
-const Magic int = 0x76626D6E
+//vbmn in little endian ascii ==> nmbv
+const NumberValueMagic int = 0x76626D6E
 
 // Type 6 seems to be a float64, type 4 a int64, type 3 a int32.
 // I am not sure whether signed or unsigned. They are all in LittleEndian
