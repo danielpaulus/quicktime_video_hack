@@ -50,3 +50,14 @@ func TestNumberValue(t *testing.T) {
 		assert.Equal(t, typeThreeDecoded, uint32Num.IntValue)
 	}
 }
+
+func TestEncoding(t *testing.T) {
+	floatNSNumber := dict.NewNSNumberFromUFloat64(typeSixDecoded)
+	assert.Equal(t, typeSix, floatNSNumber.ToBytes())
+
+	int32NSNumber := dict.NewNSNumberFromUInt32(typeThreeDecoded)
+	assert.Equal(t, typeThree, int32NSNumber.ToBytes())
+
+	int64NSNumber := dict.NewNSNumberFromUInt64(typeFourDecoded)
+	assert.Equal(t, typeFour, int64NSNumber.ToBytes())
+}

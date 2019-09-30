@@ -19,6 +19,16 @@ type NSNumber struct {
 	FloatValue float64
 }
 
+func NewNSNumberFromUInt32(intValue uint32) NSNumber {
+	return NSNumber{typeSpecifier: 03, IntValue: intValue}
+}
+func NewNSNumberFromUInt64(longValue uint64) NSNumber {
+	return NSNumber{typeSpecifier: 04, LongValue: longValue}
+}
+func NewNSNumberFromUFloat64(floatValue float64) NSNumber {
+	return NSNumber{typeSpecifier: 06, FloatValue: floatValue}
+}
+
 //Read what I assume is a NSNumber from bytes
 func NewNSNumber(bytes []byte) (NSNumber, error) {
 	typeSpecifier := bytes[0]
@@ -45,4 +55,27 @@ func NewNSNumber(bytes []byte) (NSNumber, error) {
 		return NSNumber{}, fmt.Errorf("unknown NSNumber type %d", typeSpecifier)
 	}
 
+}
+
+func (n NSNumber) ToBytes() []byte {
+	switch n.typeSpecifier {
+	case 6:
+		result := make([]byte, 9)
+		binary.LittleEndian.PutUint64(result[1:], math.Float64bits(n.FloatValue))
+		result[0] = n.typeSpecifier
+		return result
+	case 4:
+		result := make([]byte, 9)
+		binary.LittleEndian.PutUint64(result[1:], n.LongValue)
+		result[0] = n.typeSpecifier
+		return result
+	case 3:
+		result := make([]byte, 5)
+		binary.LittleEndian.PutUint32(result[1:], n.IntValue)
+		result[0] = n.typeSpecifier
+		return result
+	default:
+		//shouldn't happen
+		return nil
+	}
 }
