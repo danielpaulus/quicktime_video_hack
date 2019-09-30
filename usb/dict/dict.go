@@ -88,9 +88,11 @@ func parseValue(bytes []byte) (interface{}, error) {
 		return NewNSNumber(bytes[8:])
 	case DictMagicValue:
 		return NewDictFromBytes(bytes)
+	case FormatDescriptorMagic:
+		return NewFormatDescriptorFromBytes(bytes)
 	default:
 		unknownMagic := string(bytes[4:8])
-		return nil, fmt.Errorf("unknown dictionary magic type:%s (%x), cannot parse value %s", unknownMagic, magic, hex.Dump(bytes))
+		return nil, fmt.Errorf("unknown dictionary magic type:%s (0x%x), cannot parse value %s", unknownMagic, magic, hex.Dump(bytes))
 	}
 	return bytes, nil
 }

@@ -21,7 +21,7 @@ func TestBooleanEntry(t *testing.T) {
 	}
 }
 
-func TestSimpleDictEntry(t *testing.T) {
+func TestSimpleDict(t *testing.T) {
 	dat, err := ioutil.ReadFile("fixtures/dict.bin")
 	if err != nil {
 		log.Fatal(err)
@@ -44,5 +44,17 @@ func TestSimpleDictEntry(t *testing.T) {
 
 		assert.Equal(t, "Height", displaySize.Entries[1].Key)
 		assert.Equal(t, float64(1200), displaySize.Entries[1].Value.(dict.NSNumber).FloatValue)
+	}
+}
+
+func TestComplexDict(t *testing.T) {
+	dat, err := ioutil.ReadFile("fixtures/complex_dict.bin")
+	if err != nil {
+		log.Fatal(err)
+	}
+	mydict, err := dict.NewDictFromBytes(dat)
+	if assert.NoError(t, err) {
+		assert.Equal(t, 3, len(mydict.Entries))
+		assert.IsType(t, dict.FormatDescriptor{}, mydict.Entries[2].Value)
 	}
 }
