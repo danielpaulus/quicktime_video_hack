@@ -11,6 +11,9 @@ const strk = 0x7374726B
 //bulv in ascii, vlub in little endian
 const BooleanValueMagic = 0x62756C76
 
+//dict or tcid
+const DictMagicValue = 0x64696374
+
 type Dict struct {
 	Entries []DictEntry
 }
@@ -20,7 +23,16 @@ type DictEntry struct {
 }
 
 func NewDictFromBytes(data []byte) (Dict, error) {
-	var slice = data
+	dictLength := binary.LittleEndian.Uint32(data)
+	if int(dictLength) > len(data) {
+		return Dict{}, fmt.Errorf("invalid dict: %s", hex.Dump(data))
+	}
+	magic := binary.LittleEndian.Uint32(data[4:])
+	if DictMagicValue != magic {
+		return Dict{}, fmt.Errorf("invalid dict magic:%x, cannot parse dict %s", magic, hex.Dump(data))
+	}
+
+	var slice = data[8:]
 	dict := Dict{}
 	for len(slice) != 0 {
 		keyValuePairLength := binary.LittleEndian.Uint32(slice)
@@ -68,14 +80,17 @@ func parseValue(bytes []byte) (interface{}, error) {
 	if len(bytes) < int(valueLength) {
 		return nil, fmt.Errorf("invalid value data length, cannot parse %s", hex.Dump(bytes))
 	}
-	magic := int(binary.LittleEndian.Uint32(bytes[4:]))
-	switch magic {
+	magic := binary.LittleEndian.Uint32(bytes[4:])
+	switch int(magic) {
 	case BooleanValueMagic:
 		return bytes[8] == 1, nil
 	case NumberValueMagic:
 		return NewNSNumber(bytes[8:])
+	case DictMagicValue:
+		return NewDictFromBytes(bytes)
 	default:
-		return nil, fmt.Errorf("invalid value magic type:%x, cannot parse value %s", magic, hex.Dump(bytes))
+		unknownMagic := string(bytes[4:8])
+		return nil, fmt.Errorf("unknown dictionary magic type:%s (%x), cannot parse value %s", unknownMagic, magic, hex.Dump(bytes))
 	}
 	return bytes, nil
 }
