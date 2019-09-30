@@ -16,20 +16,25 @@ const typeThreeDecoded uint32 = 30
 const typeFourDecoded uint64 = 5
 
 func TestErrors(t *testing.T) {
-	typeSix[0] = 3
-	_, err := dict.NewNSNumber(typeSix)
+	var broken []byte
+	broken = make([]byte, len(typeSix))
+	copy(broken, typeSix)
+	broken[0] = 3
+	_, err := dict.NewNSNumber(broken)
 	assert.Error(t, err)
 
-	typeThree[0] = 6
-	_, err = dict.NewNSNumber(typeThree)
+	broken = make([]byte, len(typeThree))
+	copy(broken, typeThree)
+	broken[0] = 6
+	_, err = dict.NewNSNumber(broken)
 	assert.Error(t, err)
 
-	typeThree[0] = 4
-	_, err = dict.NewNSNumber(typeThree)
+	broken[0] = 4
+	_, err = dict.NewNSNumber(broken)
 	assert.Error(t, err)
 
-	typeThree[0] = 56
-	_, err = dict.NewNSNumber(typeThree)
+	broken[0] = 56
+	_, err = dict.NewNSNumber(broken)
 	assert.Error(t, err)
 }
 
