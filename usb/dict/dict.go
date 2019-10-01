@@ -32,11 +32,11 @@ type IndexKeyEntry struct {
 	Value interface{}
 }
 
-func NewIntDictFromBytes(data []byte) (IndexKeyDict, error) {
-	return NewIntDictFromBytesWithCustomMarker(data, DictionaryMagic)
+func NewIndexDictFromBytes(data []byte) (IndexKeyDict, error) {
+	return NewIndexDictFromBytesWithCustomMarker(data, DictionaryMagic)
 }
 
-func NewIntDictFromBytesWithCustomMarker(data []byte, magic uint32) (IndexKeyDict, error) {
+func NewIndexDictFromBytesWithCustomMarker(data []byte, magic uint32) (IndexKeyDict, error) {
 	_, remainingBytes, err := parseLengthAndMagic(data, magic)
 	if err != nil {
 		return IndexKeyDict{}, err
@@ -144,7 +144,7 @@ func parseValue(bytes []byte) (interface{}, error) {
 		//FIXME: that is a lazy implementation, improve please
 		dict, err := NewStringDictFromBytes(bytes)
 		if err != nil {
-			return NewIntDictFromBytes(bytes)
+			return NewIndexDictFromBytes(bytes)
 		}
 		return dict, nil
 	case FormatDescriptorMagic:

@@ -13,7 +13,7 @@ func TestIntDict(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	mydict, err := dict.NewIntDictFromBytes(dat)
+	mydict, err := dict.NewIndexDictFromBytes(dat)
 	if assert.NoError(t, err) {
 		assert.Equal(t, 2, len(mydict.Entries))
 		assert.Equal(t, uint16(49), mydict.Entries[0].Key)
