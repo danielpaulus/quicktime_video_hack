@@ -24,29 +24,29 @@ type StringKeyEntry struct {
 	Value interface{}
 }
 
-type IntKeyDict struct {
-	Entries []IntKeyEntry
+type IndexKeyDict struct {
+	Entries []IndexKeyEntry
 }
-type IntKeyEntry struct {
+type IndexKeyEntry struct {
 	Key   uint16
 	Value interface{}
 }
 
-func NewIntDictFromBytes(data []byte) (IntKeyDict, error) {
+func NewIntDictFromBytes(data []byte) (IndexKeyDict, error) {
 	return NewIntDictFromBytesWithCustomMarker(data, DictionaryMagic)
 }
 
-func NewIntDictFromBytesWithCustomMarker(data []byte, magic uint32) (IntKeyDict, error) {
+func NewIntDictFromBytesWithCustomMarker(data []byte, magic uint32) (IndexKeyDict, error) {
 	_, remainingBytes, err := parseLengthAndMagic(data, magic)
 	if err != nil {
-		return IntKeyDict{}, err
+		return IndexKeyDict{}, err
 	}
 	var slice = remainingBytes
-	dict := IntKeyDict{}
+	dict := IndexKeyDict{}
 	for len(slice) != 0 {
 		keyValuePairLength, _, err := parseLengthAndMagic(slice, KeyValuePairMagic)
 		if err != nil {
-			return IntKeyDict{}, err
+			return IndexKeyDict{}, err
 		}
 		keyValuePair := slice[8:keyValuePairLength]
 		intDictEntry, err := parseIntDictEntry(keyValuePair)
@@ -83,16 +83,16 @@ func NewStringDictFromBytes(data []byte) (StringKeyDict, error) {
 	return dict, nil
 }
 
-func parseIntDictEntry(bytes []byte) (IntKeyEntry, error) {
+func parseIntDictEntry(bytes []byte) (IndexKeyEntry, error) {
 	key, remainingBytes, err := parseIntKey(bytes)
 	if err != nil {
-		return IntKeyEntry{}, err
+		return IndexKeyEntry{}, err
 	}
 	value, err := parseValue(remainingBytes)
 	if err != nil {
-		return IntKeyEntry{}, err
+		return IndexKeyEntry{}, err
 	}
-	return IntKeyEntry{Key: key, Value: value}, nil
+	return IndexKeyEntry{Key: key, Value: value}, nil
 }
 
 func parseEntry(bytes []byte) (StringKeyEntry, error) {
@@ -155,7 +155,7 @@ func parseValue(bytes []byte) (interface{}, error) {
 	}
 }
 
-func (ikd IntKeyDict) getValue(index uint16) interface{} {
+func (ikd IndexKeyDict) getValue(index uint16) interface{} {
 	for _, entry := range ikd.Entries {
 		if entry.Key == index {
 			return entry.Value

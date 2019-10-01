@@ -24,7 +24,7 @@ type FormatDescriptor struct {
 	VideoDimensionWidth  uint32
 	VideoDimensionHeight uint32
 	Codec                uint32
-	Extensions           IntKeyDict
+	Extensions           IndexKeyDict
 }
 
 func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
@@ -103,10 +103,10 @@ func (fdsc FormatDescriptor) String() string {
 		readableCodec(fdsc.Codec), readableExtensions(fdsc.Extensions))
 }
 
-func readableExtensions(dict IntKeyDict) string {
+func readableExtensions(dict IndexKeyDict) string {
 	//TODO: find out if these index numbers are arbitray
 	container := dict.getValue(52).(string)
-	nestedDict := dict.getValue(49).(IntKeyDict)
+	nestedDict := dict.getValue(49).(IndexKeyDict)
 	data := nestedDict.getValue(105).([]byte)
 	return fmt.Sprintf("[Container:%s, Data:0x%x]", container, data)
 }
