@@ -93,5 +93,4 @@ func parseValue(bytes []byte) (interface{}, error) {
 		unknownMagic := string(bytes[4:8])
 		return nil, fmt.Errorf("unknown dictionary magic type:%s (0x%x), cannot parse value %s", unknownMagic, magic, hex.Dump(bytes))
 	}
-	return bytes, nil
 }
