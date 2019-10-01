@@ -6,35 +6,32 @@ import (
 )
 
 const (
-	initialState = iota
-	pingSent = iota
+	initialState          = iota
+	pingSent              = iota
 	pingExchangeCompleted = iota
 )
 
-type messageProcessor struct{
+type messageProcessor struct {
 	connectionState int
-	writeToUsb func([]byte)
-	stopSignal chan interface{}
+	writeToUsb      func([]byte)
+	stopSignal      chan interface{}
 }
 
 func NewMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) messageProcessor {
-	var mp = messageProcessor{connectionState:initialState, writeToUsb:writeToUsb, stopSignal:stopSignal}
+	var mp = messageProcessor{connectionState: initialState, writeToUsb: writeToUsb, stopSignal: stopSignal}
 	return mp
 }
 
-func (mp *messageProcessor) receiveData(data []byte){
+func (mp *messageProcessor) receiveData(data []byte) {
 	log.Debugf("Rcv:\n%s", hex.Dump(data))
-	if mp.connectionState == initialState{
+	//TODO: extractFrame(data)
+	if mp.connectionState == initialState {
 		log.Debug("initial ping received, sending ping back")
 		mp.respondToPing(data)
 		mp.connectionState = pingSent
 		return
 	}
-	if mp.connectionState == pingSent{
-		log.Debug("second ping received, start reading actual data")
-		mp.connectionState = pingExchangeCompleted
-		return
-	}
+
 	var stop interface{}
 	mp.stopSignal <- stop
 }

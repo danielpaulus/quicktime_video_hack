@@ -12,15 +12,15 @@ import (
 // as it will detect it as the device's preferredConfig.
 func EnableQTConfig(devices []IosDevice, attachedDevicesChannel chan string) error {
 	for _, device := range devices {
-		err:= enableQTConfigSingleDevice(device, attachedDevicesChannel)
-		if err!=nil{
+		err := enableQTConfigSingleDevice(device, attachedDevicesChannel)
+		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func enableQTConfigSingleDevice(device IosDevice, attachedDevicesChannel chan string) error{
+func enableQTConfigSingleDevice(device IosDevice, attachedDevicesChannel chan string) error {
 	if isValidIosDeviceWithActiveQTConfig(device.usbDevice.Desc) {
 		log.Debugf("Skipping %s because it already has an active QT config", device.SerialNumber)
 		return nil
@@ -33,7 +33,7 @@ func enableQTConfigSingleDevice(device IosDevice, attachedDevicesChannel chan st
 	}
 	//FIXME: For now we assume just one device on the host
 	attachedUdid := <-attachedDevicesChannel
-	log.Info("Device '%s' reattached", attachedUdid)
+	log.Infof("Device '%s' reattached", attachedUdid)
 	return nil
 }
 
@@ -50,14 +50,17 @@ func sendQTConfigControlRequest(device IosDevice) error {
 }
 
 func StartReading(device IosDevice, attachedDevicesChannel chan string) {
-	err:= enableQTConfigSingleDevice(device, attachedDevicesChannel)
-	if err!=nil{
+	err := enableQTConfigSingleDevice(device, attachedDevicesChannel)
+	if err != nil {
 		log.Error("Failed enabling QT Config", err)
 		return
 	}
 	stopSignal := make(chan interface{})
-	log.Debug("Enabling Quicktime Config for %s", device.SerialNumber)
+	log.Debugf("Enabling Quicktime Config for %s", device.SerialNumber)
 
+	muxConfig, qtConfig := findConfigurations(device.usbDevice.Desc)
+	device.QTConfigIndex = qtConfig
+	device.UsbMuxConfigIndex = muxConfig
 	config, err := device.enableQuickTimeConfig()
 	defer func() {
 		log.Debug("closing Device")
@@ -68,15 +71,15 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 		log.Debug("re-enabling default device config")
 		err = device.enableUsbMuxConfig()
 		if err != nil {
-			log.Fatal("Failed re-enabling UsbMuxConfig, your device might be broken.", err)
+			log.Error("Failed re-enabling UsbMuxConfig, your device might be broken.", err)
 		}
 	}()
 	if err != nil {
-		log.Fatal("Failed enabling Quicktime Device Config. Is Quicktime running on your Machine? If so, close it.")
+		log.Fatal("Failed enabling Quicktime Device Config. Is Quicktime running on your Machine? If so, close it.", err)
 		return
 	}
 
-	log.Info("QT Config is active: %s", config.String())
+	log.Infof("QT Config is active: %s", config.String())
 
 	//in idx muss sicher der endpoint rein
 	duration, _ := time.ParseDuration("20ms")
@@ -87,6 +90,13 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 		return
 	}
 	log.Infof("Clear Feature RC: %d", val)
+
+	val1, err1 := device.usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
+	if err1 != nil {
+		log.Fatal("failed control", err1)
+		return
+	}
+	log.Infof("Clear Feature RC: %d", val1)
 
 	iface, err := grabQuickTimeInterface(config)
 	if err != nil {
@@ -102,7 +112,6 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 	}
 	log.Debugf("Inbound Bulk: %s", inEndpoint.String())
 
-
 	outEndpoint, err := iface.OutEndpoint(grabOutBulk(iface.Setting))
 	if err != nil {
 		log.Fatal("couldnt get OutEndpoint")
@@ -110,36 +119,40 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 	}
 	log.Debugf("Outbound Bulk: %s", outEndpoint.String())
 
-
 	stream, err := inEndpoint.NewStream(512, 1)
 	if err != nil {
 		log.Fatal("couldnt create stream")
 		return
 	}
-	log.Debugf("Endpoint claimed: %s", stream)
+	log.Debug("Endpoint claimed")
 
-	mp:= NewMessageProcessor(func(bytes []byte) {
+	mp := NewMessageProcessor(func(bytes []byte) {
 		n, err := outEndpoint.Write(bytes)
-		if err!=nil {
+		if err != nil {
 			log.Error("failed sending to usb", err)
 		}
 		log.Debugf("bytes written:%d", n)
 	}, stopSignal)
 
 	go func() {
-		buffer := make([]byte, 512)
+
+		frameExtractor := NewLengthFieldBasedFrameExtractor()
 		for {
+			buffer := make([]byte, 65536)
+
 			n, err := stream.Read(buffer)
 			if err != nil {
-				log.Fatal("couldn't read bytes", err)
+				log.Error("couldn't read bytes", err)
 				return
 			}
-			msg := make([]byte, n)
-			copy(msg, buffer[:n])
-			mp.receiveData(msg)
+			frame, isCompleteFrame := frameExtractor.ExtractFrame(buffer[:n])
+			if isCompleteFrame {
+				mp.receiveData(frame)
+			}
 		}
 	}()
 	<-stopSignal
+	log.Debugf("Closing stream")
 	stream.Close()
 	iface.Close()
 }
