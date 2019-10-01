@@ -24,6 +24,7 @@ type FormatDescriptor struct {
 	VideoDimensionWidth  uint32
 	VideoDimensionHeight uint32
 	Codec                uint32
+	Extensions           IntKeyDict
 }
 
 func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
@@ -47,11 +48,14 @@ func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
 		return FormatDescriptor{}, err
 	}
 
+	extensions, err := NewIntDictFromBytesWithCustomMarker(remainingBytes, ExtensionMagic)
+
 	return FormatDescriptor{
 		MediaType:            mediaType,
 		VideoDimensionHeight: videoDimensionHeight,
 		VideoDimensionWidth:  videoDimensionWidth,
 		Codec:                codec,
+		Extensions:           extensions,
 	}, nil
 }
 
@@ -93,8 +97,18 @@ func parseMediaType(bytes []byte) (uint32, []byte, error) {
 }
 
 func (fdsc FormatDescriptor) String() string {
-	return fmt.Sprintf("FormatDescriptor:\n\t MediaType %s \n\t VideoDimension:(%dx%d) \n\t Codec:%s \n",
-		readableMediaType(fdsc.MediaType), fdsc.VideoDimensionWidth, fdsc.VideoDimensionHeight, readableCodec(fdsc.Codec))
+	return fmt.Sprintf(
+		"FormatDescriptor:\n\t MediaType %s \n\t VideoDimension:(%dx%d) \n\t Codec:%s \n\t Extensions:%s \n",
+		readableMediaType(fdsc.MediaType), fdsc.VideoDimensionWidth, fdsc.VideoDimensionHeight,
+		readableCodec(fdsc.Codec), readableExtensions(fdsc.Extensions))
+}
+
+func readableExtensions(dict IntKeyDict) string {
+	//TODO: find out if these index numbers are arbitray
+	container := dict.getValue(52).(string)
+	nestedDict := dict.getValue(49).(IntKeyDict)
+	data := nestedDict.getValue(105).([]byte)
+	return fmt.Sprintf("[Container:%s, Data:0x%x]", container, data)
 }
 
 func readableCodec(codec uint32) string {

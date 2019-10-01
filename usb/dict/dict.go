@@ -166,3 +166,12 @@ func parseValue(bytes []byte) (interface{}, error) {
 		return nil, fmt.Errorf("unknown dictionary magic type:%s (0x%x), cannot parse value %s", unknownMagic, magic, hex.Dump(bytes))
 	}
 }
+
+func (ikd IntKeyDict) getValue(index uint16) interface{} {
+	for _, entry := range ikd.Entries {
+		if entry.Key == index {
+			return entry.Value
+		}
+	}
+	return nil
+}
