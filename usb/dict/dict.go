@@ -82,7 +82,7 @@ func parseValue(bytes []byte) (interface{}, error) {
 		return nil, fmt.Errorf("invalid value data length, cannot parse %s", hex.Dump(bytes))
 	}
 	magic := binary.LittleEndian.Uint32(bytes[4:])
-	switch int(magic) {
+	switch magic {
 	case BooleanValueMagic:
 		return bytes[8] == 1, nil
 	case NumberValueMagic:

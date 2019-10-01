@@ -8,7 +8,7 @@ import (
 )
 
 //vbmn in little endian ascii ==> nmbv
-const NumberValueMagic int = 0x6E6D6276
+const NumberValueMagic uint32 = 0x6E6D6276
 
 // Type 6 seems to be a float64, type 4 a int64, type 3 a int32.
 // I am not sure whether signed or unsigned. They are all in LittleEndian
