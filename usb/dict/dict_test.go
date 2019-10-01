@@ -8,12 +8,33 @@ import (
 	"testing"
 )
 
+func TestIntDict(t *testing.T) {
+	dat, err := ioutil.ReadFile("fixtures/intdict.bin")
+	if err != nil {
+		log.Fatal(err)
+	}
+	mydict, err := dict.NewIntDictFromBytes(dat)
+	if assert.NoError(t, err) {
+		assert.Equal(t, 2, len(mydict.Entries))
+		assert.Equal(t, uint16(49), mydict.Entries[0].Key)
+		assert.IsType(t, dict.IntKeyDict{}, mydict.Entries[0].Value)
+		nestedDict := mydict.Entries[0].Value.(dict.IntKeyDict)
+
+		assert.Equal(t, 1, len(nestedDict.Entries))
+		assert.Equal(t, uint16(105), nestedDict.Entries[0].Key)
+		assert.Equal(t, 36, len(nestedDict.Entries[0].Value.([]byte)))
+
+		assert.Equal(t, uint16(52), mydict.Entries[1].Key)
+		assert.Equal(t, "H.264", mydict.Entries[1].Value)
+	}
+}
+
 func TestBooleanEntry(t *testing.T) {
 	dat, err := ioutil.ReadFile("fixtures/bulvalue.bin")
 	if err != nil {
 		log.Fatal(err)
 	}
-	mydict, err := dict.NewDictFromBytes(dat)
+	mydict, err := dict.NewStringDictFromBytes(dat)
 	if assert.NoError(t, err) {
 		assert.Equal(t, 1, len(mydict.Entries))
 		assert.Equal(t, "Valeria", mydict.Entries[0].Key)
@@ -26,7 +47,7 @@ func TestSimpleDict(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	mydict, err := dict.NewDictFromBytes(dat)
+	mydict, err := dict.NewStringDictFromBytes(dat)
 	if assert.NoError(t, err) {
 		assert.Equal(t, 3, len(mydict.Entries))
 		assert.Equal(t, "Valeria", mydict.Entries[0].Key)
@@ -52,7 +73,7 @@ func TestComplexDict(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	mydict, err := dict.NewDictFromBytes(dat)
+	mydict, err := dict.NewStringDictFromBytes(dat)
 	if assert.NoError(t, err) {
 		assert.Equal(t, 3, len(mydict.Entries))
 		assert.IsType(t, dict.FormatDescriptor{}, mydict.Entries[2].Value)
