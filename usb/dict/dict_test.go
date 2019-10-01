@@ -36,7 +36,7 @@ func TestSimpleDict(t *testing.T) {
 		assert.Equal(t, true, mydict.Entries[1].Value.(bool))
 
 		assert.Equal(t, "DisplaySize", mydict.Entries[2].Key)
-		displaySize := mydict.Entries[2].Value.(dict.Dict)
+		displaySize := mydict.Entries[2].Value.(dict.StringKeyDict)
 		assert.Equal(t, 2, len(displaySize.Entries))
 
 		assert.Equal(t, "Width", displaySize.Entries[0].Key)

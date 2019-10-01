@@ -14,27 +14,27 @@ const BooleanValueMagic = 0x62756C76
 //dict or tcid
 const DictMagicValue = 0x64696374
 
-type Dict struct {
-	Entries []DictEntry
+type StringKeyDict struct {
+	Entries []StringKeyEntry
 }
-type DictEntry struct {
+type StringKeyEntry struct {
 	Key   string
 	Value interface{}
 }
 
-func NewDictFromBytes(data []byte) (Dict, error) {
+func NewDictFromBytes(data []byte) (StringKeyDict, error) {
 	dictLength := binary.LittleEndian.Uint32(data)
 	if int(dictLength) > len(data) {
-		return Dict{}, fmt.Errorf("invalid dict: %s", hex.Dump(data))
+		return StringKeyDict{}, fmt.Errorf("invalid dict: %s", hex.Dump(data))
 	}
 	magic := binary.LittleEndian.Uint32(data[4:])
 	if DictMagicValue != magic {
 		unknownMagic := string(data[4:8])
-		return Dict{}, fmt.Errorf("invalid dict magic:%s (0x%x), cannot parse dict %s", unknownMagic, magic, hex.Dump(data))
+		return StringKeyDict{}, fmt.Errorf("invalid dict magic:%s (0x%x), cannot parse dict %s", unknownMagic, magic, hex.Dump(data))
 	}
 
 	var slice = data[8:]
-	dict := Dict{}
+	dict := StringKeyDict{}
 	for len(slice) != 0 {
 		keyValuePairLength := binary.LittleEndian.Uint32(slice)
 		if int(keyValuePairLength) > len(slice) {
@@ -51,16 +51,16 @@ func NewDictFromBytes(data []byte) (Dict, error) {
 	return dict, nil
 }
 
-func parseEntry(bytes []byte) (DictEntry, error) {
+func parseEntry(bytes []byte) (StringKeyEntry, error) {
 	key, remainingBytes, err := parseKey(bytes)
 	if err != nil {
-		return DictEntry{}, err
+		return StringKeyEntry{}, err
 	}
 	value, err := parseValue(remainingBytes)
 	if err != nil {
-		return DictEntry{}, err
+		return StringKeyEntry{}, err
 	}
-	return DictEntry{Key: key, Value: value}, nil
+	return StringKeyEntry{Key: key, Value: value}, nil
 }
 
 func parseKey(bytes []byte) (string, []byte, error) {
