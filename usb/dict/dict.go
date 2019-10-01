@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	KeyValuePairMagic uint32 = 0x6B657976 //keyv - vyek
 	StringKey         uint32 = 0x7374726B //strk - krts
 	IntKey            uint32 = 0x6964786B //idxk - kxdi
 	BooleanValueMagic uint32 = 0x62756C76 //bulv - vlub
@@ -59,17 +60,12 @@ func NewIntDictFromBytesWithCustomMarker(data []byte, magic uint32) (IntKeyDict,
 }
 
 func NewStringDictFromBytes(data []byte) (StringKeyDict, error) {
-	dictLength := binary.LittleEndian.Uint32(data)
-	if int(dictLength) > len(data) {
-		return StringKeyDict{}, fmt.Errorf("invalid dict: %s", hex.Dump(data))
-	}
-	magic := binary.LittleEndian.Uint32(data[4:])
-	if DictionaryMagic != magic {
-		unknownMagic := string(data[4:8])
-		return StringKeyDict{}, fmt.Errorf("invalid dict magic:%s (0x%x), cannot parse dict %s", unknownMagic, magic, hex.Dump(data))
+	_, remainingBytes, err := parseLengthAndMagic(data, DictionaryMagic)
+	if err != nil {
+		return StringKeyDict{}, err
 	}
 
-	var slice = data[8:]
+	var slice = remainingBytes
 	dict := StringKeyDict{}
 	for len(slice) != 0 {
 		keyValuePairLength := binary.LittleEndian.Uint32(slice)
