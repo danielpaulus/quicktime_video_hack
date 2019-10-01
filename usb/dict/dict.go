@@ -6,13 +6,11 @@ import (
 	"fmt"
 )
 
-const strk = 0x7374726B
-
-//bulv in ascii, vlub in little endian
-const BooleanValueMagic = 0x62756C76
-
-//dict or tcid
-const DictMagicValue = 0x64696374
+const (
+	StringKey         uint32 = 0x7374726B // StringKey - krts
+	BooleanValueMagic uint32 = 0x62756C76 //bulv - vlub
+	DictionaryMagic   uint32 = 0x64696374 //dict - tcid
+)
 
 type StringKeyDict struct {
 	Entries []StringKeyEntry
@@ -28,7 +26,7 @@ func NewDictFromBytes(data []byte) (StringKeyDict, error) {
 		return StringKeyDict{}, fmt.Errorf("invalid dict: %s", hex.Dump(data))
 	}
 	magic := binary.LittleEndian.Uint32(data[4:])
-	if DictMagicValue != magic {
+	if DictionaryMagic != magic {
 		unknownMagic := string(data[4:8])
 		return StringKeyDict{}, fmt.Errorf("invalid dict magic:%s (0x%x), cannot parse dict %s", unknownMagic, magic, hex.Dump(data))
 	}
@@ -69,7 +67,7 @@ func parseKey(bytes []byte) (string, []byte, error) {
 		return "", nil, fmt.Errorf("invalid key data length, cannot parse string %s", hex.Dump(bytes))
 	}
 	magic := binary.LittleEndian.Uint32(bytes[4:])
-	if strk != magic {
+	if StringKey != magic {
 		return "", nil, fmt.Errorf("invalid key magic:%x, cannot parse string %s", magic, hex.Dump(bytes))
 	}
 	key := string(bytes[8:keyLength])
@@ -87,7 +85,7 @@ func parseValue(bytes []byte) (interface{}, error) {
 		return bytes[8] == 1, nil
 	case NumberValueMagic:
 		return NewNSNumber(bytes[8:])
-	case DictMagicValue:
+	case DictionaryMagic:
 		return NewDictFromBytes(bytes)
 	case FormatDescriptorMagic:
 		return NewFormatDescriptorFromBytes(bytes)
