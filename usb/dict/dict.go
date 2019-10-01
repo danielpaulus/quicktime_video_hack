@@ -29,7 +29,8 @@ func NewDictFromBytes(data []byte) (Dict, error) {
 	}
 	magic := binary.LittleEndian.Uint32(data[4:])
 	if DictMagicValue != magic {
-		return Dict{}, fmt.Errorf("invalid dict magic:%x, cannot parse dict %s", magic, hex.Dump(data))
+		unknownMagic := string(data[4:8])
+		return Dict{}, fmt.Errorf("invalid dict magic:%s (0x%x), cannot parse dict %s", unknownMagic, magic, hex.Dump(data))
 	}
 
 	var slice = data[8:]
