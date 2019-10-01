@@ -44,9 +44,9 @@ func NewIntDictFromBytesWithCustomMarker(data []byte, magic uint32) (IntKeyDict,
 	var slice = remainingBytes
 	dict := IntKeyDict{}
 	for len(slice) != 0 {
-		keyValuePairLength := binary.LittleEndian.Uint32(slice)
-		if int(keyValuePairLength) > len(slice) {
-			return dict, fmt.Errorf("invalid dict: %s", hex.Dump(data))
+		keyValuePairLength, _, err := parseLengthAndMagic(slice, KeyValuePairMagic)
+		if err != nil {
+			return IntKeyDict{}, err
 		}
 		keyValuePair := slice[8:keyValuePairLength]
 		intDictEntry, err := parseIntDictEntry(keyValuePair)
@@ -68,12 +68,12 @@ func NewStringDictFromBytes(data []byte) (StringKeyDict, error) {
 	var slice = remainingBytes
 	dict := StringKeyDict{}
 	for len(slice) != 0 {
-		keyValuePairLength := binary.LittleEndian.Uint32(slice)
-		if int(keyValuePairLength) > len(slice) {
-			return dict, fmt.Errorf("invalid dict: %s", hex.Dump(data))
+		keyValuePairLength, _, err := parseLengthAndMagic(slice, KeyValuePairMagic)
+		if err != nil {
+			return StringKeyDict{}, err
 		}
-		keyValuePair := slice[8:keyValuePairLength]
-		parseDictEntry, err := parseEntry(keyValuePair)
+		keyValuePairData := slice[8:keyValuePairLength]
+		parseDictEntry, err := parseEntry(keyValuePairData)
 		if err != nil {
 			return dict, err
 		}
