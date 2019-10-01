@@ -117,13 +117,9 @@ func parseKey(bytes []byte) (string, []byte, error) {
 }
 
 func parseIntKey(bytes []byte) (uint16, []byte, error) {
-	keyLength := binary.LittleEndian.Uint32(bytes)
-	if len(bytes) < int(keyLength) {
-		return 0, nil, fmt.Errorf("invalid key data length, cannot parse string %s", hex.Dump(bytes))
-	}
-	magic := binary.LittleEndian.Uint32(bytes[4:])
-	if IntKey != magic {
-		return 0, nil, fmt.Errorf("invalid key magic:%x, cannot parse string %s", magic, hex.Dump(bytes))
+	keyLength, _, err := parseLengthAndMagic(bytes, IntKey)
+	if err != nil {
+		return 0, nil, err
 	}
 	key := binary.LittleEndian.Uint16(bytes[8:])
 	return key, bytes[keyLength:], nil
