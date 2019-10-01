@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	StringKey         uint32 = 0x7374726B // StringKey - krts
+	StringKey         uint32 = 0x7374726B //strk - krts
 	BooleanValueMagic uint32 = 0x62756C76 //bulv - vlub
 	DictionaryMagic   uint32 = 0x64696374 //dict - tcid
 )
