@@ -32,6 +32,8 @@ func (mp *messageProcessor) receiveData(data []byte) {
 		return
 	}
 
+	//deviceInfo2 := packet.NewAsynHpa1Packet(messages.CreateHpa1DeviceInfoDict())
+
 	var stop interface{}
 	mp.stopSignal <- stop
 }

@@ -29,7 +29,7 @@ func TestFullSerialization(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	serializedBytes := dict.SerializeStringKeyDict(messages.CreateDeviceInfoDict())
+	serializedBytes := dict.SerializeStringKeyDict(messages.CreateHpa1DeviceInfoDict())
 	assert.Equal(t, dictBytes, serializedBytes)
 
 }

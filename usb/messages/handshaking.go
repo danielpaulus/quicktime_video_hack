@@ -4,7 +4,7 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
 )
 
-func CreateDeviceInfoDict() dict.StringKeyDict {
+func CreateHpa1DeviceInfoDict() dict.StringKeyDict {
 	resultDict := dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 6)}
 	resultDict.Entries[0] = dict.StringKeyEntry{
 		Key:   "BufferAheadInterval",
