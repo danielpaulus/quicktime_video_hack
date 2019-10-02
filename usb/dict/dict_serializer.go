@@ -3,7 +3,6 @@ package dict
 import (
 	"encoding/binary"
 	"log"
-	"os"
 )
 
 func SerializeStringKeyDict(stringKeyDict StringKeyDict) []byte {
@@ -11,10 +10,10 @@ func SerializeStringKeyDict(stringKeyDict StringKeyDict) []byte {
 	var slice = buffer[8:]
 	var index = 0
 	for _, entry := range stringKeyDict.Entries {
-		keyvaluePair := slice[8:]
+		keyvaluePair := slice[index+8:]
 		keyLength := serializeKey(entry.Key, keyvaluePair)
 		valueLength := serializeValue(entry.Value, keyvaluePair[keyLength:])
-		writeLengthAndMagic(slice, keyLength+valueLength+8, KeyValuePairMagic)
+		writeLengthAndMagic(slice[index:], keyLength+valueLength+8, KeyValuePairMagic)
 		index += 8 + valueLength + keyLength
 	}
 	dictSizePlusHeaderAndLength := index + 4 + 4
@@ -33,9 +32,27 @@ func serializeValue(value interface{}, bytes []byte) int {
 		}
 		binary.LittleEndian.PutUint32(bytes[8:], boolValue)
 		return 9
+	case NSNumber:
+		numberBytes := value.(NSNumber).ToBytes()
+		length := len(numberBytes) + 8
+		writeLengthAndMagic(bytes, length, NumberValueMagic)
+		copy(bytes[8:], numberBytes)
+		return length
+	case string:
+		stringValue := value.(string)
+		length := len(stringValue) + 8
+		writeLengthAndMagic(bytes, length, StringValueMagic)
+		copy(bytes[8:], stringValue)
+		return length
+	case []byte:
+		byteValue := value.([]byte)
+		length := len(byteValue) + 8
+		writeLengthAndMagic(bytes, length, DataValueMagic)
+		copy(bytes[8:], byteValue)
+		return length
+	default:
+		log.Fatalf("Wrong type while serializing dict:%s", value)
 	}
-	log.Fatal("wrong type")
-	os.Exit(1)
 	return 0
 }
 

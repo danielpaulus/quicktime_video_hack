@@ -58,6 +58,7 @@ func NewNSNumber(bytes []byte) (NSNumber, error) {
 
 }
 
+//FIXME: remove allocation of array and use one that is passed in instead
 func (n NSNumber) ToBytes() []byte {
 	switch n.typeSpecifier {
 	case 6:

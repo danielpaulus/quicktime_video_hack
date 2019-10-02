@@ -1,6 +1,8 @@
-package dict
+package dict_test
 
 import (
+	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
+	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
@@ -12,11 +14,22 @@ func TestBooleanSerialization(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	stringKeyDict := StringKeyDict{Entries: make([]StringKeyEntry, 1)}
-	stringKeyDict.Entries[0] = StringKeyEntry{
+	stringKeyDict := dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 1)}
+	stringKeyDict.Entries[0] = dict.StringKeyEntry{
 		Key:   "Valeria",
 		Value: true,
 	}
-	serializedDict := SerializeStringKeyDict(stringKeyDict)
+	serializedDict := dict.SerializeStringKeyDict(stringKeyDict)
 	assert.Equal(t, dat, serializedDict)
+}
+
+func TestFullSerialization(t *testing.T) {
+	dictBytes, err := ioutil.ReadFile("fixtures/serialize_dict.bin")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	serializedBytes := dict.SerializeStringKeyDict(messages.CreateDeviceInfoDict())
+	assert.Equal(t, dictBytes, serializedBytes)
+
 }
