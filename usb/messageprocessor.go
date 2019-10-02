@@ -24,6 +24,8 @@ func NewMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) m
 	return mp
 }
 
+var i int
+
 func (mp *messageProcessor) receiveData(data []byte) {
 	log.Debugf("Rcv:\n%s", hex.Dump(data))
 	//TODO: extractFrame(data)
@@ -35,10 +37,25 @@ func (mp *messageProcessor) receiveData(data []byte) {
 		return
 	}
 
-	deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
-	log.Debugf("sending: %s", hex.Dump(deviceInfo))
-	mp.writeToUsb(deviceInfo)
-	return
+	if i == 0 {
+		deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
+		log.Debugf("sending: %s", hex.Dump(deviceInfo))
+		mp.writeToUsb(deviceInfo)
+		i++
+		return
+	}
+	if i == 1 {
+		deviceInfo := packet.NewAsynHpa1Packet(messages.CreateHpd1DeviceInfoDict())
+		log.Debugf("sending: %s", hex.Dump(deviceInfo))
+		mp.writeToUsb(deviceInfo)
+		i++
+		return
+	}
+	if i == 2 {
+		log.Debugf("sending: %s", hex.Dump(packet.AsynNeedPacketBytes))
+		mp.writeToUsb(packet.AsynNeedPacketBytes)
+		return
+	}
 
 	//deviceInfo2 := packet.NewAsynHpa1Packet(messages.CreateHpa1DeviceInfoDict())
 
