@@ -19,6 +19,9 @@ const (
 	ExtensionMagic        uint32 = 0x6578746E //extn - ntxe
 )
 
+//Seems like a CMFormatDescription
+//https://developer.apple.com/documentation/coremedia/cmformatdescription
+//https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.9.sdk/System/Library/Frameworks/CoreMedia.framework/Versions/A/Headers/CMFormatDescription.h
 type FormatDescriptor struct {
 	MediaType            uint32
 	VideoDimensionWidth  uint32
@@ -55,7 +58,7 @@ func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
 		VideoDimensionHeight: videoDimensionHeight,
 		VideoDimensionWidth:  videoDimensionWidth,
 		Codec:                codec,
-		Extensions:           extensions,
+		Extensions:           extensions, //doc on extensions at the bottom of: https://developer.apple.com/documentation/coremedia/cmformatdescription?language=objc
 	}, nil
 }
 

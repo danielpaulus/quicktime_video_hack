@@ -17,3 +17,11 @@ run the `qvh` tool to get details :-)
 Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
 or a LibUsb version BELOW 1.0.20 or iOS devices won't be found on Mac OS X.
 [See Github Issue](https://github.com/libusb/libusb/issues/290)
+
+### How does the Mac get live video from iOS?
+Basically the communication between Mac OSX and the iOS device is really just a bunch of serialized 
+[CoreMedia-Framework](https://developer.apple.com/documentation/coremedia) classes. 
+First there is a negotiation of CMFormatDescription objects, and after that
+the host periodically sends a few `need` packets. The device will respond with a series of CMSampleBuffers containing
+raw h264 [Nalus](https://en.wikipedia.org/wiki/Network_Abstraction_Layer) 
+Those can be forwarded to ffmpeg or gstreamer easily :-D
