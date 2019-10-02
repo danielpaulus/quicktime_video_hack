@@ -42,14 +42,12 @@ func NewAsynHpa1Packet(stringKeyDict dict.StringKeyDict) []byte {
 
 func newAsynDictPacket(stringKeyDict dict.StringKeyDict, subtypeMarker uint32, asynTypeHeader uint64) []byte {
 	serialize := dict.SerializeStringKeyDict(stringKeyDict)
-	dictLength := uint32(len(serialize))
-	length := len(serialize) + 24
-	header := make([]byte, 24)
+	length := len(serialize) + 20
+	header := make([]byte, 20)
 	binary.LittleEndian.PutUint32(header, uint32(length))
-	binary.LittleEndian.PutUint32(header, AsynPacketMagic)
-	binary.LittleEndian.PutUint64(header, asynTypeHeader)
-	binary.LittleEndian.PutUint32(header, subtypeMarker)
-	binary.LittleEndian.PutUint32(header, dictLength)
+	binary.LittleEndian.PutUint32(header[4:], AsynPacketMagic)
+	binary.LittleEndian.PutUint64(header[8:], asynTypeHeader)
+	binary.LittleEndian.PutUint32(header[16:], subtypeMarker)
 	return append(header, serialize...)
 }
 
