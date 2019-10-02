@@ -50,6 +50,10 @@ func serializeValue(value interface{}, bytes []byte) int {
 		writeLengthAndMagic(bytes, length, DataValueMagic)
 		copy(bytes[8:], byteValue)
 		return length
+	case StringKeyDict:
+		dictValue := SerializeStringKeyDict(value.(StringKeyDict))
+		copy(bytes, dictValue)
+		return len(dictValue)
 	default:
 		log.Fatalf("Wrong type while serializing dict:%s", value)
 	}

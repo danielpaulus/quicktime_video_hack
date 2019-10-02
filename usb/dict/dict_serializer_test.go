@@ -32,4 +32,12 @@ func TestFullSerialization(t *testing.T) {
 	serializedBytes := dict.SerializeStringKeyDict(messages.CreateHpa1DeviceInfoDict())
 	assert.Equal(t, dictBytes, serializedBytes)
 
+	dictBytes2, err := ioutil.ReadFile("fixtures/dict.bin")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	serializedBytes2 := dict.SerializeStringKeyDict(messages.CreateHpd1DeviceInfoDict())
+	assert.Equal(t, dictBytes2, serializedBytes2)
+
 }
