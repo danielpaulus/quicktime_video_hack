@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -162,4 +163,33 @@ func (ikd IndexKeyDict) getValue(index uint16) interface{} {
 		}
 	}
 	return nil
+}
+
+func (dt StringKeyDict) String() string {
+	sb := strings.Builder{}
+	for _, e := range dt.Entries {
+		appendEntry(&sb, e)
+	}
+	return fmt.Sprintf("StringKeyDict:[\n%s]", sb.String())
+}
+
+func appendEntry(builder *strings.Builder, entry StringKeyEntry) {
+	builder.WriteString("\t{")
+	builder.WriteString(entry.Key)
+	builder.WriteString(" : ")
+	valueToString(builder, entry.Value)
+	builder.WriteString("},\n")
+}
+
+func valueToString(builder *strings.Builder, value interface{}) {
+	switch value.(type) {
+	case NSNumber:
+		builder.WriteString(value.(NSNumber).String())
+	case StringKeyDict:
+		builder.WriteString(value.(StringKeyDict).String())
+	case []byte:
+		builder.WriteString(fmt.Sprintf("0x%x", value.([]byte)))
+	default:
+		builder.WriteString(fmt.Sprintf("%s", value))
+	}
 }

@@ -2,6 +2,7 @@ package dict_test
 
 import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
+	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -78,4 +79,8 @@ func TestComplexDict(t *testing.T) {
 		assert.Equal(t, 3, len(mydict.Entries))
 		assert.IsType(t, dict.FormatDescriptor{}, mydict.Entries[2].Value)
 	}
+}
+
+func TestStringFunction(t *testing.T) {
+	print(messages.CreateHpa1DeviceInfoDict().String())
 }
