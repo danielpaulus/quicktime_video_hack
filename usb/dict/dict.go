@@ -3,7 +3,9 @@ package dict
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -155,11 +157,58 @@ func parseValue(bytes []byte) (interface{}, error) {
 	}
 }
 
-func (ikd IndexKeyDict) getValue(index uint16) interface{} {
+func (ikd IndexKeyDict) getValue(index uint16) (interface{}, error) {
 	for _, entry := range ikd.Entries {
 		if entry.Key == index {
-			return entry.Value
+			return entry.Value, nil
 		}
 	}
-	return nil
+	return nil, errors.New("not found")
+}
+
+func (dt StringKeyDict) String() string {
+	sb := strings.Builder{}
+	for _, e := range dt.Entries {
+		appendEntry(&sb, e)
+	}
+	return fmt.Sprintf("StringKeyDict:[\n%s]", sb.String())
+}
+
+func (dt IndexKeyDict) String() string {
+	sb := strings.Builder{}
+	for _, e := range dt.Entries {
+		appendIndexEntry(&sb, e)
+	}
+	return fmt.Sprintf("IndexKeyDict:[\n%s]", sb.String())
+}
+
+func appendIndexEntry(builder *strings.Builder, entry IndexKeyEntry) {
+	builder.WriteString("\t{")
+	builder.WriteString(fmt.Sprintf("%d",entry.Key))
+	builder.WriteString(" : ")
+	valueToString(builder, entry.Value)
+	builder.WriteString("},\n")
+}
+
+func appendEntry(builder *strings.Builder, entry StringKeyEntry) {
+	builder.WriteString("\t{")
+	builder.WriteString(entry.Key)
+	builder.WriteString(" : ")
+	valueToString(builder, entry.Value)
+	builder.WriteString("},\n")
+}
+
+func valueToString(builder *strings.Builder, value interface{}) {
+	switch value.(type) {
+	case NSNumber:
+		builder.WriteString(value.(NSNumber).String())
+	case StringKeyDict:
+		builder.WriteString(value.(StringKeyDict).String())
+	case []byte:
+		builder.WriteString(fmt.Sprintf("0x%x", value.([]byte)))
+	case FormatDescriptor:
+		builder.WriteString(value.(FormatDescriptor).String())
+	default:
+		builder.WriteString(fmt.Sprintf("%s", value))
+	}
 }

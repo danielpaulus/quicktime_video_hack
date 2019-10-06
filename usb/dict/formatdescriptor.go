@@ -103,15 +103,7 @@ func (fdsc FormatDescriptor) String() string {
 	return fmt.Sprintf(
 		"FormatDescriptor:\n\t MediaType %s \n\t VideoDimension:(%dx%d) \n\t Codec:%s \n\t Extensions:%s \n",
 		readableMediaType(fdsc.MediaType), fdsc.VideoDimensionWidth, fdsc.VideoDimensionHeight,
-		readableCodec(fdsc.Codec), readableExtensions(fdsc.Extensions))
-}
-
-func readableExtensions(dict IndexKeyDict) string {
-	//TODO: find out if these index numbers are arbitray
-	container := dict.getValue(52).(string)
-	nestedDict := dict.getValue(49).(IndexKeyDict)
-	data := nestedDict.getValue(105).([]byte)
-	return fmt.Sprintf("[Container:%s, Data:0x%x]", container, data)
+		readableCodec(fdsc.Codec), fdsc.Extensions.String())
 }
 
 func readableCodec(codec uint32) string {

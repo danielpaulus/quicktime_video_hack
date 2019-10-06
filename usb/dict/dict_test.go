@@ -2,6 +2,7 @@ package dict_test
 
 import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
+	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -78,4 +79,21 @@ func TestComplexDict(t *testing.T) {
 		assert.Equal(t, 3, len(mydict.Entries))
 		assert.IsType(t, dict.FormatDescriptor{}, mydict.Entries[2].Value)
 	}
+}
+
+func TestStringFunction(t *testing.T) {
+	//TODO: add an assertion
+	print(messages.CreateHpa1DeviceInfoDict().String())
+	numberDict:= dict.IndexKeyDict{Entries:make([]dict.IndexKeyEntry, 1)}
+	numberDict.Entries[0] = dict.IndexKeyEntry{
+		Key:   5,
+		Value: dict.FormatDescriptor{
+			MediaType:            dict.MediaTypeVideo,
+			VideoDimensionWidth:  500,
+			VideoDimensionHeight: 500,
+			Codec:                dict.CodecAvc1,
+			Extensions:           dict.IndexKeyDict{},
+		},
+	}
+	print(numberDict.String())
 }

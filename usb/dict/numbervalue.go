@@ -81,3 +81,17 @@ func (n NSNumber) ToBytes() []byte {
 		return nil
 	}
 }
+
+func (n NSNumber) String() string {
+	switch n.typeSpecifier {
+	case 6:
+		return fmt.Sprintf("Float64[%f]", n.FloatValue)
+	case 3:
+		return fmt.Sprintf("Int32[%d]", n.IntValue)
+	case 4:
+		return fmt.Sprintf("UInt64[%d]", n.LongValue)
+	default:
+		return "Invalid Type Specifier"
+	}
+
+}
