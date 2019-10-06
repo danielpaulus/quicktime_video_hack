@@ -1,5 +1,10 @@
 package packet
 
+import (
+	"encoding/binary"
+	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
+)
+
 //Different Sync Packet Magic Markers
 const (
 	SyncPacketMagic uint32 = 0x73796E63
@@ -11,7 +16,19 @@ const (
 )
 
 type SyncPacket struct {
-	Header                     uint64 //I don't know what the first 8 bytes are for currently
-	HumanReadableTypeSpecifier uint32 //One of the packet types above
-	Payload                    interface{}
+	Header  uint64 //I don't know what the first 8 bytes are for currently
+	Magic   uint32
+	Payload dict.StringKeyDict
+}
+
+func ExtractDictFromBytes(data []byte) (SyncPacket, error) {
+	result := SyncPacket{}
+	result.Header = binary.LittleEndian.Uint64(data)
+	result.Magic = binary.LittleEndian.Uint32(data[8:])
+	payloadDict, err := dict.NewStringDictFromBytes(data[28:])
+	if err != nil {
+		return result, err
+	}
+	result.Payload = payloadDict
+	return result, nil
 }

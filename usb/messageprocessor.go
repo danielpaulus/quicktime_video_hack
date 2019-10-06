@@ -2,7 +2,6 @@ package usb
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 	"github.com/danielpaulus/quicktime_video_hack/usb/packet"
 	log "github.com/sirupsen/logrus"
@@ -26,8 +25,6 @@ func NewMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) m
 }
 
 func (mp *messageProcessor) receiveData(data []byte) {
-	log.Debugf("Rcv:\n%s", hex.Dump(data))
-	//TODO: extractFrame(data)
 	switch binary.LittleEndian.Uint32(data) {
 	case packet.PingPacketMagic:
 		log.Debug("initial ping received, sending ping back")
@@ -48,27 +45,35 @@ func (mp *messageProcessor) receiveData(data []byte) {
 }
 
 func (mp *messageProcessor) handleSyncPacket(data []byte) {
-	switch binary.LittleEndian.Uint32(data) {
+	switch binary.LittleEndian.Uint32(data[8:]) {
 	case packet.CWPA:
+		log.Debug("Received Sync CWPA")
 		deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
-		log.Debugf("sending: %s", hex.Dump(deviceInfo))
+		log.Debug("Sending ASYN HPD1")
 		mp.writeToUsb(deviceInfo)
 
 		deviceInfo1 := packet.NewAsynHpa1Packet(messages.CreateHpd1DeviceInfoDict())
-		log.Debugf("sending: %s", hex.Dump(deviceInfo1))
+		log.Debug("Sending ASYN HPA1")
 		mp.writeToUsb(deviceInfo1)
 	case packet.CVRP:
+		log.Debug("Received Sync CVRP")
+		payload, err := packet.ExtractDictFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing CVRP packet", err)
+			return
+		}
+		log.Debugf("CVRP:%s", payload.Payload.String())
 	default:
-		log.Warnf("received unknown sync packet type: %x", data[:4])
+		log.Warnf("received unknown sync packet type: %x", data)
 	}
 }
 
 func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data) {
 	case packet.FEED:
-		log.Debugf("sending: %s", hex.Dump(packet.AsynNeedPacketBytes))
+		log.Debug("Sending FEED")
 		mp.writeToUsb(packet.AsynNeedPacketBytes)
 	default:
-		log.Warnf("received unknown async packet type: %x", data[:4])
+		log.Warnf("received unknown async packet type: %x", data)
 	}
 }
