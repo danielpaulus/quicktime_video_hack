@@ -21,7 +21,7 @@ run the `qvh` tool to get details :-)
  You can enable the QuickTime config and discover QT capable devices with `qvh devices` and  `qvh activate` 
 
 2. What does not work
- This code won't work on MAC OS because the binary needs to be codesigned with `com.apple.ibridge.control`
+ `qvh dumpraw` won't work on MAC OS because the binary needs to be codesigned with `com.apple.ibridge.control`
  apparently that is a protected Entitlement that I have no idea how to use or sign my binary with. 
 
 2. Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
