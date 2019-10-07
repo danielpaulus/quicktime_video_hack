@@ -10,9 +10,10 @@ Progress:
 3. Make the `go run main.go dumpraw` work on the first execution (currently you have to run it twice)
 4. Add support for CMSync.h style CMClock packets 
 5. Get a continuous Feed from the Device
-6. Generate SPS and PPS dynamically
-7. Generate GStreamer compatible x264 stream
-8. Port to Windows (I don't know why, but still people use Windows nowadays)
+6. Make the dumpraw command work without having to unplug the device every time
+7. Generate SPS and PPS dynamically
+8. Generate GStreamer compatible x264 stream
+9. Port to Windows (I don't know why, but still people use Windows nowadays)
 
 run the `qvh` tool to get details :-)
 
