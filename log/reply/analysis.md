@@ -1,3 +1,4 @@
+## packet structure
 req:
 4 byte length
 4 byte sync marker
@@ -13,11 +14,24 @@ resp:
 2 bytes 0030 aus dem req
 10 bytes payload? oder 4 bytes 0 und 6 bytes payload
 
-markers:
-cwpa  createWith ?  reply contains a 6byte reference to the created clock :-D
-afmt (lpcm) probably audio format info, reply is  a dict with error code 0
-cvrp seems like it creates another clok, maybe for video? you can find the identifier in all feed asyncs
-clok
-time
-time
-3x skew
+## How they work
+It seems like the cwpa and cvrp sync packets are supposed to tell us to create CMClocks and send
+back a referenceID for those.
+I could observe that all subsequent Sync and Asyn Packets contain the same reference we send as a reply. 
+So they probably tell us which CMClock to use for synching :-D 
+
+## Different Sync Packet Types
+
+This is an example list of packets received from the device in the exact order they appear
+in the hexdump
+
+|sync type   |meaning   | reply  |   |   |
+|---|---|---|---|---|
+|cwpa   |createWith (packetAUdio???) ?   | contains a 6byte reference to the created clock :-D  |   |   |
+|afmt(lpcm)   | probably audio format info   |  dict with error code 0 |   |   |
+|cvrp   |   |   |   |   |
+|clok   |   |   |   |   |
+|time   |   |   |   |   |
+|time   |   |   |   |   |
+|3x skew   |   |   |   |   |
+
