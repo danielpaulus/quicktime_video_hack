@@ -1,3 +1,8 @@
+# Analysis of SYNC packets
+All SYNC packets require us to reply with a RPLY packet. 
+It seems like this is used for synchronizing what would be a few CMClock's (implement CMSync.h protocol)
+on MacOSX.
+
 ## packet structure
 req:
 4 byte length
@@ -27,9 +32,9 @@ in the hexdump
 
 |sync type   |meaning   | reply  |   |   |
 |---|---|---|---|---|
-|cwpa   |createWith (packetAUdio???) ?   | contains a 6byte reference to the created clock :-D  |   |   |
+|cwpa   |create clock, maybe for audio   | contains a 6byte reference to the created clock  |   |   |
 |afmt(lpcm)   | probably audio format info   |  dict with error code 0 |   |   |
-|cvrp   |   |   |   |   |
+|cvrp   | create clock (maybe for video, the id is contained in all feed asyn packets)   | contains a 6byte reference to the created clock  |   |   |
 |clok   |   |   |   |   |
 |time   |   |   |   |   |
 |time   |   |   |   |   |
