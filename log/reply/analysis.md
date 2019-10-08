@@ -28,7 +28,7 @@ So they probably tell us which CMClock to use for synching :-D
 ## Different Sync Packet Types
 
 This is an example list of packets received from the device in the exact order they appear
-in the hexdump
+in the hexdump and what i currently think they could mean
 
 |sync type   |meaning   | reply  |   |   |
 |---|---|---|---|---|
@@ -69,6 +69,26 @@ Contains a Dict with a FormatDescription and timing information
 
 #### Example Response
 
-| 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 Byte correlation id  |  4 bytes of stuff | 8 bytes identfier of our clock(will be in all feed async packets) |
+| 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 Byte correlation id  |  4 bytes (seem to be always 0) | 8 bytes identfier of our clock(will be in all feed async packets) |
 |---|---|---|---|---|---|
 |1C000000 | 796C7072 |D0595613 01000000 | 00000000 |5002D16C A67F0000 |
+
+
+### 4. CLOK Packet
+I am not quite sure what this is for, it seems like i am supposed to create a clock to then send two time responses. 
+Could be wrong though. 
+
+#### Example Request
+
+| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock reference  |  4 bytes magic (CLOK) | 8 bytes correlation id |
+|---|---|---|---|---|---|
+|1C000000| 636E7973| 5002D16C A67F0000| 6B6F6C63 | 70495813 01000000 |
+
+#### Example Response
+
+| 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 correlation id  |  4 bytes (seem to be always 0) | 8 bytes identfier of our clock(for the next two time packets) |
+|---|---|---|---|---|---|
+|1C000000| 796C7072| 70495813 01000000| 00000000 | 8079C17C A67F0000|
+
+### 5. TIME Packet
+### 6. SKEW Packet
