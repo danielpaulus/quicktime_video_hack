@@ -58,6 +58,20 @@ Seems like the first two bytes of our clock identifier are always 0, and in the 
 |1C000000 | 796C7072 |E03D5713 01000000 | 00300000 |0000 B00C E26CA67F |
 
 ### 2. AFMT Packet
+
+#### Example Request
+
+| 4 Byte Length (68)   |4 Byte Magic (SYNC)   | 8  clock reference| 4 byte magic (AFMT)| 8 byte correlation id| some weird data| 4 byte magic (LPCM) |  28 bytes what i think is pcm data|
+|---|---|---|---|---|---|---|---|
+|44000000| 636E7973| B00CE26C A67F0000| 746D6661 | 809D2213 01000000| 00000000 0070E740 |6D63706C| 4C000000 04000000 01000000 04000000 02000000 10000000 00000000|
+
+#### Example Response
+The response is basically a dictionary containing an error code, 0 if everything is ok :-D
+
+| 4 Byte Length (62)   |4 Byte Magic (RPLY)   | 8  correlation id| 4 byte 0| 4 byte dict length(42)| 4 byte magic (DICT)| dict bytes |
+|---|---|---|---|---|---|---|
+|3E000000 |796C7072| 809D2213 01000000 |00000000| 2A000000| 74636964| 22000000 7679656B 0D000000 6B727473 4572726F 720D0000 0076626D 6E030000 0000|
+
 ### 3. CVRP Packet
 
 #### Example Request
@@ -75,7 +89,7 @@ Contains a Dict with a FormatDescription and timing information
 
 
 ### 4. CLOK Packet
-I am not quite sure what this is for, it seems like i am supposed to create a clock to then send two time responses. 
+I am not quite sure what this is for, it seems like i am supposed to create a clock to then use it when sending two responses to time requests. 
 Could be wrong though. 
 
 #### Example Request
@@ -91,4 +105,19 @@ Could be wrong though.
 |1C000000| 796C7072| 70495813 01000000| 00000000 | 8079C17C A67F0000|
 
 ### 5. TIME Packet
+
+#### Example Request
+
+| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock reference  |  4 bytes magic (TIME) | 8 bytes correlation id |
+|---|---|---|---|---|---|
+|1C000000| 636E7973| 8079C17C A67F0000 |656D6974 | 503D2213 01000000 |
+
+
+
+#### Example Response
+
+| 4 Byte Length (44)   |4 Byte Magic (RPLY)   | 8 Byte correllation id  |  4 bytes 0x0 | 24 bytes CMTime struct |
+|---|---|---|---|---|---|
+|2C000000 |796C7072 |503D2213 01000000| 00000000 | E1E142C4 62BA0000 00CA9A3B 01000000 00000000 00000000|
+
 ### 6. SKEW Packet
