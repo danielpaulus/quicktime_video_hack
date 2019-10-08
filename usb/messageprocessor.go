@@ -52,7 +52,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		log.Debug("Sending ASYN HPD1")
 		mp.writeToUsb(deviceInfo)
 
-		deviceInfo1 := packet.NewAsynHpa1Packet(messages.CreateHpd1DeviceInfoDict())
+		deviceInfo1 := packet.NewAsynHpa1Packet(messages.CreateHpa1DeviceInfoDict())
 		log.Debug("Sending ASYN HPA1")
 		mp.writeToUsb(deviceInfo1)
 	case packet.CVRP:
