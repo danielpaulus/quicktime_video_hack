@@ -18,11 +18,6 @@ const (
 	HPA1            uint32 = 0x68706131 //hpa1 - 1aph | high performance addressing?
 )
 
-const (
-	hpa1Header uint64 = 0x00000001198D57B0
-	hpd1Header uint64 = 0x0000000000000001
-)
-
 //It seems like Need Packets are constant
 var AsynNeedPacketBytes = asynNeedPacketBytes()
 
@@ -33,11 +28,11 @@ type AsyncPacket struct {
 }
 
 func NewAsynHpd1Packet(stringKeyDict dict.StringKeyDict) []byte {
-	return newAsynDictPacket(stringKeyDict, HPD1, hpd1Header)
+	return newAsynDictPacket(stringKeyDict, HPD1, EmptyCFType)
 }
 
-func NewAsynHpa1Packet(stringKeyDict dict.StringKeyDict) []byte {
-	return newAsynDictPacket(stringKeyDict, HPA1, hpa1Header)
+func NewAsynHpa1Packet(stringKeyDict dict.StringKeyDict, clockRef CFTypeID) []byte {
+	return newAsynDictPacket(stringKeyDict, HPA1, clockRef)
 }
 
 func newAsynDictPacket(stringKeyDict dict.StringKeyDict, subtypeMarker uint32, asynTypeHeader uint64) []byte {

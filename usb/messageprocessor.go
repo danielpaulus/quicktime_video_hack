@@ -7,12 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	initialState          = iota
-	pingSent              = iota
-	pingExchangeCompleted = iota
-)
-
 type messageProcessor struct {
 	connectionState int
 	writeToUsb      func([]byte)
@@ -20,7 +14,7 @@ type messageProcessor struct {
 }
 
 func NewMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) messageProcessor {
-	var mp = messageProcessor{connectionState: initialState, writeToUsb: writeToUsb, stopSignal: stopSignal}
+	var mp = messageProcessor{writeToUsb: writeToUsb, stopSignal: stopSignal}
 	return mp
 }
 
@@ -31,10 +25,10 @@ func (mp *messageProcessor) receiveData(data []byte) {
 		mp.writeToUsb(packet.NewPingPacketAsBytes())
 		return
 	case packet.SyncPacketMagic:
-		mp.handleSyncPacket(data[4:])
+		mp.handleSyncPacket(data)
 		return
 	case packet.AsynPacketMagic:
-		mp.handleAsyncPacket(data[4:])
+		mp.handleAsyncPacket(data)
 		return
 	default:
 		log.Warnf("received unknown packet type: %x", data[:4])
@@ -45,34 +39,57 @@ func (mp *messageProcessor) receiveData(data []byte) {
 }
 
 func (mp *messageProcessor) handleSyncPacket(data []byte) {
-	switch binary.LittleEndian.Uint32(data[8:]) {
+	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.CWPA:
 		log.Debug("Received Sync CWPA")
+		cwpaPacket, err := packet.NewSyncCwpaPacketFromBytes(data)
+		if err != nil {
+			log.Error("failed parsing cwpa packet", err)
+			return
+		}
+		clockRef := cwpaPacket.DeviceClockRef + 1000
+
 		deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
 		log.Debug("Sending ASYN HPD1")
 		mp.writeToUsb(deviceInfo)
-
-		deviceInfo1 := packet.NewAsynHpa1Packet(messages.CreateHpa1DeviceInfoDict())
+		log.Debug("Sending CWPA Reply")
+		mp.writeToUsb(cwpaPacket.NewReply(clockRef))
+		log.Debug("Sending ASYN HPD1")
+		mp.writeToUsb(deviceInfo)
+		deviceInfo1 := packet.NewAsynHpa1Packet(messages.CreateHpa1DeviceInfoDict(), clockRef)
 		log.Debug("Sending ASYN HPA1")
 		mp.writeToUsb(deviceInfo1)
 	case packet.CVRP:
 		log.Debug("Received Sync CVRP")
-		payload, err := packet.ExtractDictFromBytes(data)
+		cvrpPacket, err := packet.NewSyncCvrpPacketFromBytes(data)
 		if err != nil {
 			log.Error("Error parsing CVRP packet", err)
 			return
 		}
-		log.Debugf("CVRP:%s", payload.Payload.String())
+		clockRef2 := cvrpPacket.DeviceClockRef + 1000
+		log.Debug("Sending CVRP Reply")
+		mp.writeToUsb(cvrpPacket.NewReply(clockRef2))
+		log.Debugf("CVRP:%s", cvrpPacket.Payload.String())
+	case packet.CLOK:
+		log.Debug("Received Sync Clock")
+		clok, err := packet.NewSyncClokPacketFromBytes(data)
+		if err != nil {
+			log.Error("Failed parsing Clok Packet", err)
+		}
+		clockRef := clok.ClockRef + 0x10000
+		log.Debug("Sending CLOK reply")
+		mp.writeToUsb(clok.NewReply(clockRef))
+
 	default:
 		log.Warnf("received unknown sync packet type: %x", data)
 	}
 }
 
 func (mp *messageProcessor) handleAsyncPacket(data []byte) {
-	switch binary.LittleEndian.Uint32(data) {
+	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.FEED:
-		log.Debug("Sending FEED")
-		mp.writeToUsb(packet.AsynNeedPacketBytes)
+		log.Debugf("rcv feed: %d bytes", len(data))
+		//mp.writeToUsb(packet.AsynNeedPacketBytes)
 	default:
 		log.Warnf("received unknown async packet type: %x", data)
 	}
