@@ -1,16 +1,10 @@
 package usb
 
 import (
-	"encoding/hex"
+	"encoding/binary"
 	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 	"github.com/danielpaulus/quicktime_video_hack/usb/packet"
 	log "github.com/sirupsen/logrus"
-)
-
-const (
-	initialState          = iota
-	pingSent              = iota
-	pingExchangeCompleted = iota
 )
 
 type messageProcessor struct {
@@ -20,32 +14,83 @@ type messageProcessor struct {
 }
 
 func NewMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) messageProcessor {
-	var mp = messageProcessor{connectionState: initialState, writeToUsb: writeToUsb, stopSignal: stopSignal}
+	var mp = messageProcessor{writeToUsb: writeToUsb, stopSignal: stopSignal}
 	return mp
 }
 
 func (mp *messageProcessor) receiveData(data []byte) {
-	log.Debugf("Rcv:\n%s", hex.Dump(data))
-	//TODO: extractFrame(data)
-	if mp.connectionState == initialState {
+	switch binary.LittleEndian.Uint32(data) {
+	case packet.PingPacketMagic:
 		log.Debug("initial ping received, sending ping back")
-		mp.respondToPing(packet.NewPingPacketAsBytes())
-
-		mp.connectionState = pingSent
+		mp.writeToUsb(packet.NewPingPacketAsBytes())
 		return
+	case packet.SyncPacketMagic:
+		mp.handleSyncPacket(data)
+		return
+	case packet.AsynPacketMagic:
+		mp.handleAsyncPacket(data)
+		return
+	default:
+		log.Warnf("received unknown packet type: %x", data[:4])
 	}
-
-	deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
-	log.Debugf("sending: %s", hex.Dump(deviceInfo))
-	mp.writeToUsb(deviceInfo)
-	return
-
-	//deviceInfo2 := packet.NewAsynHpa1Packet(messages.CreateHpa1DeviceInfoDict())
 
 	var stop interface{}
 	mp.stopSignal <- stop
 }
 
-func (mp messageProcessor) respondToPing(bytes []byte) {
-	mp.writeToUsb(bytes)
+func (mp *messageProcessor) handleSyncPacket(data []byte) {
+	switch binary.LittleEndian.Uint32(data[12:]) {
+	case packet.CWPA:
+		log.Debug("Received Sync CWPA")
+		cwpaPacket, err := packet.NewSyncCwpaPacketFromBytes(data)
+		if err != nil {
+			log.Error("failed parsing cwpa packet", err)
+			return
+		}
+		clockRef := cwpaPacket.DeviceClockRef + 1000
+
+		deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
+		log.Debug("Sending ASYN HPD1")
+		mp.writeToUsb(deviceInfo)
+		log.Debug("Sending CWPA Reply")
+		mp.writeToUsb(cwpaPacket.NewReply(clockRef))
+		log.Debug("Sending ASYN HPD1")
+		mp.writeToUsb(deviceInfo)
+		deviceInfo1 := packet.NewAsynHpa1Packet(messages.CreateHpa1DeviceInfoDict(), clockRef)
+		log.Debug("Sending ASYN HPA1")
+		mp.writeToUsb(deviceInfo1)
+	case packet.CVRP:
+		log.Debug("Received Sync CVRP")
+		cvrpPacket, err := packet.NewSyncCvrpPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing CVRP packet", err)
+			return
+		}
+		clockRef2 := cvrpPacket.DeviceClockRef + 1000
+		log.Debug("Sending CVRP Reply")
+		mp.writeToUsb(cvrpPacket.NewReply(clockRef2))
+		log.Debugf("CVRP:%s", cvrpPacket.Payload.String())
+	case packet.CLOK:
+		log.Debug("Received Sync Clock")
+		clok, err := packet.NewSyncClokPacketFromBytes(data)
+		if err != nil {
+			log.Error("Failed parsing Clok Packet", err)
+		}
+		clockRef := clok.ClockRef + 0x10000
+		log.Debug("Sending CLOK reply")
+		mp.writeToUsb(clok.NewReply(clockRef))
+
+	default:
+		log.Warnf("received unknown sync packet type: %x", data)
+	}
+}
+
+func (mp *messageProcessor) handleAsyncPacket(data []byte) {
+	switch binary.LittleEndian.Uint32(data[12:]) {
+	case packet.FEED:
+		log.Debugf("rcv feed: %d bytes", len(data))
+		//mp.writeToUsb(packet.AsynNeedPacketBytes)
+	default:
+		log.Warnf("received unknown async packet type: %x", data)
+	}
 }
