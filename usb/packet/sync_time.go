@@ -3,6 +3,7 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 )
 
 type SyncTimePacket struct {
@@ -28,6 +29,16 @@ func NewSyncTimePacketFromBytes(data []byte) (SyncTimePacket, error) {
 	return packet, nil
 }
 
-func (sp SyncTimePacket) NewReply(clockRef CFTypeID) []byte {
-	return clockRefReply(clockRef, sp.CorrelationID)
+func (sp SyncTimePacket) NewReply(time coremedia.CMTime) ([]byte, error) {
+	length := 44
+	data := make([]byte, length)
+	binary.LittleEndian.PutUint32(data, uint32(length))
+	binary.LittleEndian.PutUint32(data[4:], ReplyPacketMagic)
+	binary.LittleEndian.PutUint64(data[8:], sp.CorrelationID)
+	binary.LittleEndian.PutUint32(data[16:], 0)
+	err := time.Serialize(data[20:])
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }

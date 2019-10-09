@@ -1,6 +1,7 @@
 package packet_test
 
 import (
+	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/usb/packet"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -20,15 +21,22 @@ func TestTime(t *testing.T) {
 		assert.Equal(t, packet.TIME, timePacket.MessageType)
 		assert.Equal(t, uint64(0x113223d50), timePacket.CorrelationID)
 	}
-	//testSerializationOfTimeReply(clok, t)
+	testSerializationOfTimeReply(timePacket, t)
 }
 
-func testSerializationOfTimeReply(clok packet.SyncClokPacket, t *testing.T) {
-	var clockRef packet.CFTypeID = 0x00007FA67CC17980
-	replyBytes := clok.NewReply(clockRef)
-	expectedReplyBytes, err := ioutil.ReadFile("fixtures/clok-reply")
-	if err != nil {
-		log.Fatal(err)
+func testSerializationOfTimeReply(timePacket packet.SyncTimePacket, t *testing.T) {
+	cmtime := coremedia.CMTime{
+		CMTimeValue: 0x0000BA62C442E1E1,
+		CMTimeScale: 0x3B9ACA00,
+		CMTimeFlags: coremedia.KCMTimeFlags_HasBeenRounded,
+		CMTimeEpoch: 0,
 	}
-	assert.Equal(t, expectedReplyBytes, replyBytes)
+	replyBytes, err := timePacket.NewReply(cmtime)
+	if assert.NoError(t, err) {
+		expectedReplyBytes, err := ioutil.ReadFile("fixtures/time-reply1")
+		if err != nil {
+			log.Fatal(err)
+		}
+		assert.Equal(t, expectedReplyBytes, replyBytes)
+	}
 }
