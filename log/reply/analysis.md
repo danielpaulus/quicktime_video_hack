@@ -46,14 +46,14 @@ in the hexdump and what i currently think they could mean
 
 #### Example Request
 
-| 4 Byte Length (36)   |4 Byte Magic (SYNC)   | 8 Empty clock reference| 2 bytes stuff(seems like a ID for sth.)  | 4 byte message type (CWPA)   | 8 byte correlation id  | 6 bytes identifier of the device clock |
+| 4 Byte Length (36)   |4 Byte Magic (SYNC)   | 8 Empty clock reference| 2 bytes stuff(seems like a ID for sth.)  | 4 byte message type (CWPA)   | 8 byte correlation id  | 6 bytes CFTypeID of the device clock |
 |---|---|---|---|---|---|---|
 |24000000 |636E7973 |01000000 00000000| 0030 | 61707763 |E03D5713 01000000| E074 5A130040 |
 
 #### Example Response
 
 Seems like the first two bytes of our clock identifier are always 0, and in the later packets appended so `0000 B00C E26CA67F` becomes  `B00C E26CA67F 0000`
-| 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 Byte correlation id  |  Seems like the ID from the req. + two 0 bytes | 8 bytes identfier of our clock |
+| 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 Byte correlation id  |  Seems like the ID from the req. + two 0 bytes | 8 bytes CFTypeID of our clock |
 |---|---|---|---|---|---|
 |1C000000 | 796C7072 |E03D5713 01000000 | 00300000 |0000 B00C E26CA67F |
 
@@ -61,7 +61,7 @@ Seems like the first two bytes of our clock identifier are always 0, and in the 
 
 #### Example Request
 
-| 4 Byte Length (68)   |4 Byte Magic (SYNC)   | 8  clock reference| 4 byte magic (AFMT)| 8 byte correlation id| some weird data| 4 byte magic (LPCM) |  28 bytes what i think is pcm data|
+| 4 Byte Length (68)   |4 Byte Magic (SYNC)   | 8 bytes clock CFTypeID| 4 byte magic (AFMT)| 8 byte correlation id| some weird data| 4 byte magic (LPCM) |  28 bytes what i think is pcm data|
 |---|---|---|---|---|---|---|---|
 |44000000| 636E7973| B00CE26C A67F0000| 746D6661 | 809D2213 01000000| 00000000 0070E740 |6D63706C| 4C000000 04000000 01000000 04000000 02000000 10000000 00000000|
 
@@ -77,13 +77,13 @@ The response is basically a dictionary containing an error code, 0 if everything
 #### Example Request
 
 Contains a Dict with a FormatDescription and timing information
-|4 Byte Length (649)|4 Byte Magic (SYNC)|8 byte empty(?) clock reference|4 byte magic(CVRP)|8 byte correlation id|reference id of clock on device (needs to be in NEED packets we send)|4 byte length of dictionary (613)|4 byte magic (DICT)| Dict bytes|
+|4 Byte Length (649)|4 Byte Magic (SYNC)|8 byte empty(?) clock reference|4 byte magic(CVRP)|8 byte correlation id|CFTypeID of clock on device (needs to be in NEED packets we send)|4 byte length of dictionary (613)|4 byte magic (DICT)| Dict bytes|
 |---|---|---|---|---|---|---|---|---|
 |89020000 |636E7973| 01000000 00000000 |70727663| D0595613 01000000 |A08D5313 01000000 |65020000| 74636964|   0x.....|
 
 #### Example Response
 
-| 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 Byte correlation id  |  4 bytes (seem to be always 0) | 8 bytes identfier of our clock(will be in all feed async packets) |
+| 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 Byte correlation id  |  4 bytes (seem to be always 0) | 8 bytes CFTypeID of our clock(will be in all feed async packets) |
 |---|---|---|---|---|
 |1C000000 | 796C7072 |D0595613 01000000 | 00000000 |5002D16C A67F0000 |
 
@@ -94,13 +94,13 @@ Could be wrong though.
 
 #### Example Request
 
-| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock reference  |  4 bytes magic (CLOK) | 8 bytes correlation id |
+| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock CFTypeID  |  4 bytes magic (CLOK) | 8 bytes correlation id |
 |---|---|---|---|---|
 |1C000000| 636E7973| 5002D16C A67F0000| 6B6F6C63 | 70495813 01000000 |
 
 #### Example Response
 
-| 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 correlation id  |  4 bytes (seem to be always 0) | 8 bytes identfier of our clock(for the next two time packets) |
+| 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 correlation id  |  4 bytes (seem to be always 0) | 8 bytes CFTypeID of our clock(for the next two time packets) |
 |---|---|---|---|---|
 |1C000000| 796C7072| 70495813 01000000| 00000000 | 8079C17C A67F0000|
 
@@ -108,7 +108,7 @@ Could be wrong though.
 
 #### Example Request
 
-| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock reference  |  4 bytes magic (TIME) | 8 bytes correlation id |
+| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock CFTypeID  |  4 bytes magic (TIME) | 8 bytes correlation id |
 |---|---|---|---|---|
 |1C000000| 636E7973| 8079C17C A67F0000 |656D6974 | 503D2213 01000000 |
 
@@ -121,3 +121,6 @@ Could be wrong though.
 |2C000000 |796C7072 |503D2213 01000000| 00000000 | E1E142C4 62BA0000 00CA9A3B 01000000 00000000 00000000|
 
 ### 6. SKEW Packet
+
+## Documentation links
+[`typedef unsigned long CFTypeID;`](https://developer.apple.com/documentation/corefoundation/cftypeid?language=objc)
