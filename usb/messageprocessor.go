@@ -105,7 +105,14 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 	case packet.FEED:
 		mp.totalBytesReceived += len(data)
 		log.Debugf("rcv feed: %d bytes - %d total", len(data), mp.totalBytesReceived)
-		//mp.writeToUsb(packet.AsynNeedPacketBytes)
+	//mp.writeToUsb(packet.AsynNeedPacketBytes)
+	case packet.SPRP:
+		packet, err := packet.NewAsynSprpPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing SPRP packet", err)
+			return
+		}
+		log.Debugf("rcv set property (sprp):%s", packet.Property.Key)
 	default:
 		log.Warnf("received unknown async packet type: %x", data)
 	}

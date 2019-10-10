@@ -97,6 +97,15 @@ func parseIntDictEntry(bytes []byte) (IndexKeyEntry, error) {
 	return IndexKeyEntry{Key: key, Value: value}, nil
 }
 
+func ParseKeyValueEntry(data []byte) (StringKeyEntry, error) {
+	keyValuePairLength, _, err := parseLengthAndMagic(data, KeyValuePairMagic)
+	if err != nil {
+		return StringKeyEntry{}, err
+	}
+	keyValuePairData := data[8:keyValuePairLength]
+	return parseEntry(keyValuePairData)
+}
+
 func parseEntry(bytes []byte) (StringKeyEntry, error) {
 	key, remainingBytes, err := parseKey(bytes)
 	if err != nil {
@@ -184,7 +193,7 @@ func (dt IndexKeyDict) String() string {
 
 func appendIndexEntry(builder *strings.Builder, entry IndexKeyEntry) {
 	builder.WriteString("\t{")
-	builder.WriteString(fmt.Sprintf("%d",entry.Key))
+	builder.WriteString(fmt.Sprintf("%d", entry.Key))
 	builder.WriteString(" : ")
 	valueToString(builder, entry.Value)
 	builder.WriteString("},\n")
