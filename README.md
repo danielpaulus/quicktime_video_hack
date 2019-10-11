@@ -19,9 +19,11 @@ Progress:
 7. Parse Async Feed packets correctly and complete packet documentation
 8. Generate SPS and PPS h264 NaLus
 9. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
-10. Port to Windows (I don't know why, but still people use Windows nowadays)
 
-run the `qvh` tool to get details :-)
+Extra Goals:
+1. [Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)
+
+
 
 ### MAC OS X LIBUSB -- IMPORTANT
 1. What works:
