@@ -80,7 +80,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 			log.Error("Failed parsing Clok Packet", err)
 		}
 		clockRef := clok.ClockRef + 0x10000
-		mp.clock = coremedia.CMClock{TimeScale: 1000000000, ID: clockRef}
+		mp.clock = coremedia.NewCMClockWithHostTime(clockRef)
 		log.Debug("Sending CLOK reply")
 		mp.writeToUsb(clok.NewReply(clockRef))
 	case packet.TIME:
@@ -89,11 +89,12 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		if err != nil {
 			log.Error("Error parsing TIME SYNC packet", err)
 		}
-		replyBytes, err := timePacket.NewReply(mp.clock.GetTime())
+		timeToSend := mp.clock.GetTime()
+		replyBytes, err := timePacket.NewReply(timeToSend)
 		if err != nil {
 			log.Error("Could not create SYNC TIME REPLY")
 		}
-		log.Debug("Sending TIME REPLY")
+		log.Debugf("Sending TIME REPLY:%s", timeToSend.String())
 		mp.writeToUsb(replyBytes)
 	default:
 		log.Warnf("received unknown sync packet type: %x", data)
@@ -113,6 +114,27 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 			return
 		}
 		log.Debugf("rcv set property (sprp):%s", packet.Property.Key)
+	case packet.TJMP:
+		packet, err := packet.NewAsynTjmpPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing tjmp packet", err)
+			return
+		}
+		log.Debugf("rcv tjmp: 0x%x", packet.Unknown)
+	case packet.SRAT:
+		packet, err := packet.NewAsynSratPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing srat packet", err)
+			return
+		}
+		log.Debugf("rcv srat: rate1:%d rate2:%d time:%s", packet.Rate1, packet.Rate2, packet.Time.String())
+	case packet.TBAS:
+		packet, err := packet.NewAsynTbasPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing tbas packet", err)
+			return
+		}
+		log.Debugf("rcv tbas: 0x%x", packet.SomeOtherRef)
 	default:
 		log.Warnf("received unknown async packet type: %x", data)
 	}
