@@ -13,6 +13,7 @@ const (
 	KCMTimeFlags_NegativeInfinity      uint32 = 0x4
 	KCMTimeFlags_Indefinite            uint32 = 0x8
 	KCMTimeFlags_ImpliedValueFlagsMask uint32 = KCMTimeFlags_PositiveInfinity | KCMTimeFlags_NegativeInfinity | KCMTimeFlags_Indefinite
+	CMTimeLengthInBytes                int    = 24
 )
 
 //Taken from https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.8.sdk/System/Library/Frameworks/CoreMedia.framework/Versions/A/Headers/CMTime.h
@@ -32,7 +33,7 @@ func (time CMTime) Seconds() uint64 {
 }
 
 func (time CMTime) Serialize(target []byte) error {
-	if len(target) < 24 {
+	if len(target) < CMTimeLengthInBytes {
 		return fmt.Errorf("Serializing CMTime failed, not enough space in byte slice:%d", len(target))
 	}
 	binary.LittleEndian.PutUint64(target, time.CMTimeValue)
