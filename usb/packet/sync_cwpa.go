@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+//SyncCwpaPacket contains all info from a CWPA packet sent by the device
 type SyncCwpaPacket struct {
 	SyncMagic      uint32
 	ClockRef       CFTypeID
@@ -13,6 +14,7 @@ type SyncCwpaPacket struct {
 	DeviceClockRef CFTypeID
 }
 
+//NewSyncCwpaPacketFromBytes parses a SyncCwpaPacket from a []byte
 func NewSyncCwpaPacketFromBytes(data []byte) (SyncCwpaPacket, error) {
 	var packet = SyncCwpaPacket{}
 
@@ -34,6 +36,11 @@ func NewSyncCwpaPacketFromBytes(data []byte) (SyncCwpaPacket, error) {
 	return packet, nil
 }
 
+//NewReply creates a RPLY packet containing the given clockRef and serializes it to a []byte
 func (sp SyncCwpaPacket) NewReply(clockRef CFTypeID) []byte {
 	return clockRefReply(clockRef, sp.CorrelationID)
+}
+
+func (sp SyncCwpaPacket) String() string {
+	return fmt.Sprintf("SYNC_CWPA{ClockRef:%x, CorrelationID:%x, DeviceClockRef:%x}", sp.ClockRef, sp.CorrelationID, sp.DeviceClockRef)
 }
