@@ -7,13 +7,13 @@ import (
 )
 
 const (
-	KCMTimeFlags_Valid                 uint32 = 0x0
-	KCMTimeFlags_HasBeenRounded        uint32 = 0x1
-	KCMTimeFlags_PositiveInfinity      uint32 = 0x2
-	KCMTimeFlags_NegativeInfinity      uint32 = 0x4
-	KCMTimeFlags_Indefinite            uint32 = 0x8
-	KCMTimeFlags_ImpliedValueFlagsMask uint32 = KCMTimeFlags_PositiveInfinity | KCMTimeFlags_NegativeInfinity | KCMTimeFlags_Indefinite
-	CMTimeLengthInBytes                int    = 24
+	KCMTimeFlagsValid                 uint32 = 0x0
+	KCMTimeFlagsHasBeenRounded        uint32 = 0x1
+	KCMTimeFlagsPositiveInfinity      uint32 = 0x2
+	KCMTimeFlagsNegativeInfinity      uint32 = 0x4
+	KCMTimeFlagsIndefinite            uint32 = 0x8
+	KCMTimeFlagsImpliedValueFlagsMask uint32 = KCMTimeFlagsPositiveInfinity | KCMTimeFlagsNegativeInfinity | KCMTimeFlagsIndefinite
+	CMTimeLengthInBytes               int    = 24
 )
 
 //Taken from https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.8.sdk/System/Library/Frameworks/CoreMedia.framework/Versions/A/Headers/CMTime.h
@@ -60,18 +60,18 @@ func NewCMTimeFromBytes(data []byte) (CMTime, error) {
 func (time CMTime) String() string {
 	var flags string
 	switch time.CMTimeFlags {
-	case KCMTimeFlags_Valid:
-		flags = "KCMTimeFlags_Valid"
-	case KCMTimeFlags_HasBeenRounded:
-		flags = "KCMTimeFlags_HasBeenRounded"
-	case KCMTimeFlags_PositiveInfinity:
-		flags = "KCMTimeFlags_PositiveInfinity"
-	case KCMTimeFlags_NegativeInfinity:
-		flags = "KCMTimeFlags_NegativeInfinity"
-	case KCMTimeFlags_Indefinite:
-		flags = "KCMTimeFlags_Indefinite"
-	case KCMTimeFlags_ImpliedValueFlagsMask:
-		flags = "KCMTimeFlags_ImpliedValueFlagsMask"
+	case KCMTimeFlagsValid:
+		flags = "KCMTimeFlagsValid"
+	case KCMTimeFlagsHasBeenRounded:
+		flags = "KCMTimeFlagsHasBeenRounded"
+	case KCMTimeFlagsPositiveInfinity:
+		flags = "KCMTimeFlagsPositiveInfinity"
+	case KCMTimeFlagsNegativeInfinity:
+		flags = "KCMTimeFlagsNegativeInfinity"
+	case KCMTimeFlagsIndefinite:
+		flags = "KCMTimeFlagsIndefinite"
+	case KCMTimeFlagsImpliedValueFlagsMask:
+		flags = "KCMTimeFlagsImpliedValueFlagsMask"
 	default:
 		flags = "unknown"
 	}
