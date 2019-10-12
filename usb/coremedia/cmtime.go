@@ -12,7 +12,7 @@ const (
 	KCMTimeFlagsPositiveInfinity      uint32 = 0x2
 	KCMTimeFlagsNegativeInfinity      uint32 = 0x4
 	KCMTimeFlagsIndefinite            uint32 = 0x8
-	KCMTimeFlagsImpliedValueFlagsMask uint32 = KCMTimeFlagsPositiveInfinity | KCMTimeFlagsNegativeInfinity | KCMTimeFlagsIndefinite
+	KCMTimeFlagsImpliedValueFlagsMask        = KCMTimeFlagsPositiveInfinity | KCMTimeFlagsNegativeInfinity | KCMTimeFlagsIndefinite
 	CMTimeLengthInBytes               int    = 24
 )
 

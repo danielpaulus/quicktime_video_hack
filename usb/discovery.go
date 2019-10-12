@@ -18,7 +18,7 @@ type IosDevice struct {
 const (
 	//Interesting, maybe the subclass type Application was chosen intentionally by Apple
 	//Because this config enables the basic communication between MacOSX Apps and iOS Devices over USBMuxD
-	UsbMuxSubclass gousb.Class = gousb.ClassApplication
+	UsbMuxSubclass = gousb.ClassApplication
 	//You can observe this config being activated as soon as you enable iOS Screen Sharing in Quicktime (That's how I
 	//found out :-D )
 	QuicktimeSubclass gousb.Class = 0x2A
