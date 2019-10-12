@@ -105,7 +105,7 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 	case packet.FEED:
 		feedPacket, err := packet.NewAsynFeedPacketFromBytes(data)
 		if err != nil {
-			log.Errorf("Error parsing FEED packet: %x", data, err)
+			log.Errorf("Error parsing FEED packet: %x %s", data, err)
 			return
 		}
 		log.Debugf("Rcv:%s", feedPacket.String())

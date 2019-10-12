@@ -46,6 +46,7 @@ func (info CMSampleTimingInfo) String() string {
 type CMSampleBuffer struct {
 	OutputPresentationTimestamp CMTime
 	FormatDescription           dict.FormatDescriptor
+	HasFormatDescription        bool
 	NumSamples                  CMItemCount          //nsmp
 	SampleTimingInfoArray       []CMSampleTimingInfo //stia
 	SampleData                  []byte
@@ -62,6 +63,7 @@ func (buffer CMSampleBuffer) String() string {
 
 func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	var sbuffer CMSampleBuffer
+	sbuffer.HasFormatDescription = false
 	length, remainingBytes, err := common.ParseLengthAndMagic(data, sbuf)
 	if err != nil {
 		return sbuffer, err
@@ -102,12 +104,16 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	if err != nil {
 		return sbuffer, err
 	}
-	fdscLength := binary.LittleEndian.Uint32(remainingBytes)
-	sbuffer.FormatDescription, err = dict.NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
-	if err != nil {
-		return sbuffer, err
+	if binary.LittleEndian.Uint32(remainingBytes[4:]) == dict.FormatDescriptorMagic {
+		sbuffer.HasFormatDescription = true
+		fdscLength := binary.LittleEndian.Uint32(remainingBytes)
+		sbuffer.FormatDescription, err = dict.NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
+		if err != nil {
+			return sbuffer, err
+		}
+		remainingBytes = remainingBytes[fdscLength:]
 	}
-	remainingBytes = remainingBytes[fdscLength:]
+
 	attachmentsLength := binary.LittleEndian.Uint32(remainingBytes)
 	sbuffer.Attachments, err = dict.NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
 	if err != nil {
