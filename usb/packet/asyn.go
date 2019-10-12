@@ -19,8 +19,6 @@ const (
 	NEED            uint32 = 0x6E656564 //need - deen
 )
 
-//Need packets are not entirely constant, they need the correct clock reference
-var AsynNeedPacketBytes = asynNeedPacketBytes()
 
 type AsyncPacket struct {
 	Header                     uint64 //I don't know what the first 8 bytes are for currently
@@ -47,12 +45,13 @@ func newAsynDictPacket(stringKeyDict dict.StringKeyDict, subtypeMarker uint32, a
 	return append(header, serialize...)
 }
 
-func asynNeedPacketBytes() []byte {
+//AsynNeedPacketBytes can be used to create the NEED message as soon as the clockRef from SYNC CVRP has been received.
+func AsynNeedPacketBytes(clockRef CFTypeID) []byte {
 	needPacketLength := 20
 	packet := make([]byte, needPacketLength)
 	binary.LittleEndian.PutUint32(packet, uint32(needPacketLength))
 	binary.LittleEndian.PutUint32(packet, AsynPacketMagic)
-	binary.LittleEndian.PutUint64(packet, 0x0000000104CBB860) //don't know what these mean but they seem constant
+	binary.LittleEndian.PutUint64(packet, clockRef)
 	binary.LittleEndian.PutUint32(packet, NEED)               //need - deen
 	return packet
 }

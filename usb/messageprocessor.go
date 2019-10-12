@@ -14,6 +14,8 @@ type messageProcessor struct {
 	stopSignal         chan interface{}
 	clock              coremedia.CMClock
 	totalBytesReceived int
+	needClockRef       packet.CFTypeID
+	needMessage        []byte
 }
 
 func newMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) messageProcessor {
@@ -68,7 +70,14 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 			log.Error("Error parsing CVRP packet", err)
 			return
 		}
+
 		log.Debugf("Rcv:%s", cvrpPacket.String())
+
+		log.Debug("Send NEED")
+		mp.needClockRef = cvrpPacket.DeviceClockRef
+		mp.needMessage = packet.AsynNeedPacketBytes(mp.needClockRef)
+		//mp.writeToUsb(mp.needMessage)
+
 		clockRef2 := cvrpPacket.DeviceClockRef + 1000
 		log.Debugf("Sending CVRP Reply:%x", clockRef2)
 		mp.writeToUsb(cvrpPacket.NewReply(clockRef2))
@@ -109,6 +118,7 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 			return
 		}
 		log.Debugf("Rcv:%s", feedPacket.String())
+		mp.writeToUsb(mp.needMessage)
 	case packet.SPRP:
 		sprpPacket, err := packet.NewAsynSprpPacketFromBytes(data)
 		if err != nil {
