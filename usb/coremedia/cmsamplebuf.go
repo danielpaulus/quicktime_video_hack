@@ -1,6 +1,7 @@
 package coremedia
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
@@ -18,18 +19,20 @@ const (
 	sary uint32 = 0x73617279 //some dict with index and one boolean
 	ssiz uint32 = 0x7373697A //samplesize in bytes, size of what is contained in sdat, sample size array i think
 	nsmp uint32 = 0x6E736D70 //numsample so you know how many things are in the arrays
+
+	cmSampleTimingInfoLength = 3 * CMTimeLengthInBytes
 )
 
 type CMSampleTimingInfo struct {
-	duration CMTime /*! @field duration
+	Duration CMTime /*! @field duration
 	The duration of the sample. If a single struct applies to
 	each of the samples, they all will have this duration. */
-	presentationTimeStamp CMTime /*! @field presentationTimeStamp
+	PresentationTimeStamp CMTime /*! @field presentationTimeStamp
 	The time at which the sample will be presented. If a single
 	struct applies to each of the samples, this is the presentationTime of the
 	first sample. The presentationTime of subsequent samples will be derived by
 	repeatedly adding the sample duration. */
-	decodeTimeStamp CMTime /*! @field decodeTimeStamp
+	DecodeTimeStamp CMTime /*! @field decodeTimeStamp
 	The time at which the sample will be decoded. If the samples
 	are in presentation order, this must be set to kCMTimeInvalid. */
 }
@@ -61,5 +64,42 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 		return sbuffer, err
 	}
 	sbuffer.OutputPresentationTimestamp = cmtime
+	sbuffer.SampleTimingInfoArray, remainingBytes, err = parseStia(remainingBytes[24:])
+	if err != nil {
+		return sbuffer, err
+	}
 	return sbuffer, nil
+}
+
+func parseStia(data []byte) ([]CMSampleTimingInfo, []byte, error) {
+	stiaLength := int(binary.LittleEndian.Uint32(data) - 8)
+
+	numEntries, modulus := stiaLength/cmSampleTimingInfoLength, stiaLength%cmSampleTimingInfoLength
+	if modulus != 0 {
+		return nil, nil, fmt.Errorf("error parsing stia, too many bytes: %d", modulus)
+	}
+	result := make([]CMSampleTimingInfo, numEntries)
+	data = data[8:]
+	for i := 0; i < numEntries; i++ {
+		index := i * cmSampleTimingInfoLength
+		duration, err := NewCMTimeFromBytes(data[index:])
+		if err != nil {
+			return nil, nil, err
+		}
+		presentationTimeStamp, err := NewCMTimeFromBytes(data[CMTimeLengthInBytes+index:])
+		if err != nil {
+			return nil, nil, err
+		}
+		decodeTimeStamp, err := NewCMTimeFromBytes(data[2*CMTimeLengthInBytes+index:])
+		if err != nil {
+			return nil, nil, err
+		}
+
+		result[i] = CMSampleTimingInfo{
+			Duration:              duration,
+			PresentationTimeStamp: presentationTimeStamp,
+			DecodeTimeStamp:       decodeTimeStamp,
+		}
+	}
+	return result, data[stiaLength:], nil
 }

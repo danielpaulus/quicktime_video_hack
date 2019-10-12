@@ -29,6 +29,10 @@ type CMTime struct {
 }
 
 func (time CMTime) Seconds() uint64 {
+	//prevent division by 0
+	if time.CMTimeValue == 0 {
+		return 0
+	}
 	return time.CMTimeValue / uint64(time.CMTimeScale)
 }
 
