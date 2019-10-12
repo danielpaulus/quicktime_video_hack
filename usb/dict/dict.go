@@ -209,15 +209,15 @@ func appendEntry(builder *strings.Builder, entry StringKeyEntry) {
 }
 
 func valueToString(builder *strings.Builder, value interface{}) {
-	switch value.(type) {
+	switch value := value.(type) {
 	case NSNumber:
-		builder.WriteString(value.(NSNumber).String())
+		builder.WriteString(value.String())
 	case StringKeyDict:
-		builder.WriteString(value.(StringKeyDict).String())
+		builder.WriteString(value.String())
 	case []byte:
-		builder.WriteString(fmt.Sprintf("0x%x", value.([]byte)))
+		builder.WriteString(fmt.Sprintf("0x%x", value))
 	case FormatDescriptor:
-		builder.WriteString(value.(FormatDescriptor).String())
+		builder.WriteString(value.String())
 	default:
 		builder.WriteString(fmt.Sprintf("%s", value))
 	}
