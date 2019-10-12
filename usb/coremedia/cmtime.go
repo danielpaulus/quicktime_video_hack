@@ -40,7 +40,7 @@ func (time CMTime) Seconds() uint64 {
 //Serialize serializes this CMTime into a given byte slice that needs to be at least of CMTimeLengthInBytes length
 func (time CMTime) Serialize(target []byte) error {
 	if len(target) < CMTimeLengthInBytes {
-		return fmt.Errorf("Serializing CMTime failed, not enough space in byte slice:%d", len(target))
+		return fmt.Errorf("serializing CMTime failed, not enough space in byte slice:%d", len(target))
 	}
 	binary.LittleEndian.PutUint64(target, time.CMTimeValue)
 	binary.LittleEndian.PutUint32(target[8:], time.CMTimeScale)
