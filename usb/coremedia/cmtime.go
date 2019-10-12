@@ -28,6 +28,7 @@ type CMTime struct {
 	however, since epoch length may be unknown/variable. */
 }
 
+//Seconds returns CMTimeValue/CMTimeScale and 0 when all values are 0
 func (time CMTime) Seconds() uint64 {
 	//prevent division by 0
 	if time.CMTimeValue == 0 {
@@ -36,6 +37,7 @@ func (time CMTime) Seconds() uint64 {
 	return time.CMTimeValue / uint64(time.CMTimeScale)
 }
 
+//Serialize serializes this CMTime into a given byte slice that needs to be at least of CMTimeLengthInBytes length
 func (time CMTime) Serialize(target []byte) error {
 	if len(target) < CMTimeLengthInBytes {
 		return fmt.Errorf("Serializing CMTime failed, not enough space in byte slice:%d", len(target))
@@ -47,6 +49,7 @@ func (time CMTime) Serialize(target []byte) error {
 	return nil
 }
 
+//NewCMTimeFromBytes reads a CMTime struct directly from the given byte slice
 func NewCMTimeFromBytes(data []byte) (CMTime, error) {
 	r := bytes.NewReader(data)
 	var cmTime CMTime
