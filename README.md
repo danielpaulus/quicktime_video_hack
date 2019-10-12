@@ -13,14 +13,17 @@ Progress:
 2. ~~Create a Golang App to successfully enable and grab the first video stream data from the iOS Device on Linux~~
 3. ~~port decoder from Java to Golang~~
 3. Make the `go run main.go dumpraw` work on the first execution (currently you have to run it twice)
-4. Add support for CMSync.h style CMClock packets 
-5. Get a continuous Feed from the Device
+4. ~~Add support for CMSync.h style CMClock packets~~ 
+5. ~~Get a continuous Feed from the Device~~
 6. Make the dumpraw command work without having to unplug the device every time
-7. Generate SPS and PPS dynamically
-8. Generate GStreamer compatible x264 stream
-9. Port to Windows (I don't know why, but still people use Windows nowadays)
+7. Parse Async Feed packets correctly and complete packet documentation
+8. Generate SPS and PPS h264 NaLus
+9. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
 
-run the `qvh` tool to get details :-)
+Extra Goals:
+1. [Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)
+
+
 
 ### MAC OS X LIBUSB -- IMPORTANT
 1. What works:
