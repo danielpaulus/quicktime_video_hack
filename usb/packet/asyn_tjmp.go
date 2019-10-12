@@ -5,6 +5,9 @@ import (
 	"fmt"
 )
 
+//AsynTjmpPacket contains the data from a TJMP packet.
+//I think this is a notification sent by the device about changing a TimeBase.
+//I do not know what the last bytes are for currently.
 type AsynTjmpPacket struct {
 	AsyncMagic  uint32
 	ClockRef    CFTypeID
@@ -12,6 +15,7 @@ type AsynTjmpPacket struct {
 	Unknown     []byte
 }
 
+//NewAsynTjmpPacketFromBytes parses a new AsynTjmpPacket from byte array
 func NewAsynTjmpPacketFromBytes(data []byte) (AsynTjmpPacket, error) {
 	var packet = AsynTjmpPacket{}
 	packet.AsyncMagic = binary.LittleEndian.Uint32(data)
@@ -26,4 +30,8 @@ func NewAsynTjmpPacketFromBytes(data []byte) (AsynTjmpPacket, error) {
 
 	packet.Unknown = data[16:]
 	return packet, nil
+}
+
+func (sp AsynTjmpPacket) String() string {
+	return fmt.Sprintf("ASYN_TJMP{ClockRef:%x, UnknownData:%x}", sp.ClockRef, sp.Unknown)
 }

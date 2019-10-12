@@ -6,6 +6,7 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
 )
 
+//AsynSprpPacket seems to be a set property packet sent by the device.
 type AsynSprpPacket struct {
 	AsyncMagic  uint32
 	ClockRef    CFTypeID
@@ -13,6 +14,7 @@ type AsynSprpPacket struct {
 	Property    dict.StringKeyEntry
 }
 
+//NewAsynSprpPacketFromBytes creates a new AsynSprpPacket from bytes
 func NewAsynSprpPacketFromBytes(data []byte) (AsynSprpPacket, error) {
 	var packet = AsynSprpPacket{}
 	packet.AsyncMagic = binary.LittleEndian.Uint32(data)
@@ -30,4 +32,8 @@ func NewAsynSprpPacketFromBytes(data []byte) (AsynSprpPacket, error) {
 	}
 	packet.Property = entry
 	return packet, nil
+}
+
+func (sp AsynSprpPacket) String() string {
+	return fmt.Sprintf("ASYN_SPRP{ClockRef:%x, Property:{%s:%s}}", sp.ClockRef, sp.Property.Key, sp.Property.Value)
 }
