@@ -22,6 +22,8 @@ func TestCMSampleBuffer(t *testing.T) {
 		assert.Equal(t, uint64(0), sbufPacket.SampleTimingInfoArray[0].Duration.Seconds())
 		assert.Equal(t, uint64(0x176a7), sbufPacket.SampleTimingInfoArray[0].PresentationTimeStamp.Seconds())
 		assert.Equal(t, uint64(0), sbufPacket.SampleTimingInfoArray[0].DecodeTimeStamp.Seconds())
+		assert.Equal(t, 90750, len(sbufPacket.SampleData))
+		assert.Equal(t, 1, sbufPacket.NumSamples)
 
 	}
 }

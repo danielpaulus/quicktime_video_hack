@@ -7,7 +7,7 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
 )
 
-type CMItemCount = uint32
+type CMItemCount = int
 
 //https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.9.sdk/System/Library/Frameworks/CoreMedia.framework/Versions/A/Headers/CMSampleBuffer.h
 const (
@@ -68,6 +68,20 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	if err != nil {
 		return sbuffer, err
 	}
+
+	length, remainingBytes, err = common.ParseLengthAndMagic(remainingBytes, sdat)
+	if err != nil {
+		return sbuffer, err
+	}
+	sbuffer.SampleData = remainingBytes[:length-8]
+	length, remainingBytes, err = common.ParseLengthAndMagic(remainingBytes[length-8:], nsmp)
+	if err != nil {
+		return sbuffer, err
+	}
+	if length != 12 {
+		return sbuffer, fmt.Errorf("invalid length for nsmp %d, should be 12", length)
+	}
+	sbuffer.NumSamples = int(binary.LittleEndian.Uint32(remainingBytes))
 	return sbuffer, nil
 }
 
