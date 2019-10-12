@@ -26,8 +26,7 @@ func enableQTConfigSingleDevice(device IosDevice, attachedDevicesChannel chan st
 		return nil
 	}
 
-	var err error = nil
-	err = sendQTConfigControlRequest(device)
+	err := sendQTConfigControlRequest(device)
 	if err != nil {
 		return err
 	}
