@@ -7,7 +7,7 @@ import (
 	"math"
 )
 
-// Probably related to AVPlayer.SetRate somehow. I dont know exactly what everything means here
+// AsynSratPacket is probably related to AVPlayer.SetRate somehow. I dont know exactly what everything means here
 type AsynSratPacket struct {
 	AsyncMagic  uint32
 	ClockRef    CFTypeID
@@ -17,6 +17,7 @@ type AsynSratPacket struct {
 	Time        coremedia.CMTime
 }
 
+//NewAsynSratPacketFromBytes parses a new AsynSratPacket from bytes
 func NewAsynSratPacketFromBytes(data []byte) (AsynSratPacket, error) {
 	var packet = AsynSratPacket{}
 	packet.AsyncMagic = binary.LittleEndian.Uint32(data)
@@ -37,4 +38,8 @@ func NewAsynSratPacketFromBytes(data []byte) (AsynSratPacket, error) {
 	}
 	packet.Time = cmtime
 	return packet, nil
+}
+
+func (sp AsynSratPacket) String() string {
+	return fmt.Sprintf("ASYN_TBAS{ClockRef:%x, Rate1:%f, Rate2:%f, Time:%s}", sp.ClockRef, sp.Rate1, sp.Rate2, sp.Time.String())
 }

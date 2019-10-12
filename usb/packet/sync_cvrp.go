@@ -6,6 +6,7 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
 )
 
+//SyncCvrpPacket contains all info from a CVRP packet sent by the device
 type SyncCvrpPacket struct {
 	SyncMagic      uint32
 	ClockRef       CFTypeID
@@ -15,6 +16,7 @@ type SyncCvrpPacket struct {
 	Payload        dict.StringKeyDict
 }
 
+//NewSyncCvrpPacketFromBytes parses a SyncCvrpPacket from a []byte
 func NewSyncCvrpPacketFromBytes(data []byte) (SyncCvrpPacket, error) {
 	packet := SyncCvrpPacket{}
 	packet.SyncMagic = binary.LittleEndian.Uint32(data)
@@ -40,6 +42,11 @@ func NewSyncCvrpPacketFromBytes(data []byte) (SyncCvrpPacket, error) {
 	return packet, nil
 }
 
+//NewReply creates a RPLY packet containing the given clockRef and serializes it to a []byte
 func (sp SyncCvrpPacket) NewReply(clockRef CFTypeID) []byte {
 	return clockRefReply(clockRef, sp.CorrelationID)
+}
+
+func (sp SyncCvrpPacket) String() string {
+	return fmt.Sprintf("SYNC_CVRP{ClockRef:%x, CorrelationID:%x, DeviceClockRef:%x, Payload:%s}", sp.ClockRef, sp.CorrelationID, sp.DeviceClockRef, sp.Payload.String())
 }

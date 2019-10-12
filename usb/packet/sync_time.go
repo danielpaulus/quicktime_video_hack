@@ -6,6 +6,7 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 )
 
+//Contains the data from a decoded Time Packet sent by the device
 type SyncTimePacket struct {
 	SyncMagic     uint32
 	ClockRef      CFTypeID
@@ -13,6 +14,7 @@ type SyncTimePacket struct {
 	CorrelationID uint64
 }
 
+//NewSyncTimePacketFromBytes parses a SyncTimePacket from bytes
 func NewSyncTimePacketFromBytes(data []byte) (SyncTimePacket, error) {
 	packet := SyncTimePacket{}
 	packet.SyncMagic = binary.LittleEndian.Uint32(data)
@@ -29,6 +31,7 @@ func NewSyncTimePacketFromBytes(data []byte) (SyncTimePacket, error) {
 	return packet, nil
 }
 
+//NewReply creates a RPLY packet containing the given CMTime and serializes it to a []byte
 func (sp SyncTimePacket) NewReply(time coremedia.CMTime) ([]byte, error) {
 	length := 44
 	data := make([]byte, length)
@@ -41,4 +44,8 @@ func (sp SyncTimePacket) NewReply(time coremedia.CMTime) ([]byte, error) {
 		return nil, err
 	}
 	return data, nil
+}
+
+func (sp SyncTimePacket) String() string {
+	return fmt.Sprintf("SYNC_TIME{ClockRef:%x, CorrelationID:%x}", sp.ClockRef, sp.CorrelationID)
 }

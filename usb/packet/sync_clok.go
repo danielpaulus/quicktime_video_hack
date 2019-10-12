@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+//SyncClokPacket contains a decoded Clok packet from the device
 type SyncClokPacket struct {
 	SyncMagic     uint32
 	ClockRef      CFTypeID
@@ -12,6 +13,7 @@ type SyncClokPacket struct {
 	CorrelationID uint64
 }
 
+//NewSyncClokPacketFromBytes parses a SynClokPacket from bytes
 func NewSyncClokPacketFromBytes(data []byte) (SyncClokPacket, error) {
 	packet := SyncClokPacket{}
 	packet.SyncMagic = binary.LittleEndian.Uint32(data)
@@ -28,6 +30,11 @@ func NewSyncClokPacketFromBytes(data []byte) (SyncClokPacket, error) {
 	return packet, nil
 }
 
+//NewReply creates a RPLY message containing the given clockRef and serializes it into a []byte
 func (sp SyncClokPacket) NewReply(clockRef CFTypeID) []byte {
 	return clockRefReply(clockRef, sp.CorrelationID)
+}
+
+func (sp SyncClokPacket) String() string {
+	return fmt.Sprintf("SYNC_CLOK{ClockRef:%x, CorrelationID:%x}", sp.ClockRef, sp.CorrelationID)
 }

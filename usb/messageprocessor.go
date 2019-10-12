@@ -44,18 +44,18 @@ func (mp *messageProcessor) receiveData(data []byte) {
 func (mp *messageProcessor) handleSyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.CWPA:
-		log.Debug("Received Sync CWPA")
 		cwpaPacket, err := packet.NewSyncCwpaPacketFromBytes(data)
 		if err != nil {
 			log.Error("failed parsing cwpa packet", err)
 			return
 		}
+		log.Debugf("Rcv:%s", cwpaPacket.String())
 		clockRef := cwpaPacket.DeviceClockRef + 1000
 
 		deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
 		log.Debug("Sending ASYN HPD1")
 		mp.writeToUsb(deviceInfo)
-		log.Debug("Sending CWPA Reply")
+		log.Debugf("Sending CWPA Reply:%x", clockRef)
 		mp.writeToUsb(cwpaPacket.NewReply(clockRef))
 		log.Debug("Sending ASYN HPD1")
 		mp.writeToUsb(deviceInfo)
@@ -63,32 +63,31 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		log.Debug("Sending ASYN HPA1")
 		mp.writeToUsb(deviceInfo1)
 	case packet.CVRP:
-		log.Debug("Received Sync CVRP")
 		cvrpPacket, err := packet.NewSyncCvrpPacketFromBytes(data)
 		if err != nil {
 			log.Error("Error parsing CVRP packet", err)
 			return
 		}
+		log.Debugf("Rcv:%s", cvrpPacket.String())
 		clockRef2 := cvrpPacket.DeviceClockRef + 1000
-		log.Debug("Sending CVRP Reply")
+		log.Debugf("Sending CVRP Reply:%x", clockRef2)
 		mp.writeToUsb(cvrpPacket.NewReply(clockRef2))
-		log.Debugf("CVRP:%s", cvrpPacket.Payload.String())
 	case packet.CLOK:
-		log.Debug("Received Sync Clock")
-		clok, err := packet.NewSyncClokPacketFromBytes(data)
+		clokPacket, err := packet.NewSyncClokPacketFromBytes(data)
 		if err != nil {
 			log.Error("Failed parsing Clok Packet", err)
 		}
-		clockRef := clok.ClockRef + 0x10000
+		log.Debugf("Rcv:%s", clokPacket.String())
+		clockRef := clokPacket.ClockRef + 0x10000
 		mp.clock = coremedia.NewCMClockWithHostTime(clockRef)
-		log.Debug("Sending CLOK reply")
-		mp.writeToUsb(clok.NewReply(clockRef))
+		log.Debugf("Sending CLOK reply:%x", clockRef)
+		mp.writeToUsb(clokPacket.NewReply(clockRef))
 	case packet.TIME:
-		log.Debug("Received Sync Time")
 		timePacket, err := packet.NewSyncTimePacketFromBytes(data)
 		if err != nil {
 			log.Error("Error parsing TIME SYNC packet", err)
 		}
+		log.Debugf("Rcv:%s", timePacket.String())
 		timeToSend := mp.clock.GetTime()
 		replyBytes, err := timePacket.NewReply(timeToSend)
 		if err != nil {
@@ -108,33 +107,33 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 		log.Debugf("rcv feed: %d bytes - %d total", len(data), mp.totalBytesReceived)
 	//mp.writeToUsb(packet.AsynNeedPacketBytes)
 	case packet.SPRP:
-		packet, err := packet.NewAsynSprpPacketFromBytes(data)
+		sprpPacket, err := packet.NewAsynSprpPacketFromBytes(data)
 		if err != nil {
 			log.Error("Error parsing SPRP packet", err)
 			return
 		}
-		log.Debugf("rcv set property (sprp):%s", packet.Property.Key)
+		log.Debugf("Rcv:%s", sprpPacket.String())
 	case packet.TJMP:
-		packet, err := packet.NewAsynTjmpPacketFromBytes(data)
+		tjmpPacket, err := packet.NewAsynTjmpPacketFromBytes(data)
 		if err != nil {
 			log.Error("Error parsing tjmp packet", err)
 			return
 		}
-		log.Debugf("rcv tjmp: 0x%x", packet.Unknown)
+		log.Debugf("Rcv:%s", tjmpPacket.String())
 	case packet.SRAT:
-		packet, err := packet.NewAsynSratPacketFromBytes(data)
+		sratPacket, err := packet.NewAsynSratPacketFromBytes(data)
 		if err != nil {
 			log.Error("Error parsing srat packet", err)
 			return
 		}
-		log.Debugf("rcv srat: rate1:%f rate2:%f time:%s", packet.Rate1, packet.Rate2, packet.Time.String())
+		log.Debugf("Rcv:%s", sratPacket.String())
 	case packet.TBAS:
-		packet, err := packet.NewAsynTbasPacketFromBytes(data)
+		tbasPacket, err := packet.NewAsynTbasPacketFromBytes(data)
 		if err != nil {
 			log.Error("Error parsing tbas packet", err)
 			return
 		}
-		log.Debugf("rcv tbas: 0x%x", packet.SomeOtherRef)
+		log.Debugf("Rcv:%s", tbasPacket.String())
 	default:
 		log.Warnf("received unknown async packet type: %x", data)
 	}
