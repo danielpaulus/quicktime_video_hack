@@ -103,9 +103,12 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.FEED:
-		mp.totalBytesReceived += len(data)
-		log.Debugf("rcv feed: %d bytes - %d total", len(data), mp.totalBytesReceived)
-	//mp.writeToUsb(packet.AsynNeedPacketBytes)
+		feedPacket, err := packet.NewAsynFeedPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing FEED packet", err)
+			return
+		}
+		log.Debugf("Rcv:%s", feedPacket.String())
 	case packet.SPRP:
 		sprpPacket, err := packet.NewAsynSprpPacketFromBytes(data)
 		if err != nil {
