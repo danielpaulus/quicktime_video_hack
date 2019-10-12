@@ -127,7 +127,7 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 			log.Error("Error parsing srat packet", err)
 			return
 		}
-		log.Debugf("rcv srat: rate1:%d rate2:%d time:%s", packet.Rate1, packet.Rate2, packet.Time.String())
+		log.Debugf("rcv srat: rate1:%f rate2:%f time:%s", packet.Rate1, packet.Rate2, packet.Time.String())
 	case packet.TBAS:
 		packet, err := packet.NewAsynTbasPacketFromBytes(data)
 		if err != nil {
