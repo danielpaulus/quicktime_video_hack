@@ -28,7 +28,7 @@ func testSerializationOfTimeReply(timePacket packet.SyncTimePacket, t *testing.T
 	cmtime := coremedia.CMTime{
 		CMTimeValue: 0x0000BA62C442E1E1,
 		CMTimeScale: 0x3B9ACA00,
-		CMTimeFlags: coremedia.KCMTimeFlags_HasBeenRounded,
+		CMTimeFlags: coremedia.KCMTimeFlagsHasBeenRounded,
 		CMTimeEpoch: 0,
 	}
 	replyBytes, err := timePacket.NewReply(cmtime)

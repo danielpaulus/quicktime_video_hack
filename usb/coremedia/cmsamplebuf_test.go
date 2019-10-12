@@ -16,7 +16,7 @@ func TestCMSampleBuffer(t *testing.T) {
 	sbufPacket, err := coremedia.NewCMSampleBufferFromBytes(dat[20:])
 
 	if assert.NoError(t, err) {
-		assert.Equal(t, coremedia.KCMTimeFlags_HasBeenRounded, sbufPacket.OutputPresentationTimestamp.CMTimeFlags)
+		assert.Equal(t, coremedia.KCMTimeFlagsHasBeenRounded, sbufPacket.OutputPresentationTimestamp.CMTimeFlags)
 		assert.Equal(t, uint64(0x176a7), sbufPacket.OutputPresentationTimestamp.Seconds())
 		assert.Equal(t, 1, len(sbufPacket.SampleTimingInfoArray))
 		assert.Equal(t, uint64(0), sbufPacket.SampleTimingInfoArray[0].Duration.Seconds())

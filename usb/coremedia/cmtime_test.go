@@ -37,7 +37,7 @@ func TestCodec(t *testing.T) {
 
 func TestString(t *testing.T) {
 	time := createCmTime()
-	expected := "CMTime{2s, flags:KCMTimeFlags_HasBeenRounded, epoch:6}"
+	expected := "CMTime{2s, flags:KCMTimeFlagsHasBeenRounded, epoch:6}"
 	s := time.String()
 	assert.Equal(t, expected, s)
 }
@@ -46,7 +46,7 @@ func createCmTime() coremedia.CMTime {
 	return coremedia.CMTime{
 		CMTimeValue: 1000,
 		CMTimeScale: 500,
-		CMTimeFlags: coremedia.KCMTimeFlags_HasBeenRounded,
+		CMTimeFlags: coremedia.KCMTimeFlagsHasBeenRounded,
 		CMTimeEpoch: 6,
 	}
 }

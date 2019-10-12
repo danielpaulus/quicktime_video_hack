@@ -23,7 +23,7 @@ func (c CMClock) GetTime() CMTime {
 	return CMTime{
 		CMTimeValue: uint64(time.Since(c.startTime).Nanoseconds()),
 		CMTimeScale: c.TimeScale,
-		CMTimeFlags: KCMTimeFlags_HasBeenRounded,
+		CMTimeFlags: KCMTimeFlagsHasBeenRounded,
 		CMTimeEpoch: 0,
 	}
 

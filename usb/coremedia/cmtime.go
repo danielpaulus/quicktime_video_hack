@@ -7,13 +7,13 @@ import (
 )
 
 const (
-	KCMTimeFlags_Valid                 uint32 = 0x0
-	KCMTimeFlags_HasBeenRounded        uint32 = 0x1
-	KCMTimeFlags_PositiveInfinity      uint32 = 0x2
-	KCMTimeFlags_NegativeInfinity      uint32 = 0x4
-	KCMTimeFlags_Indefinite            uint32 = 0x8
-	KCMTimeFlags_ImpliedValueFlagsMask uint32 = KCMTimeFlags_PositiveInfinity | KCMTimeFlags_NegativeInfinity | KCMTimeFlags_Indefinite
-	CMTimeLengthInBytes                int    = 24
+	KCMTimeFlagsValid                 uint32 = 0x0
+	KCMTimeFlagsHasBeenRounded        uint32 = 0x1
+	KCMTimeFlagsPositiveInfinity      uint32 = 0x2
+	KCMTimeFlagsNegativeInfinity      uint32 = 0x4
+	KCMTimeFlagsIndefinite            uint32 = 0x8
+	KCMTimeFlagsImpliedValueFlagsMask        = KCMTimeFlagsPositiveInfinity | KCMTimeFlagsNegativeInfinity | KCMTimeFlagsIndefinite
+	CMTimeLengthInBytes               int    = 24
 )
 
 //Taken from https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.8.sdk/System/Library/Frameworks/CoreMedia.framework/Versions/A/Headers/CMTime.h
@@ -28,6 +28,7 @@ type CMTime struct {
 	however, since epoch length may be unknown/variable. */
 }
 
+//Seconds returns CMTimeValue/CMTimeScale and 0 when all values are 0
 func (time CMTime) Seconds() uint64 {
 	//prevent division by 0
 	if time.CMTimeValue == 0 {
@@ -36,9 +37,10 @@ func (time CMTime) Seconds() uint64 {
 	return time.CMTimeValue / uint64(time.CMTimeScale)
 }
 
+//Serialize serializes this CMTime into a given byte slice that needs to be at least of CMTimeLengthInBytes length
 func (time CMTime) Serialize(target []byte) error {
 	if len(target) < CMTimeLengthInBytes {
-		return fmt.Errorf("Serializing CMTime failed, not enough space in byte slice:%d", len(target))
+		return fmt.Errorf("serializing CMTime failed, not enough space in byte slice:%d", len(target))
 	}
 	binary.LittleEndian.PutUint64(target, time.CMTimeValue)
 	binary.LittleEndian.PutUint32(target[8:], time.CMTimeScale)
@@ -47,6 +49,7 @@ func (time CMTime) Serialize(target []byte) error {
 	return nil
 }
 
+//NewCMTimeFromBytes reads a CMTime struct directly from the given byte slice
 func NewCMTimeFromBytes(data []byte) (CMTime, error) {
 	r := bytes.NewReader(data)
 	var cmTime CMTime
@@ -60,18 +63,18 @@ func NewCMTimeFromBytes(data []byte) (CMTime, error) {
 func (time CMTime) String() string {
 	var flags string
 	switch time.CMTimeFlags {
-	case KCMTimeFlags_Valid:
-		flags = "KCMTimeFlags_Valid"
-	case KCMTimeFlags_HasBeenRounded:
-		flags = "KCMTimeFlags_HasBeenRounded"
-	case KCMTimeFlags_PositiveInfinity:
-		flags = "KCMTimeFlags_PositiveInfinity"
-	case KCMTimeFlags_NegativeInfinity:
-		flags = "KCMTimeFlags_NegativeInfinity"
-	case KCMTimeFlags_Indefinite:
-		flags = "KCMTimeFlags_Indefinite"
-	case KCMTimeFlags_ImpliedValueFlagsMask:
-		flags = "KCMTimeFlags_ImpliedValueFlagsMask"
+	case KCMTimeFlagsValid:
+		flags = "KCMTimeFlagsValid"
+	case KCMTimeFlagsHasBeenRounded:
+		flags = "KCMTimeFlagsHasBeenRounded"
+	case KCMTimeFlagsPositiveInfinity:
+		flags = "KCMTimeFlagsPositiveInfinity"
+	case KCMTimeFlagsNegativeInfinity:
+		flags = "KCMTimeFlagsNegativeInfinity"
+	case KCMTimeFlagsIndefinite:
+		flags = "KCMTimeFlagsIndefinite"
+	case KCMTimeFlagsImpliedValueFlagsMask:
+		flags = "KCMTimeFlagsImpliedValueFlagsMask"
 	default:
 		flags = "unknown"
 	}

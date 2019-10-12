@@ -3,7 +3,6 @@ package dict
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 	"strings"
@@ -167,15 +166,6 @@ func parseValue(bytes []byte) (interface{}, error) {
 	}
 }
 
-func (ikd IndexKeyDict) getValue(index uint16) (interface{}, error) {
-	for _, entry := range ikd.Entries {
-		if entry.Key == index {
-			return entry.Value, nil
-		}
-	}
-	return nil, errors.New("not found")
-}
-
 func (dt StringKeyDict) String() string {
 	sb := strings.Builder{}
 	for _, e := range dt.Entries {
@@ -209,15 +199,15 @@ func appendEntry(builder *strings.Builder, entry StringKeyEntry) {
 }
 
 func valueToString(builder *strings.Builder, value interface{}) {
-	switch value.(type) {
+	switch value := value.(type) {
 	case NSNumber:
-		builder.WriteString(value.(NSNumber).String())
+		builder.WriteString(value.String())
 	case StringKeyDict:
-		builder.WriteString(value.(StringKeyDict).String())
+		builder.WriteString(value.String())
 	case []byte:
-		builder.WriteString(fmt.Sprintf("0x%x", value.([]byte)))
+		builder.WriteString(fmt.Sprintf("0x%x", value))
 	case FormatDescriptor:
-		builder.WriteString(value.(FormatDescriptor).String())
+		builder.WriteString(value.String())
 	default:
 		builder.WriteString(fmt.Sprintf("%s", value))
 	}

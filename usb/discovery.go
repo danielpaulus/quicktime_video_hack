@@ -7,6 +7,7 @@ import (
 )
 import "github.com/google/gousb"
 
+//IosDevice contains a gousb.Device pointer for a found device and some additional info like the device udid
 type IosDevice struct {
 	usbDevice         *gousb.Device
 	SerialNumber      string
@@ -16,15 +17,13 @@ type IosDevice struct {
 }
 
 const (
-	//Interesting, maybe the subclass type Application was chosen intentionally by Apple
-	//Because this config enables the basic communication between MacOSX Apps and iOS Devices over USBMuxD
-	UsbMuxSubclass gousb.Class = gousb.ClassApplication
-	//You can observe this config being activated as soon as you enable iOS Screen Sharing in Quicktime (That's how I
-	//found out :-D )
+	//UsbMuxSubclass is the subclass used for USBMux USB configuration.
+	UsbMuxSubclass = gousb.ClassApplication
+	//QuicktimeSubclass is the subclass used for the Quicktime USB configuration.
 	QuicktimeSubclass gousb.Class = 0x2A
 )
 
-// FindIosDevices finds iOS devices connected on USB ports by looking for their
+// FindIosDevicesWithQTEnabled finds iOS devices connected on USB ports by looking for their
 // USBMux compatible Bulk Endpoints and QuickTime Video Stream compatible Bulk Endpoints
 func FindIosDevicesWithQTEnabled() ([]IosDevice, error) {
 	return findIosDevices(isValidIosDeviceWithActiveQTConfig)
@@ -38,6 +37,8 @@ func FindIosDevices() ([]IosDevice, error) {
 
 var ctx *gousb.Context
 
+//Init initializes a new Context and returns a func to close it later.
+//Be sure to run it with defer
 func Init() func() {
 	ctx = gousb.NewContext()
 	return func() {
@@ -83,6 +84,7 @@ func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 	return iosDevices, nil
 }
 
+//PrintDeviceDetails returns a pretty string for printing device details to the console.
 func PrintDeviceDetails(devices []IosDevice) string {
 	var sb strings.Builder
 	for _, d := range devices {

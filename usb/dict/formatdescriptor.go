@@ -53,6 +53,9 @@ func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
 	}
 
 	extensions, err := NewIndexDictFromBytesWithCustomMarker(remainingBytes, ExtensionMagic)
+	if err != nil {
+		return FormatDescriptor{}, err
+	}
 
 	return FormatDescriptor{
 		MediaType:            mediaType,

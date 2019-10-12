@@ -26,8 +26,7 @@ func enableQTConfigSingleDevice(device IosDevice, attachedDevicesChannel chan st
 		return nil
 	}
 
-	var err error = nil
-	err = sendQTConfigControlRequest(device)
+	err := sendQTConfigControlRequest(device)
 	if err != nil {
 		return err
 	}
@@ -126,7 +125,7 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 	}
 	log.Debug("Endpoint claimed")
 
-	mp := NewMessageProcessor(func(bytes []byte) {
+	mp := newMessageProcessor(func(bytes []byte) {
 		n, err := outEndpoint.Write(bytes)
 		if err != nil {
 			log.Error("failed sending to usb", err)
@@ -153,7 +152,10 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 	}()
 	<-stopSignal
 	log.Debugf("Closing stream")
-	stream.Close()
+	err = stream.Close()
+	if err != nil {
+		log.Error("Error closing stream", err)
+	}
 	iface.Close()
 }
 

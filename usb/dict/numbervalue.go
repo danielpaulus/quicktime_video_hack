@@ -7,10 +7,10 @@ import (
 	"math"
 )
 
-//vbmn in little endian ascii ==> nmbv
+//NumberValueMagic is vbmn in little endian ascii ==> nmbv
 const NumberValueMagic uint32 = 0x6E6D6276
 
-// Type 6 seems to be a float64, type 4 a int64, type 3 a int32.
+// NSNumber represents a type in the binary protocol used. Type 6 seems to be a float64, type 4 a int64, type 3 a int32.
 // I am not sure whether signed or unsigned. They are all in LittleEndian
 type NSNumber struct {
 	typeSpecifier byte
@@ -30,7 +30,7 @@ func NewNSNumberFromUFloat64(floatValue float64) NSNumber {
 	return NSNumber{typeSpecifier: 06, FloatValue: floatValue}
 }
 
-//Read what I assume is a NSNumber from bytes
+//NewNSNumber reads a NSNumber from bytes.
 func NewNSNumber(bytes []byte) (NSNumber, error) {
 	typeSpecifier := bytes[0]
 	switch typeSpecifier {
