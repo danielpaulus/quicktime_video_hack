@@ -56,9 +56,15 @@ type CMSampleBuffer struct {
 }
 
 func (buffer CMSampleBuffer) String() string {
+	var fdscString string
+	if buffer.HasFormatDescription {
+		fdscString = buffer.FormatDescription.String()
+	} else {
+		fdscString = "none"
+	}
 	return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, Nalus:%s, fdsc:%s, attach:%s, sary:%s, SampleTimingInfoArray:%s}",
 		buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, h264.GetNaluDetails(buffer.SampleData),
-		buffer.FormatDescription.String(), buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
+		fdscString, buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
 }
 
 func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
