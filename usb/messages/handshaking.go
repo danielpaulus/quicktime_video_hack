@@ -4,6 +4,7 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
 )
 
+//CreateHpd1DeviceInfoDict creates a dict.StringKeyDict that needs to be sent to the device before receiving a feed
 func CreateHpd1DeviceInfoDict() dict.StringKeyDict {
 	resultDict := dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 3)}
 	displaySizeDict := dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 2)}
@@ -33,6 +34,7 @@ func CreateHpd1DeviceInfoDict() dict.StringKeyDict {
 	return resultDict
 }
 
+//CreateHpa1DeviceInfoDict creates a dict.StringKeyDict that needs to be sent to the device before receiving a feed
 func CreateHpa1DeviceInfoDict() dict.StringKeyDict {
 	resultDict := dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 6)}
 	resultDict.Entries[0] = dict.StringKeyEntry{

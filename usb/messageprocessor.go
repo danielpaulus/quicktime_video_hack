@@ -16,7 +16,7 @@ type messageProcessor struct {
 	totalBytesReceived int
 }
 
-func NewMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) messageProcessor {
+func newMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) messageProcessor {
 	var mp = messageProcessor{writeToUsb: writeToUsb, stopSignal: stopSignal}
 	return mp
 }
