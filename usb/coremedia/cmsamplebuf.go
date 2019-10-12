@@ -87,7 +87,9 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	sbuffer.NumSamples = int(binary.LittleEndian.Uint32(remainingBytes))
 
 	sbuffer.SampleSizes, remainingBytes, err = parseSampleSizeArray(remainingBytes[4:])
-
+	if err != nil {
+		return sbuffer, err
+	}
 	fdscLength := binary.LittleEndian.Uint32(remainingBytes)
 	sbuffer.FormatDescription, err = dict.NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
 	if err != nil {
@@ -96,19 +98,30 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	remainingBytes = remainingBytes[fdscLength:]
 	attachmentsLength := binary.LittleEndian.Uint32(remainingBytes)
 	sbuffer.Attachments, err = dict.NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
-
+	if err != nil {
+		return sbuffer, err
+	}
 	remainingBytes = remainingBytes[attachmentsLength:]
 	saryLength := binary.LittleEndian.Uint32(remainingBytes)
+	if binary.LittleEndian.Uint32(remainingBytes[4:]) != sary {
+		return sbuffer, fmt.Errorf("wrong magic, expected sary got:%x", remainingBytes[4:8])
+	}
 	sbuffer.Sary, err = dict.NewIndexDictFromBytes(remainingBytes[8:saryLength])
 	if err != nil {
 		return sbuffer, err
+	}
+	if len(remainingBytes[saryLength:]) != 0 {
+		return sbuffer, fmt.Errorf("CmSampleBuf should have been read completely but still contains bytes: %x", remainingBytes[saryLength:])
 	}
 	return sbuffer, nil
 }
 
 func parseSampleSizeArray(data []byte) ([]int, []byte, error) {
-	ssizLength := int(binary.LittleEndian.Uint32(data) - 8)
-
+	ssizLength, _, err := common.ParseLengthAndMagic(data, ssiz)
+	if err != nil {
+		return nil, nil, err
+	}
+	ssizLength -= 8
 	numEntries, modulus := ssizLength/4, ssizLength%4
 	if modulus != 0 {
 		return nil, nil, fmt.Errorf("error parsing samplesizearray, too many bytes: %d", modulus)
@@ -123,7 +136,11 @@ func parseSampleSizeArray(data []byte) ([]int, []byte, error) {
 }
 
 func parseStia(data []byte) ([]CMSampleTimingInfo, []byte, error) {
-	stiaLength := int(binary.LittleEndian.Uint32(data) - 8)
+	stiaLength, _, err := common.ParseLengthAndMagic(data, stia)
+	if err != nil {
+		return nil, nil, err
+	}
+	stiaLength -= 8
 
 	numEntries, modulus := stiaLength/cmSampleTimingInfoLength, stiaLength%cmSampleTimingInfoLength
 	if modulus != 0 {
