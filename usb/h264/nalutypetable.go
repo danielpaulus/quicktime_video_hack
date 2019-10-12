@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+//https://yumichan.net/video-processing/video-compression/introduction-to-h264-nal-unit/
 //https://www.semanticscholar.org/paper/Multiplexing-the-elementary-streams-of-H.264-video-Siddaraju-Rao/c7b0e625198b663be9d61c3ec7e1ec341627168c/figure/0
 //for debugging purposes
 

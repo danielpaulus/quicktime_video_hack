@@ -43,6 +43,9 @@ type CMSampleBuffer struct {
 	NumSamples                  CMItemCount          //nsmp
 	SampleTimingInfoArray       []CMSampleTimingInfo //stia
 	SampleData                  []byte
+	SampleSizes                 []int
+	Attachments                 dict.IndexKeyDict //satt
+	Sary                        dict.IndexKeyDict //sary
 }
 
 func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
@@ -82,7 +85,41 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 		return sbuffer, fmt.Errorf("invalid length for nsmp %d, should be 12", length)
 	}
 	sbuffer.NumSamples = int(binary.LittleEndian.Uint32(remainingBytes))
+
+	sbuffer.SampleSizes, remainingBytes, err = parseSampleSizeArray(remainingBytes[4:])
+
+	fdscLength := binary.LittleEndian.Uint32(remainingBytes)
+	sbuffer.FormatDescription, err = dict.NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
+	if err != nil {
+		return sbuffer, err
+	}
+	remainingBytes = remainingBytes[fdscLength:]
+	attachmentsLength := binary.LittleEndian.Uint32(remainingBytes)
+	sbuffer.Attachments, err = dict.NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
+
+	remainingBytes = remainingBytes[attachmentsLength:]
+	saryLength := binary.LittleEndian.Uint32(remainingBytes)
+	sbuffer.Sary, err = dict.NewIndexDictFromBytes(remainingBytes[8:saryLength])
+	if err != nil {
+		return sbuffer, err
+	}
 	return sbuffer, nil
+}
+
+func parseSampleSizeArray(data []byte) ([]int, []byte, error) {
+	ssizLength := int(binary.LittleEndian.Uint32(data) - 8)
+
+	numEntries, modulus := ssizLength/4, ssizLength%4
+	if modulus != 0 {
+		return nil, nil, fmt.Errorf("error parsing samplesizearray, too many bytes: %d", modulus)
+	}
+	result := make([]int, numEntries)
+	data = data[8:]
+	for i := 0; i < numEntries; i++ {
+		index := 4 * i
+		result[i] = int(binary.LittleEndian.Uint32(data[index+i*4:]))
+	}
+	return result, data[ssizLength:], nil
 }
 
 func parseStia(data []byte) ([]CMSampleTimingInfo, []byte, error) {
