@@ -13,6 +13,7 @@ type lengthFieldBasedFrameExtractor struct {
 	nextFrameSize     int
 }
 
+//NewLengthFieldBasedFrameExtractor intializes a new Extractor with a 2MB buffer
 func NewLengthFieldBasedFrameExtractor() *lengthFieldBasedFrameExtractor {
 	extractor := &lengthFieldBasedFrameExtractor{
 		frameBuffer:       bytes.NewBuffer(make([]byte, 1024*1024*2)),
@@ -21,6 +22,9 @@ func NewLengthFieldBasedFrameExtractor() *lengthFieldBasedFrameExtractor {
 	return extractor
 }
 
+//ExtractFrame writes new bytes into the extractor and if possible
+//returns a frame when the returned bool is true and nil otherwise.
+//It can be called with an empty slice to check if there are multiple frames in the Extractor.
 func (fe *lengthFieldBasedFrameExtractor) ExtractFrame(bytes []byte) ([]byte, bool) {
 	if fe.readyForNextFrame && fe.frameBuffer.Len() == 0 {
 		return fe.handleNewFrame(bytes)
