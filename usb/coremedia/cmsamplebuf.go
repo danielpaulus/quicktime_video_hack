@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
+	"github.com/danielpaulus/quicktime_video_hack/usb/h264"
 )
 
 type CMItemCount = int
@@ -37,6 +38,11 @@ type CMSampleTimingInfo struct {
 	are in presentation order, this must be set to kCMTimeInvalid. */
 }
 
+func (info CMSampleTimingInfo) String() string {
+	return fmt.Sprintf("{Duration:%s, PresentationTS:%s, DecodeTS:%s}",
+		info.Duration, info.PresentationTimeStamp, info.DecodeTimeStamp)
+}
+
 type CMSampleBuffer struct {
 	OutputPresentationTimestamp CMTime
 	FormatDescription           dict.FormatDescriptor
@@ -49,7 +55,9 @@ type CMSampleBuffer struct {
 }
 
 func (buffer CMSampleBuffer) String() string {
-	return ""
+	return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, Nalus:%s, fdsc:%s, attach:%s, sary:%s, SampleTimingInfoArray:%s}",
+		buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, h264.GetNaluDetails(buffer.SampleData),
+		buffer.FormatDescription.String(), buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
 }
 
 func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {

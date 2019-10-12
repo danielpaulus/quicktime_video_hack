@@ -3,6 +3,7 @@ package h264
 import (
 	"encoding/binary"
 	"fmt"
+	"strings"
 )
 
 //https://yumichan.net/video-processing/video-compression/introduction-to-h264-nal-unit/
@@ -20,7 +21,16 @@ func Table() []string {
 }
 
 func GetNaluDetails(nalu []byte) string {
-	return fmt.Sprintf("Nalu length:%d type:%s", binary.BigEndian.Uint32(nalu), getType(nalu[4]))
+	slice := nalu
+	sb := strings.Builder{}
+	sb.WriteString("[")
+	for len(slice) > 0 {
+		length := binary.BigEndian.Uint32(slice)
+		sb.WriteString(fmt.Sprintf("{len:%d type:%s},", length, getType(slice[4])))
+		slice = slice[length+4:]
+	}
+	sb.WriteString("]")
+	return sb.String()
 }
 
 func getType(anInt byte) string {

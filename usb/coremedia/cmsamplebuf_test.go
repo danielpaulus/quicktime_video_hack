@@ -29,4 +29,5 @@ func TestCMSampleBuffer(t *testing.T) {
 		assert.Equal(t, 4, len(sbufPacket.Attachments.Entries))
 		assert.Equal(t, 1, len(sbufPacket.Sary.Entries))
 	}
+	print(sbufPacket.String())
 }
