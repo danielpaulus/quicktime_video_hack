@@ -2,15 +2,18 @@ package usb
 
 import (
 	"encoding/binary"
+	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 	"github.com/danielpaulus/quicktime_video_hack/usb/packet"
 	log "github.com/sirupsen/logrus"
 )
 
 type messageProcessor struct {
-	connectionState int
-	writeToUsb      func([]byte)
-	stopSignal      chan interface{}
+	connectionState    int
+	writeToUsb         func([]byte)
+	stopSignal         chan interface{}
+	clock              coremedia.CMClock
+	totalBytesReceived int
 }
 
 func NewMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) messageProcessor {
@@ -77,9 +80,22 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 			log.Error("Failed parsing Clok Packet", err)
 		}
 		clockRef := clok.ClockRef + 0x10000
+		mp.clock = coremedia.NewCMClockWithHostTime(clockRef)
 		log.Debug("Sending CLOK reply")
 		mp.writeToUsb(clok.NewReply(clockRef))
-
+	case packet.TIME:
+		log.Debug("Received Sync Time")
+		timePacket, err := packet.NewSyncTimePacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing TIME SYNC packet", err)
+		}
+		timeToSend := mp.clock.GetTime()
+		replyBytes, err := timePacket.NewReply(timeToSend)
+		if err != nil {
+			log.Error("Could not create SYNC TIME REPLY")
+		}
+		log.Debugf("Sending TIME REPLY:%s", timeToSend.String())
+		mp.writeToUsb(replyBytes)
 	default:
 		log.Warnf("received unknown sync packet type: %x", data)
 	}
@@ -88,8 +104,37 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.FEED:
-		log.Debugf("rcv feed: %d bytes", len(data))
-		//mp.writeToUsb(packet.AsynNeedPacketBytes)
+		mp.totalBytesReceived += len(data)
+		log.Debugf("rcv feed: %d bytes - %d total", len(data), mp.totalBytesReceived)
+	//mp.writeToUsb(packet.AsynNeedPacketBytes)
+	case packet.SPRP:
+		packet, err := packet.NewAsynSprpPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing SPRP packet", err)
+			return
+		}
+		log.Debugf("rcv set property (sprp):%s", packet.Property.Key)
+	case packet.TJMP:
+		packet, err := packet.NewAsynTjmpPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing tjmp packet", err)
+			return
+		}
+		log.Debugf("rcv tjmp: 0x%x", packet.Unknown)
+	case packet.SRAT:
+		packet, err := packet.NewAsynSratPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing srat packet", err)
+			return
+		}
+		log.Debugf("rcv srat: rate1:%f rate2:%f time:%s", packet.Rate1, packet.Rate2, packet.Time.String())
+	case packet.TBAS:
+		packet, err := packet.NewAsynTbasPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing tbas packet", err)
+			return
+		}
+		log.Debugf("rcv tbas: 0x%x", packet.SomeOtherRef)
 	default:
 		log.Warnf("received unknown async packet type: %x", data)
 	}

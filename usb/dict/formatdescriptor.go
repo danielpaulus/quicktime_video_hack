@@ -3,6 +3,7 @@ package dict
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 )
 
 //Those are the markers found in the hex dumps.
@@ -32,7 +33,7 @@ type FormatDescriptor struct {
 
 func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
 
-	_, remainingBytes, err := parseLengthAndMagic(data, FormatDescriptorMagic)
+	_, remainingBytes, err := common.ParseLengthAndMagic(data, FormatDescriptorMagic)
 	if err != nil {
 		return FormatDescriptor{}, err
 	}
@@ -63,7 +64,7 @@ func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
 }
 
 func parseCodec(bytes []byte) (uint32, []byte, error) {
-	length, _, err := parseLengthAndMagic(bytes, CodecMagic)
+	length, _, err := common.ParseLengthAndMagic(bytes, CodecMagic)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -75,7 +76,7 @@ func parseCodec(bytes []byte) (uint32, []byte, error) {
 }
 
 func parseVideoDimension(bytes []byte) (uint32, uint32, []byte, error) {
-	length, _, err := parseLengthAndMagic(bytes, VideoDimensionMagic)
+	length, _, err := common.ParseLengthAndMagic(bytes, VideoDimensionMagic)
 	if err != nil {
 		return 0, 0, nil, err
 	}
@@ -88,7 +89,7 @@ func parseVideoDimension(bytes []byte) (uint32, uint32, []byte, error) {
 }
 
 func parseMediaType(bytes []byte) (uint32, []byte, error) {
-	length, _, err := parseLengthAndMagic(bytes, MediaTypeMagic)
+	length, _, err := common.ParseLengthAndMagic(bytes, MediaTypeMagic)
 	if err != nil {
 		return 0, nil, err
 	}

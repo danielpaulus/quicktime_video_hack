@@ -10,15 +10,16 @@ const (
 	AsynPacketMagic uint32 = 0x6173796E
 	FEED            uint32 = 0x66656564 //These contain CMSampleBufs which contain raw h264 Nalus
 	TJMP            uint32 = 0x746A6D70
-	SRAT            uint32 = 0x73726174
-	SPRP            uint32 = 0x73707270
-	TBAS            uint32 = 0x74626173
+	SRAT            uint32 = 0x73726174 //CMTimebaseSetRateAndAnchorTime https://developer.apple.com/documentation/coremedia/cmtimebase?language=objc
+	SPRP            uint32 = 0x73707270 // Set Property
+	TBAS            uint32 = 0x74626173 //TimeBase https://developer.apple.com/library/archive/qa/qa1643/_index.html
 	RELS            uint32 = 0x72656C73
 	HPD1            uint32 = 0x68706431 //hpd1 - 1dph | Maybe Hotplug Detection?
 	HPA1            uint32 = 0x68706131 //hpa1 - 1aph | high performance addressing?
+	NEED            uint32 = 0x6E656564 //need - deen
 )
 
-//It seems like Need Packets are constant
+//Need packets are not entirely constant, they need the correct clock reference
 var AsynNeedPacketBytes = asynNeedPacketBytes()
 
 type AsyncPacket struct {
@@ -52,6 +53,6 @@ func asynNeedPacketBytes() []byte {
 	binary.LittleEndian.PutUint32(packet, uint32(needPacketLength))
 	binary.LittleEndian.PutUint32(packet, AsynPacketMagic)
 	binary.LittleEndian.PutUint64(packet, 0x0000000104CBB860) //don't know what these mean but they seem constant
-	binary.LittleEndian.PutUint32(packet, 0x6E656564)         //need - deen
+	binary.LittleEndian.PutUint32(packet, NEED)               //need - deen
 	return packet
 }

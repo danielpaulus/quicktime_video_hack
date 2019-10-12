@@ -2,6 +2,7 @@ package dict
 
 import (
 	"encoding/binary"
+	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 	"log"
 )
 
@@ -13,11 +14,11 @@ func SerializeStringKeyDict(stringKeyDict StringKeyDict) []byte {
 		keyvaluePair := slice[index+8:]
 		keyLength := serializeKey(entry.Key, keyvaluePair)
 		valueLength := serializeValue(entry.Value, keyvaluePair[keyLength:])
-		writeLengthAndMagic(slice[index:], keyLength+valueLength+8, KeyValuePairMagic)
+		common.WriteLengthAndMagic(slice[index:], keyLength+valueLength+8, KeyValuePairMagic)
 		index += 8 + valueLength + keyLength
 	}
 	dictSizePlusHeaderAndLength := index + 4 + 4
-	writeLengthAndMagic(buffer, dictSizePlusHeaderAndLength, DictionaryMagic)
+	common.WriteLengthAndMagic(buffer, dictSizePlusHeaderAndLength, DictionaryMagic)
 
 	return buffer[:dictSizePlusHeaderAndLength]
 }
@@ -25,7 +26,7 @@ func SerializeStringKeyDict(stringKeyDict StringKeyDict) []byte {
 func serializeValue(value interface{}, bytes []byte) int {
 	switch value.(type) {
 	case bool:
-		writeLengthAndMagic(bytes, 9, BooleanValueMagic)
+		common.WriteLengthAndMagic(bytes, 9, BooleanValueMagic)
 		var boolValue uint32
 		if value.(bool) {
 			boolValue = 1
@@ -35,19 +36,19 @@ func serializeValue(value interface{}, bytes []byte) int {
 	case NSNumber:
 		numberBytes := value.(NSNumber).ToBytes()
 		length := len(numberBytes) + 8
-		writeLengthAndMagic(bytes, length, NumberValueMagic)
+		common.WriteLengthAndMagic(bytes, length, NumberValueMagic)
 		copy(bytes[8:], numberBytes)
 		return length
 	case string:
 		stringValue := value.(string)
 		length := len(stringValue) + 8
-		writeLengthAndMagic(bytes, length, StringValueMagic)
+		common.WriteLengthAndMagic(bytes, length, StringValueMagic)
 		copy(bytes[8:], stringValue)
 		return length
 	case []byte:
 		byteValue := value.([]byte)
 		length := len(byteValue) + 8
-		writeLengthAndMagic(bytes, length, DataValueMagic)
+		common.WriteLengthAndMagic(bytes, length, DataValueMagic)
 		copy(bytes[8:], byteValue)
 		return length
 	case StringKeyDict:
@@ -62,7 +63,7 @@ func serializeValue(value interface{}, bytes []byte) int {
 
 func serializeKey(key string, bytes []byte) int {
 	keyLength := len(key) + 8
-	writeLengthAndMagic(bytes, keyLength, StringKey)
+	common.WriteLengthAndMagic(bytes, keyLength, StringKey)
 	copy(bytes[8:], key)
 	return keyLength
 }
