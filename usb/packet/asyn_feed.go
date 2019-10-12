@@ -6,6 +6,7 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 )
 
+//AsynFeedPacket contains a CMSampleBuffer and there the actual video data
 type AsynFeedPacket struct {
 	AsyncMagic  uint32
 	ClockRef    CFTypeID
@@ -13,6 +14,7 @@ type AsynFeedPacket struct {
 	CMSampleBuf coremedia.CMSampleBuffer
 }
 
+//NewAsynFeedPacketFromBytes parses a new AsynFeedPacket from bytes
 func NewAsynFeedPacketFromBytes(data []byte) (AsynFeedPacket, error) {
 	var packet = AsynFeedPacket{}
 	packet.AsyncMagic = binary.LittleEndian.Uint32(data)
@@ -30,4 +32,8 @@ func NewAsynFeedPacketFromBytes(data []byte) (AsynFeedPacket, error) {
 	}
 	packet.CMSampleBuf = entry
 	return packet, nil
+}
+
+func (sp AsynFeedPacket) String() string {
+	return fmt.Sprintf("ASYN_FEED{ClockRef:%x, sBuf:%s}", sp.ClockRef, sp.CMSampleBuf.String())
 }

@@ -48,6 +48,10 @@ type CMSampleBuffer struct {
 	Sary                        dict.IndexKeyDict //sary
 }
 
+func (buffer CMSampleBuffer) String() string {
+	return ""
+}
+
 func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	var sbuffer CMSampleBuffer
 	length, remainingBytes, err := common.ParseLengthAndMagic(data, sbuf)
