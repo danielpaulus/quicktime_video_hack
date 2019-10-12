@@ -1,4 +1,4 @@
-package dict
+package common
 
 import (
 	"encoding/binary"
@@ -6,12 +6,12 @@ import (
 	"fmt"
 )
 
-func writeLengthAndMagic(bytes []byte, length int, magic uint32) {
+func WriteLengthAndMagic(bytes []byte, length int, magic uint32) {
 	binary.LittleEndian.PutUint32(bytes, uint32(length))
 	binary.LittleEndian.PutUint32(bytes[4:], magic)
 }
 
-func parseLengthAndMagic(bytes []byte, exptectedMagic uint32) (int, []byte, error) {
+func ParseLengthAndMagic(bytes []byte, exptectedMagic uint32) (int, []byte, error) {
 	length := binary.LittleEndian.Uint32(bytes)
 	magic := binary.LittleEndian.Uint32(bytes[4:])
 	if int(length) > len(bytes) {

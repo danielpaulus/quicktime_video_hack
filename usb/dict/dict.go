@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 	"strings"
 )
 
@@ -39,14 +40,14 @@ func NewIndexDictFromBytes(data []byte) (IndexKeyDict, error) {
 }
 
 func NewIndexDictFromBytesWithCustomMarker(data []byte, magic uint32) (IndexKeyDict, error) {
-	_, remainingBytes, err := parseLengthAndMagic(data, magic)
+	_, remainingBytes, err := common.ParseLengthAndMagic(data, magic)
 	if err != nil {
 		return IndexKeyDict{}, err
 	}
 	var slice = remainingBytes
 	dict := IndexKeyDict{}
 	for len(slice) != 0 {
-		keyValuePairLength, _, err := parseLengthAndMagic(slice, KeyValuePairMagic)
+		keyValuePairLength, _, err := common.ParseLengthAndMagic(slice, KeyValuePairMagic)
 		if err != nil {
 			return IndexKeyDict{}, err
 		}
@@ -62,7 +63,7 @@ func NewIndexDictFromBytesWithCustomMarker(data []byte, magic uint32) (IndexKeyD
 }
 
 func NewStringDictFromBytes(data []byte) (StringKeyDict, error) {
-	_, remainingBytes, err := parseLengthAndMagic(data, DictionaryMagic)
+	_, remainingBytes, err := common.ParseLengthAndMagic(data, DictionaryMagic)
 	if err != nil {
 		return StringKeyDict{}, err
 	}
@@ -70,7 +71,7 @@ func NewStringDictFromBytes(data []byte) (StringKeyDict, error) {
 	var slice = remainingBytes
 	dict := StringKeyDict{}
 	for len(slice) != 0 {
-		keyValuePairLength, _, err := parseLengthAndMagic(slice, KeyValuePairMagic)
+		keyValuePairLength, _, err := common.ParseLengthAndMagic(slice, KeyValuePairMagic)
 		if err != nil {
 			return StringKeyDict{}, err
 		}
@@ -98,7 +99,7 @@ func parseIntDictEntry(bytes []byte) (IndexKeyEntry, error) {
 }
 
 func ParseKeyValueEntry(data []byte) (StringKeyEntry, error) {
-	keyValuePairLength, _, err := parseLengthAndMagic(data, KeyValuePairMagic)
+	keyValuePairLength, _, err := common.ParseLengthAndMagic(data, KeyValuePairMagic)
 	if err != nil {
 		return StringKeyEntry{}, err
 	}
@@ -119,7 +120,7 @@ func parseEntry(bytes []byte) (StringKeyEntry, error) {
 }
 
 func parseKey(bytes []byte) (string, []byte, error) {
-	keyLength, _, err := parseLengthAndMagic(bytes, StringKey)
+	keyLength, _, err := common.ParseLengthAndMagic(bytes, StringKey)
 	if err != nil {
 		return "", nil, err
 	}
@@ -128,7 +129,7 @@ func parseKey(bytes []byte) (string, []byte, error) {
 }
 
 func parseIntKey(bytes []byte) (uint16, []byte, error) {
-	keyLength, _, err := parseLengthAndMagic(bytes, IntKey)
+	keyLength, _, err := common.ParseLengthAndMagic(bytes, IntKey)
 	if err != nil {
 		return 0, nil, err
 	}
