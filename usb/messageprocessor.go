@@ -57,7 +57,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
 		log.Debug("Sending ASYN HPD1")
 		mp.writeToUsb(deviceInfo)
-		log.Debugf("Sending CWPA Reply:%x", clockRef)
+		log.Debugf("Send CWPA-RPLY {correlation:%x, clockRef:%x}", cwpaPacket.CorrelationID, clockRef)
 		mp.writeToUsb(cwpaPacket.NewReply(clockRef))
 		log.Debug("Sending ASYN HPD1")
 		mp.writeToUsb(deviceInfo)
@@ -79,7 +79,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		//mp.writeToUsb(mp.needMessage)
 
 		clockRef2 := cvrpPacket.DeviceClockRef + 1000
-		log.Debugf("Sending CVRP Reply:%x", clockRef2)
+		log.Debugf("Send CVRP-RPLY {correlation:%x, clockRef:%x}", cvrpPacket.CorrelationID, clockRef2)
 		mp.writeToUsb(cvrpPacket.NewReply(clockRef2))
 	case packet.CLOK:
 		clokPacket, err := packet.NewSyncClokPacketFromBytes(data)
@@ -89,7 +89,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		log.Debugf("Rcv:%s", clokPacket.String())
 		clockRef := clokPacket.ClockRef + 0x10000
 		mp.clock = coremedia.NewCMClockWithHostTime(clockRef)
-		log.Debugf("Sending CLOK reply:%x", clockRef)
+		log.Debugf("Send CLOK-RPLY {correlation:%x, clockRef:%x}", clokPacket.CorrelationID, clockRef)
 		mp.writeToUsb(clokPacket.NewReply(clockRef))
 	case packet.TIME:
 		timePacket, err := packet.NewSyncTimePacketFromBytes(data)
@@ -102,7 +102,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		if err != nil {
 			log.Error("Could not create SYNC TIME REPLY")
 		}
-		log.Debugf("Sending TIME REPLY:%s", timeToSend.String())
+		log.Debugf("Send TIME-REPLY {correlation:%x, time:%s}", timePacket.CorrelationID, timeToSend)
 		mp.writeToUsb(replyBytes)
 	default:
 		log.Warnf("received unknown sync packet type: %x", data)
