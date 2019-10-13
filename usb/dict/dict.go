@@ -172,7 +172,7 @@ func (dt StringKeyDict) String() string {
 	for _, e := range dt.Entries {
 		appendEntry(&sb, e)
 	}
-	return fmt.Sprintf("StringKeyDict:[\n%s]", sb.String())
+	return fmt.Sprintf("StringKeyDict:[%s]", sb.String())
 }
 
 func (dt IndexKeyDict) String() string {
@@ -180,23 +180,23 @@ func (dt IndexKeyDict) String() string {
 	for _, e := range dt.Entries {
 		appendIndexEntry(&sb, e)
 	}
-	return fmt.Sprintf("IndexKeyDict:[\n%s]", sb.String())
+	return fmt.Sprintf("IndexKeyDict:[%s]", sb.String())
 }
 
 func appendIndexEntry(builder *strings.Builder, entry IndexKeyEntry) {
-	builder.WriteString("\t{")
+	builder.WriteString("{")
 	builder.WriteString(fmt.Sprintf("%d", entry.Key))
 	builder.WriteString(" : ")
 	valueToString(builder, entry.Value)
-	builder.WriteString("},\n")
+	builder.WriteString("},")
 }
 
 func appendEntry(builder *strings.Builder, entry StringKeyEntry) {
-	builder.WriteString("\t{")
+	builder.WriteString("{")
 	builder.WriteString(entry.Key)
 	builder.WriteString(" : ")
 	valueToString(builder, entry.Value)
-	builder.WriteString("},\n")
+	builder.WriteString("},")
 }
 
 func valueToString(builder *strings.Builder, value interface{}) {
