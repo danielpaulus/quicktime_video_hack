@@ -17,7 +17,7 @@ Progress:
 5. ~~Get a continuous Feed from the Device~~
 6. Make the dumpraw command work without having to unplug the device every time
 7. Parse Async Feed packets correctly and complete packet documentation
-8. Generate SPS and PPS h264 NaLus
+8. ~~Generate SPS and PPS h264 NaLus~~ SPS and PPS are stored in a FDSC EXTN :-D 
 9. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
 
 Extra Goals:
