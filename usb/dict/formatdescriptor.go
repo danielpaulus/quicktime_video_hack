@@ -82,6 +82,10 @@ func extractPPS(dict IndexKeyDict) ([]byte, []byte) {
 		return make([]byte, 0), make([]byte, 0)
 	}
 	val, err = val.(IndexKeyDict).getValue(105)
+	if err != nil {
+		logrus.Error("FDSC did not contain PPS/SPS")
+		return make([]byte, 0), make([]byte, 0)
+	}
 	data := val.([]byte)
 	ppsLength := data[7]
 	pps := data[8 : 8+ppsLength]
