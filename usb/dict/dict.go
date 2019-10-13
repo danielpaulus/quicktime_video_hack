@@ -3,6 +3,7 @@ package dict
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 	"strings"
@@ -211,4 +212,13 @@ func valueToString(builder *strings.Builder, value interface{}) {
 	default:
 		builder.WriteString(fmt.Sprintf("%s", value))
 	}
+}
+
+func (ikd IndexKeyDict) getValue(index uint16) (interface{}, error) {
+	for _, entry := range ikd.Entries {
+		if entry.Key == index {
+			return entry.Value, nil
+		}
+	}
+	return nil, errors.New("not found")
 }
