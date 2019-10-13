@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/danielpaulus/quicktime_video_hack/usb/common"
+	"github.com/sirupsen/logrus"
 )
 
 //Those are the markers found in the hex dumps.
@@ -20,7 +21,7 @@ const (
 	ExtensionMagic        uint32 = 0x6578746E //extn - ntxe
 )
 
-//Seems like a CMFormatDescription
+//FormatDescriptor is actually a CMFormatDescription
 //https://developer.apple.com/documentation/coremedia/cmformatdescription
 //https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.9.sdk/System/Library/Frameworks/CoreMedia.framework/Versions/A/Headers/CMFormatDescription.h
 type FormatDescriptor struct {
@@ -29,8 +30,13 @@ type FormatDescriptor struct {
 	VideoDimensionHeight uint32
 	Codec                uint32
 	Extensions           IndexKeyDict
+	//PPS contains bytes of the Picture Parameter Set h264 NALu
+	PPS []byte
+	//SPS contains bytes of the Picture Parameter Set h264 NALu
+	SPS []byte
 }
 
+//NewFormatDescriptorFromBytes parses a CMFormatDescription from bytes
 func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
 
 	_, remainingBytes, err := common.ParseLengthAndMagic(data, FormatDescriptorMagic)
@@ -57,13 +63,35 @@ func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
 		return FormatDescriptor{}, err
 	}
 
+	pps, sps := extractPPS(extensions)
 	return FormatDescriptor{
 		MediaType:            mediaType,
 		VideoDimensionHeight: videoDimensionHeight,
 		VideoDimensionWidth:  videoDimensionWidth,
 		Codec:                codec,
 		Extensions:           extensions, //doc on extensions at the bottom of: https://developer.apple.com/documentation/coremedia/cmformatdescription?language=objc
+		PPS:                  pps,
+		SPS:                  sps,
 	}, nil
+}
+
+func extractPPS(dict IndexKeyDict) ([]byte, []byte) {
+	val, err := dict.getValue(49)
+	if err != nil {
+		logrus.Error("FDSC did not contain PPS/SPS")
+		return make([]byte, 0), make([]byte, 0)
+	}
+	val, err = val.(IndexKeyDict).getValue(105)
+	if err != nil {
+		logrus.Error("FDSC did not contain PPS/SPS")
+		return make([]byte, 0), make([]byte, 0)
+	}
+	data := val.([]byte)
+	ppsLength := data[7]
+	pps := data[8 : 8+ppsLength]
+	spsLength := data[10+ppsLength]
+	sps := data[11+ppsLength : 11+ppsLength+spsLength]
+	return pps, sps
 }
 
 func parseCodec(bytes []byte) (uint32, []byte, error) {
@@ -105,9 +133,9 @@ func parseMediaType(bytes []byte) (uint32, []byte, error) {
 
 func (fdsc FormatDescriptor) String() string {
 	return fmt.Sprintf(
-		"FormatDescriptor:\n\t MediaType %s \n\t VideoDimension:(%dx%d) \n\t Codec:%s \n\t Extensions:%s \n",
+		"fdsc:{MediaType:%s, VideoDimension:(%dx%d), Codec:%s, PPS:%x, SPS:%x, Extensions:%s}",
 		readableMediaType(fdsc.MediaType), fdsc.VideoDimensionWidth, fdsc.VideoDimensionHeight,
-		readableCodec(fdsc.Codec), fdsc.Extensions.String())
+		readableCodec(fdsc.Codec), fdsc.PPS, fdsc.SPS, fdsc.Extensions.String())
 }
 
 func readableCodec(codec uint32) string {

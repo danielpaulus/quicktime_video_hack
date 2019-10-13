@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
+	"github.com/danielpaulus/quicktime_video_hack/usb/h264"
 )
 
 type CMItemCount = int
@@ -37,9 +38,15 @@ type CMSampleTimingInfo struct {
 	are in presentation order, this must be set to kCMTimeInvalid. */
 }
 
+func (info CMSampleTimingInfo) String() string {
+	return fmt.Sprintf("{Duration:%s, PresentationTS:%s, DecodeTS:%s}",
+		info.Duration, info.PresentationTimeStamp, info.DecodeTimeStamp)
+}
+
 type CMSampleBuffer struct {
 	OutputPresentationTimestamp CMTime
 	FormatDescription           dict.FormatDescriptor
+	HasFormatDescription        bool
 	NumSamples                  CMItemCount          //nsmp
 	SampleTimingInfoArray       []CMSampleTimingInfo //stia
 	SampleData                  []byte
@@ -48,8 +55,21 @@ type CMSampleBuffer struct {
 	Sary                        dict.IndexKeyDict //sary
 }
 
+func (buffer CMSampleBuffer) String() string {
+	var fdscString string
+	if buffer.HasFormatDescription {
+		fdscString = buffer.FormatDescription.String()
+	} else {
+		fdscString = "none"
+	}
+	return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, Nalus:%s, fdsc:%s, attach:%s, sary:%s, SampleTimingInfoArray:%s}",
+		buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, h264.GetNaluDetails(buffer.SampleData),
+		fdscString, buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
+}
+
 func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	var sbuffer CMSampleBuffer
+	sbuffer.HasFormatDescription = false
 	length, remainingBytes, err := common.ParseLengthAndMagic(data, sbuf)
 	if err != nil {
 		return sbuffer, err
@@ -90,12 +110,16 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	if err != nil {
 		return sbuffer, err
 	}
-	fdscLength := binary.LittleEndian.Uint32(remainingBytes)
-	sbuffer.FormatDescription, err = dict.NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
-	if err != nil {
-		return sbuffer, err
+	if binary.LittleEndian.Uint32(remainingBytes[4:]) == dict.FormatDescriptorMagic {
+		sbuffer.HasFormatDescription = true
+		fdscLength := binary.LittleEndian.Uint32(remainingBytes)
+		sbuffer.FormatDescription, err = dict.NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
+		if err != nil {
+			return sbuffer, err
+		}
+		remainingBytes = remainingBytes[fdscLength:]
 	}
-	remainingBytes = remainingBytes[fdscLength:]
+
 	attachmentsLength := binary.LittleEndian.Uint32(remainingBytes)
 	sbuffer.Attachments, err = dict.NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
 	if err != nil {

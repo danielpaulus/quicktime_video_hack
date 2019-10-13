@@ -84,9 +84,9 @@ func TestComplexDict(t *testing.T) {
 func TestStringFunction(t *testing.T) {
 	//TODO: add an assertion
 	print(messages.CreateHpa1DeviceInfoDict().String())
-	numberDict:= dict.IndexKeyDict{Entries:make([]dict.IndexKeyEntry, 1)}
+	numberDict := dict.IndexKeyDict{Entries: make([]dict.IndexKeyEntry, 1)}
 	numberDict.Entries[0] = dict.IndexKeyEntry{
-		Key:   5,
+		Key: 5,
 		Value: dict.FormatDescriptor{
 			MediaType:            dict.MediaTypeVideo,
 			VideoDimensionWidth:  500,

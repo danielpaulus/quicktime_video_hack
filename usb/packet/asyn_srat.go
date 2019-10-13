@@ -41,5 +41,5 @@ func NewAsynSratPacketFromBytes(data []byte) (AsynSratPacket, error) {
 }
 
 func (sp AsynSratPacket) String() string {
-	return fmt.Sprintf("ASYN_TBAS{ClockRef:%x, Rate1:%f, Rate2:%f, Time:%s}", sp.ClockRef, sp.Rate1, sp.Rate2, sp.Time.String())
+	return fmt.Sprintf("ASYN_SRAT{ClockRef:%x, Rate1:%f, Rate2:%f, Time:%s}", sp.ClockRef, sp.Rate1, sp.Rate2, sp.Time.String())
 }
