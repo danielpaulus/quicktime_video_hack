@@ -16,9 +16,12 @@ Progress:
 4. ~~Add support for CMSync.h style CMClock packets~~ 
 5. ~~Get a continuous Feed from the Device~~
 6. Make the dumpraw command work without having to unplug the device every time
-7. Parse Async Feed packets correctly and complete packet documentation
-8. ~~Generate SPS and PPS h264 NaLus~~ SPS and PPS are stored in a FDSC EXTN :-D 
-9. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
+7. ~~Parse Async Feed packets correctly~~ 
+8. ~~Generate SPS and PPS h264 NaLus~~ 
+9. Fix last issue to get a working stream of FEEDs, currently my NEED packets are rejected 
+10. Create a .h264 file drom the dumpraw command 
+11. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
+12. Complete packet documentation
 
 Extra Goals:
 1. [Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)
