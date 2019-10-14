@@ -3,6 +3,7 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
 	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 )
 
@@ -13,11 +14,16 @@ type SyncAfmtPacket struct {
 	SyncMagic     uint32
 	ClockRef      CFTypeID
 	MessageType   uint32
-	CorrelationId uint64
+	CorrelationID uint64
 	Unknown1      uint32
 	Unknown2      uint32
 	LpcmMagic     uint32
 	LpcmData      messages.LPCMData
+}
+
+func (sp SyncAfmtPacket) String() string {
+	return fmt.Sprintf("SYNC_AFMT{ClockRef:%x, CorrelationID:%x, Unknown1:%x, Unknown2:%x, Lpcm:%s}",
+		sp.ClockRef, sp.CorrelationID, sp.Unknown1, sp.Unknown2, sp.LpcmData.String())
 }
 
 //NewAsynAfmtPacketFromBytes parses a new AsynFmtPacket from byte array
@@ -32,7 +38,7 @@ func NewSyncAfmtPacketFromBytes(data []byte) (SyncAfmtPacket, error) {
 	if packet.MessageType != AFMT {
 		return packet, fmt.Errorf("invalid packet type in sync afmt:%x", data)
 	}
-	packet.CorrelationId = binary.LittleEndian.Uint64(data[16:])
+	packet.CorrelationID = binary.LittleEndian.Uint64(data[16:])
 	packet.Unknown1 = binary.LittleEndian.Uint32(data[24:])
 	packet.Unknown2 = binary.LittleEndian.Uint32(data[28:])
 	packet.LpcmMagic = binary.LittleEndian.Uint32(data[32:])
@@ -42,4 +48,30 @@ func NewSyncAfmtPacketFromBytes(data []byte) (SyncAfmtPacket, error) {
 		return packet, fmt.Errorf("Error parsing LPCM data in asyn afmt: %s, ", err)
 	}
 	return packet, nil
+}
+
+func (sp SyncAfmtPacket) NewReply() []byte {
+	responseDict := createResponseDict()
+	dictBytes := dict.SerializeStringKeyDict(responseDict)
+	dictLength := uint32(len(dictBytes))
+	length := uint32(dictLength + 20)
+	responseBytes := make([]byte, length)
+	binary.LittleEndian.PutUint32(responseBytes, length)
+	binary.LittleEndian.PutUint32(responseBytes[4:], ReplyPacketMagic)
+	binary.LittleEndian.PutUint64(responseBytes[8:], sp.CorrelationID)
+	binary.LittleEndian.PutUint32(responseBytes[16:], 0)
+
+	copy(responseBytes[20:], dictBytes)
+	return responseBytes
+
+}
+
+func createResponseDict() dict.StringKeyDict {
+	var response dict.StringKeyDict
+	errorCode := dict.NewNSNumberFromUInt32(0)
+	key := "Error"
+	response = dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 1)}
+	response.Entries[0].Key = key
+	response.Entries[0].Value = errorCode
+	return response
 }

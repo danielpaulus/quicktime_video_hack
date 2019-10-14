@@ -3,6 +3,7 @@ package messages
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 /*
@@ -25,6 +26,11 @@ type LPCMData struct {
 	Unknown_int5 uint32
 	Unknown_int6 uint32
 	Unknown_int7 uint32
+}
+
+func (data LPCMData) String() string {
+	return fmt.Sprintf("[%d,%d,%d,%d,%d,%d,%d]", data.Unknown_int1, data.Unknown_int2, data.Unknown_int3,
+		data.Unknown_int4, data.Unknown_int5, data.Unknown_int6, data.Unknown_int7)
 }
 
 const (

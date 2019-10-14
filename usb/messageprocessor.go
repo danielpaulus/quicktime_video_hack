@@ -104,6 +104,16 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		}
 		log.Debugf("Send TIME-REPLY {correlation:%x, time:%s}", timePacket.CorrelationID, timeToSend)
 		mp.writeToUsb(replyBytes)
+	case packet.AFMT:
+		afmtPacket, err := packet.NewSyncAfmtPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing TIME AFMT packet", err)
+		}
+		log.Debugf("Rcv:%s", afmtPacket.String())
+
+		replyBytes := afmtPacket.NewReply()
+		log.Debugf("Send AFMT-REPLY {correlation:%x}", afmtPacket.CorrelationID)
+		mp.writeToUsb(replyBytes)
 	default:
 		log.Warnf("received unknown sync packet type: %x", data)
 	}
