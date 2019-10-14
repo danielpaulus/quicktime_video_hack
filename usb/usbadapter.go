@@ -118,7 +118,7 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 	}
 	log.Debugf("Outbound Bulk: %s", outEndpoint.String())
 
-	stream, err := inEndpoint.NewStream(512, 1)
+	stream, err := inEndpoint.NewStream(4096, 5)
 	if err != nil {
 		log.Fatal("couldnt create stream")
 		return

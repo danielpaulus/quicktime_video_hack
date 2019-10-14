@@ -6,16 +6,18 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 	"github.com/danielpaulus/quicktime_video_hack/usb/packet"
 	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 type messageProcessor struct {
-	connectionState    int
-	writeToUsb         func([]byte)
-	stopSignal         chan interface{}
-	clock              coremedia.CMClock
-	totalBytesReceived int
-	needClockRef       packet.CFTypeID
-	needMessage        []byte
+	connectionState      int
+	writeToUsb           func([]byte)
+	stopSignal           chan interface{}
+	clock                coremedia.CMClock
+	totalBytesReceived   int
+	needClockRef         packet.CFTypeID
+	needMessage          []byte
+	audioSamplesReceived int
 }
 
 func newMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) messageProcessor {
@@ -45,6 +47,16 @@ func (mp *messageProcessor) receiveData(data []byte) {
 
 func (mp *messageProcessor) handleSyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
+	case packet.OG:
+		ogPacket, err := packet.NewSyncOgPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing OG packet", err)
+		}
+		log.Debugf("Rcv:%s", ogPacket.String())
+
+		replyBytes := ogPacket.NewReply()
+		log.Debugf("Send OG-REPLY {correlation:%x}", ogPacket.CorrelationID)
+		mp.writeToUsb(replyBytes)
 	case packet.CWPA:
 		cwpaPacket, err := packet.NewSyncCwpaPacketFromBytes(data)
 		if err != nil {
@@ -73,12 +85,12 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 
 		log.Debugf("Rcv:%s", cvrpPacket.String())
 
-		log.Debug("Send NEED")
 		mp.needClockRef = cvrpPacket.DeviceClockRef
 		mp.needMessage = packet.AsynNeedPacketBytes(mp.needClockRef)
+		log.Debugf("Send NEED %x", mp.needClockRef)
 		//mp.writeToUsb(mp.needMessage)
 
-		clockRef2 := cvrpPacket.DeviceClockRef + 1000
+		clockRef2 := cvrpPacket.DeviceClockRef + 0x1000AF
 		log.Debugf("Send CVRP-RPLY {correlation:%x, clockRef:%x}", cvrpPacket.CorrelationID, clockRef2)
 		mp.writeToUsb(cvrpPacket.NewReply(clockRef2))
 	case packet.CLOK:
@@ -121,10 +133,16 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 
 func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
+	case packet.EAT:
+		mp.audioSamplesReceived++
+		if mp.audioSamplesReceived%100 == 0 {
+			log.Debugf("RCV Audio Samples:%d", mp.audioSamplesReceived)
+		}
 	case packet.FEED:
 		feedPacket, err := packet.NewAsynFeedPacketFromBytes(data)
 		if err != nil {
-			log.Errorf("Error parsing FEED packet: %x %s", data, err)
+			//log.Errorf("Error parsing FEED packet: %x %s", data, err)
+			log.Warn("unknown feed")
 			return
 		}
 		log.Debugf("Rcv:%s", feedPacket.String())
@@ -159,5 +177,6 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 		log.Debugf("Rcv:%s", tbasPacket.String())
 	default:
 		log.Warnf("received unknown async packet type: %x", data)
+		os.Exit(1)
 	}
 }

@@ -13,6 +13,7 @@ const (
 	AFMT             uint32 = 0x61666D74
 	CVRP             uint32 = 0x63767270
 	CLOK             uint32 = 0x636C6F6B
+	OG               uint32 = 0x676F2120
 )
 
 type CFTypeID = uint64

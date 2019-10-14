@@ -78,5 +78,5 @@ func (time CMTime) String() string {
 	default:
 		flags = "unknown"
 	}
-	return fmt.Sprintf("CMTime{%ds, flags:%s, epoch:%d}", time.Seconds(), flags, time.CMTimeEpoch)
+	return fmt.Sprintf("CMTime{%d/%d, flags:%s, epoch:%d}", time.CMTimeValue, time.CMTimeScale, flags, time.CMTimeEpoch)
 }

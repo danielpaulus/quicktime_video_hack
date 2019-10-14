@@ -17,8 +17,8 @@ const (
 	HPD1            uint32 = 0x68706431 //hpd1 - 1dph | Maybe Hotplug Detection?
 	HPA1            uint32 = 0x68706131 //hpa1 - 1aph | high performance addressing?
 	NEED            uint32 = 0x6E656564 //need - deen
+	EAT             uint32 = 0x65617421 //contains audio sbufs
 )
-
 
 type AsyncPacket struct {
 	Header                     uint64 //I don't know what the first 8 bytes are for currently
@@ -52,6 +52,6 @@ func AsynNeedPacketBytes(clockRef CFTypeID) []byte {
 	binary.LittleEndian.PutUint32(packet, uint32(needPacketLength))
 	binary.LittleEndian.PutUint32(packet, AsynPacketMagic)
 	binary.LittleEndian.PutUint64(packet, clockRef)
-	binary.LittleEndian.PutUint32(packet, NEED)               //need - deen
+	binary.LittleEndian.PutUint32(packet, NEED) //need - deen
 	return packet
 }
