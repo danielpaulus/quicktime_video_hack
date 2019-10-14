@@ -88,7 +88,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		mp.needClockRef = cvrpPacket.DeviceClockRef
 		mp.needMessage = packet.AsynNeedPacketBytes(mp.needClockRef)
 		log.Debugf("Send NEED %x", mp.needClockRef)
-		//mp.writeToUsb(mp.needMessage)
+		mp.writeToUsb(mp.needMessage)
 
 		clockRef2 := cvrpPacket.DeviceClockRef + 0x1000AF
 		log.Debugf("Send CVRP-RPLY {correlation:%x, clockRef:%x}", cvrpPacket.CorrelationID, clockRef2)

@@ -50,8 +50,8 @@ func AsynNeedPacketBytes(clockRef CFTypeID) []byte {
 	needPacketLength := 20
 	packet := make([]byte, needPacketLength)
 	binary.LittleEndian.PutUint32(packet, uint32(needPacketLength))
-	binary.LittleEndian.PutUint32(packet, AsynPacketMagic)
-	binary.LittleEndian.PutUint64(packet, clockRef)
-	binary.LittleEndian.PutUint32(packet, NEED) //need - deen
+	binary.LittleEndian.PutUint32(packet[4:], AsynPacketMagic)
+	binary.LittleEndian.PutUint64(packet[8:], clockRef)
+	binary.LittleEndian.PutUint32(packet[16:], NEED) //need - deen
 	return packet
 }
