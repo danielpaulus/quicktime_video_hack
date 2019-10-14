@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"bytes"
 	"encoding/binary"
 )
 
@@ -15,16 +16,38 @@ HexDump:
 
 */
 
+//LPCMData contains 7 ints that probably mean something related to linear pulse code audio things
+type LPCMData struct {
+	Unknown_int1 uint32
+	Unknown_int2 uint32
+	Unknown_int3 uint32
+	Unknown_int4 uint32
+	Unknown_int5 uint32
+	Unknown_int6 uint32
+	Unknown_int7 uint32
+}
+
 const (
 	separator uint64 = 0x40E7700000000000
-	lpcmMagic uint32 = 0x6C70636D
+	LpcmMagic uint32 = 0x6C70636D
 )
+
+//NewLPCMDataFromBytes reads 7 uint32 and puts them into a LPCMData struct
+func NewLPCMDataFromBytes(data []byte) (LPCMData, error) {
+	r := bytes.NewReader(data)
+	var lpcmData LPCMData
+	err := binary.Read(r, binary.LittleEndian, &lpcmData)
+	if err != nil {
+		return lpcmData, err
+	}
+	return lpcmData, nil
+}
 
 func createLpcmInfo() []byte {
 	lpcmBytes := make([]byte, 56)
 	binary.LittleEndian.PutUint64(lpcmBytes, separator)
 	var index = 8
-	binary.LittleEndian.PutUint32(lpcmBytes[index:], lpcmMagic)
+	binary.LittleEndian.PutUint32(lpcmBytes[index:], LpcmMagic)
 	index += 4
 
 	binary.LittleEndian.PutUint32(lpcmBytes[index:], 12)
