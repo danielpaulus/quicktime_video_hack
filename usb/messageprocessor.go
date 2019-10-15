@@ -9,6 +9,9 @@ import (
 	"os"
 )
 
+type CmSampleBufConsumer interface {
+	Consume(buf coremedia.CMSampleBuffer)
+}
 type messageProcessor struct {
 	connectionState      int
 	writeToUsb           func([]byte)
@@ -18,10 +21,11 @@ type messageProcessor struct {
 	needClockRef         packet.CFTypeID
 	needMessage          []byte
 	audioSamplesReceived int
+	cmSampleBufConsumer  CmSampleBufConsumer
 }
 
-func newMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}) messageProcessor {
-	var mp = messageProcessor{writeToUsb: writeToUsb, stopSignal: stopSignal}
+func newMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}, consumer CmSampleBufConsumer) messageProcessor {
+	var mp = messageProcessor{writeToUsb: writeToUsb, stopSignal: stopSignal, cmSampleBufConsumer: consumer}
 	return mp
 }
 
@@ -145,6 +149,7 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 			log.Warn("unknown feed")
 			return
 		}
+		mp.cmSampleBufConsumer.Consume(feedPacket.CMSampleBuf)
 		log.Debugf("Rcv:%s", feedPacket.String())
 		mp.writeToUsb(mp.needMessage)
 	case packet.SPRP:

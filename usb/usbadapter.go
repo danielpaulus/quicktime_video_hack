@@ -1,8 +1,11 @@
 package usb
 
 import (
+	"bufio"
+	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"time"
 )
 
@@ -124,14 +127,20 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 		return
 	}
 	log.Debug("Endpoint claimed")
+	outFilePath := "/home/ganjalf/tmp/out.h264"
+	file, err := os.Create(outFilePath)
 
+	writer, err := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
+	if err != nil {
+		log.Fatal("Could not open file", err)
+	}
 	mp := newMessageProcessor(func(bytes []byte) {
 		n, err := outEndpoint.Write(bytes)
 		if err != nil {
 			log.Error("failed sending to usb", err)
 		}
 		log.Debugf("bytes written:%d", n)
-	}, stopSignal)
+	}, stopSignal, writer)
 
 	go func() {
 
@@ -150,6 +159,13 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 			}
 		}
 	}()
+	go func() {
+		d, _ := time.ParseDuration("60s")
+		time.Sleep(d)
+		var signal interface{}
+		log.Info("Stopping")
+		stopSignal <- signal
+	}()
 	<-stopSignal
 	log.Debugf("Closing stream")
 	err = stream.Close()
@@ -157,6 +173,7 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 		log.Error("Error closing stream", err)
 	}
 	iface.Close()
+	writer.Close()
 }
 
 func grabOutBulk(setting gousb.InterfaceSetting) int {
