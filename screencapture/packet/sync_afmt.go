@@ -3,6 +3,7 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
@@ -68,7 +69,7 @@ func (sp SyncAfmtPacket) NewReply() []byte {
 
 func createResponseDict() dict.StringKeyDict {
 	var response dict.StringKeyDict
-	errorCode := dict.NewNSNumberFromUInt32(0)
+	errorCode := common.NewNSNumberFromUInt32(0)
 	key := "Error"
 	response = dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 1)}
 	response.Entries[0].Key = key

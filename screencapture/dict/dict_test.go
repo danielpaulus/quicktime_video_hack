@@ -1,6 +1,7 @@
 package dict_test
 
 import (
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
 	log "github.com/sirupsen/logrus"
@@ -62,10 +63,10 @@ func TestSimpleDict(t *testing.T) {
 		assert.Equal(t, 2, len(displaySize.Entries))
 
 		assert.Equal(t, "Width", displaySize.Entries[0].Key)
-		assert.Equal(t, float64(1920), displaySize.Entries[0].Value.(dict.NSNumber).FloatValue)
+		assert.Equal(t, float64(1920), displaySize.Entries[0].Value.(common.NSNumber).FloatValue)
 
 		assert.Equal(t, "Height", displaySize.Entries[1].Key)
-		assert.Equal(t, float64(1200), displaySize.Entries[1].Value.(dict.NSNumber).FloatValue)
+		assert.Equal(t, float64(1200), displaySize.Entries[1].Value.(common.NSNumber).FloatValue)
 	}
 }
 

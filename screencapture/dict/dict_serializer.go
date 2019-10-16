@@ -34,10 +34,10 @@ func serializeValue(value interface{}, bytes []byte) int {
 		}
 		binary.LittleEndian.PutUint32(bytes[8:], boolValue)
 		return 9
-	case NSNumber:
+	case common.NSNumber:
 		numberBytes := value.ToBytes()
 		length := len(numberBytes) + 8
-		common.WriteLengthAndMagic(bytes, length, NumberValueMagic)
+		common.WriteLengthAndMagic(bytes, length, common.NumberValueMagic)
 		copy(bytes[8:], numberBytes)
 		return length
 	case string:

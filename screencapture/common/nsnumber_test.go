@@ -1,7 +1,7 @@
-package dict_test
+package common_test
 
 import (
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -20,49 +20,49 @@ func TestErrors(t *testing.T) {
 	broken = make([]byte, len(typeSix))
 	copy(broken, typeSix)
 	broken[0] = 3
-	_, err := dict.NewNSNumber(broken)
+	_, err := common.NewNSNumber(broken)
 	assert.Error(t, err)
 
 	broken = make([]byte, len(typeThree))
 	copy(broken, typeThree)
 	broken[0] = 6
-	_, err = dict.NewNSNumber(broken)
+	_, err = common.NewNSNumber(broken)
 	assert.Error(t, err)
 
 	broken[0] = 4
-	_, err = dict.NewNSNumber(broken)
+	_, err = common.NewNSNumber(broken)
 	assert.Error(t, err)
 
 	broken[0] = 56
-	_, err = dict.NewNSNumber(broken)
+	_, err = common.NewNSNumber(broken)
 	assert.Error(t, err)
 }
 
 func TestNumberValue(t *testing.T) {
 
-	float64Num, err := dict.NewNSNumber(typeSix)
+	float64Num, err := common.NewNSNumber(typeSix)
 	if assert.NoError(t, err) {
 		assert.Equal(t, typeSixDecoded, float64Num.FloatValue)
 	}
 
-	uint64Num, err := dict.NewNSNumber(typeFour)
+	uint64Num, err := common.NewNSNumber(typeFour)
 	if assert.NoError(t, err) {
 		assert.Equal(t, typeFourDecoded, uint64Num.LongValue)
 	}
 
-	uint32Num, err := dict.NewNSNumber(typeThree)
+	uint32Num, err := common.NewNSNumber(typeThree)
 	if assert.NoError(t, err) {
 		assert.Equal(t, typeThreeDecoded, uint32Num.IntValue)
 	}
 }
 
 func TestEncoding(t *testing.T) {
-	floatNSNumber := dict.NewNSNumberFromUFloat64(typeSixDecoded)
+	floatNSNumber := common.NewNSNumberFromUFloat64(typeSixDecoded)
 	assert.Equal(t, typeSix, floatNSNumber.ToBytes())
 
-	int32NSNumber := dict.NewNSNumberFromUInt32(typeThreeDecoded)
+	int32NSNumber := common.NewNSNumberFromUInt32(typeThreeDecoded)
 	assert.Equal(t, typeThree, int32NSNumber.ToBytes())
 
-	int64NSNumber := dict.NewNSNumberFromUInt64(typeFourDecoded)
+	int64NSNumber := common.NewNSNumberFromUInt64(typeFourDecoded)
 	assert.Equal(t, typeFour, int64NSNumber.ToBytes())
 }

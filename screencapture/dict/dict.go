@@ -162,8 +162,8 @@ func parseValue(bytes []byte) (interface{}, error) {
 		return bytes[8:valueLength], nil
 	case BooleanValueMagic:
 		return bytes[8] == 1, nil
-	case NumberValueMagic:
-		return NewNSNumber(bytes[8:])
+	case common.NumberValueMagic:
+		return common.NewNSNumber(bytes[8:])
 	case DictionaryMagic:
 		//FIXME: that is a lazy implementation, improve please
 		dict, err := NewStringDictFromBytes(bytes)
@@ -213,7 +213,7 @@ func appendEntry(builder *strings.Builder, entry StringKeyEntry) {
 
 func valueToString(builder *strings.Builder, value interface{}) {
 	switch value := value.(type) {
-	case NSNumber:
+	case common.NSNumber:
 		builder.WriteString(value.String())
 	case StringKeyDict:
 		builder.WriteString(value.String())

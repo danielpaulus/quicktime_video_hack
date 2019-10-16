@@ -1,4 +1,4 @@
-package dict
+package common
 
 import (
 	"encoding/binary"
