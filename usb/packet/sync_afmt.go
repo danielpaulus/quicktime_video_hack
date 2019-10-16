@@ -3,13 +3,12 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
 	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 )
 
-//| 4 Byte Length (68)   |4 Byte Magic (SYNC)   | 8 bytes clock CFTypeID| 4 byte magic (AFMT)| 8 byte correlation id
-// | some weird data| 4 byte magic (LPCM) |  28 bytes what i think is pcm data|
-//AsynAfmtPacket contains what I think is information about the audio format
+// SyncAfmtPacket contains what I think is information about the audio format
 type SyncAfmtPacket struct {
 	SyncMagic     uint32
 	ClockRef      CFTypeID
@@ -26,7 +25,7 @@ func (sp SyncAfmtPacket) String() string {
 		sp.ClockRef, sp.CorrelationID, sp.Unknown1, sp.Unknown2, sp.LpcmData.String())
 }
 
-//NewAsynAfmtPacketFromBytes parses a new AsynFmtPacket from byte array
+// NewSyncAfmtPacketFromBytes parses a new AsynFmtPacket from byte array
 func NewSyncAfmtPacketFromBytes(data []byte) (SyncAfmtPacket, error) {
 	var packet = SyncAfmtPacket{}
 	packet.SyncMagic = binary.LittleEndian.Uint32(data)
@@ -50,6 +49,7 @@ func NewSyncAfmtPacketFromBytes(data []byte) (SyncAfmtPacket, error) {
 	return packet, nil
 }
 
+//NewReply returns a []byte containing a correct reploy for afmt
 func (sp SyncAfmtPacket) NewReply() []byte {
 	responseDict := createResponseDict()
 	dictBytes := dict.SerializeStringKeyDict(responseDict)

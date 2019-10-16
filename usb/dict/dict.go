@@ -10,6 +10,7 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 )
 
+// Dictionary related magic marker constants
 const (
 	KeyValuePairMagic uint32 = 0x6B657976 //keyv - vyek
 	StringKey         uint32 = 0x7374726B //strk - krts

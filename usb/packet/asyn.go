@@ -2,6 +2,7 @@ package packet
 
 import (
 	"encoding/binary"
+
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
 )
 
@@ -20,16 +21,12 @@ const (
 	EAT             uint32 = 0x65617421 //contains audio sbufs
 )
 
-type AsyncPacket struct {
-	Header                     uint64 //I don't know what the first 8 bytes are for currently
-	HumanReadableTypeSpecifier uint32 //One of the packet types above
-	Payload                    interface{}
-}
-
+//NewAsynHpd1Packet creates a []byte containing a valid ASYN packet with the Hpd1 dictionary
 func NewAsynHpd1Packet(stringKeyDict dict.StringKeyDict) []byte {
 	return newAsynDictPacket(stringKeyDict, HPD1, EmptyCFType)
 }
 
+//NewAsynHpa1Packet creates a []byte containing a valid ASYN packet with the Hpa1 dictionary
 func NewAsynHpa1Packet(stringKeyDict dict.StringKeyDict, clockRef CFTypeID) []byte {
 	return newAsynDictPacket(stringKeyDict, HPA1, clockRef)
 }

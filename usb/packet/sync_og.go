@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+//SyncOgPacket represents the OG Message. I do not know what these messages mean.
 type SyncOgPacket struct {
 	SyncMagic     uint32
 	ClockRef      CFTypeID
@@ -13,6 +14,7 @@ type SyncOgPacket struct {
 	Unknown       uint32
 }
 
+//NewSyncOgPacketFromBytes parses a SyncOgPacket form bytes assuming it starts with SYNC magic and has the correct length.
 func NewSyncOgPacketFromBytes(data []byte) (SyncOgPacket, error) {
 	packet := SyncOgPacket{}
 	packet.SyncMagic = binary.LittleEndian.Uint32(data)
@@ -30,6 +32,7 @@ func NewSyncOgPacketFromBytes(data []byte) (SyncOgPacket, error) {
 	return packet, nil
 }
 
+//NewReply returns a []byte containing the default reply for a SyncOgPacket
 func (sp SyncOgPacket) NewReply() []byte {
 	responseBytes := make([]byte, 24)
 	binary.LittleEndian.PutUint32(responseBytes, 24)

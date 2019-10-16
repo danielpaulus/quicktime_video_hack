@@ -2,13 +2,17 @@ package usb
 
 import (
 	"encoding/binary"
+	"os"
+
 	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/usb/messages"
 	"github.com/danielpaulus/quicktime_video_hack/usb/packet"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
+//MessageProcessor is used to implement the control flow of USB messages answers and replies.
+//It receives readily split byte frames, parses them, responds to them and passes on
+//extracted CMSampleBuffers to a consumer
 type MessageProcessor struct {
 	connectionState      int
 	usbWriter            UsbWriter
