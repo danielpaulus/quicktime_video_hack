@@ -21,7 +21,7 @@ func (usa UsbAdapter) writeDataToUsb(bytes []byte) {
 
 //StartReading claims the AV Quicktime USB Bulk endpoints and starts reading until a stopSignal is sent.
 //Every received data is added to a frameextractor and when it is complete, sent to the UsbDataReceiver.
-func (usa *UsbAdapter) StartReading(device IosDevice, attachedDevicesChannel chan string, receiver UsbDataReceiver, stopSignal chan interface{}) {
+func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, stopSignal chan interface{}) {
 	muxConfig, qtConfig := findConfigurations(device.usbDevice.Desc)
 	device.QTConfigIndex = qtConfig
 	if qtConfig == -1 {

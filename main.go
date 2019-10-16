@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"github.com/danielpaulus/go-ios/usbmux"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/docopt/docopt-go"
@@ -102,10 +101,7 @@ func activate() {
 	output := screencapture.PrintDeviceDetails(deviceList)
 	log.Info(output)
 
-	//This channel will get a UDID string whenever a device is connected
-	attachedChannel := make(chan string)
-	listenForDeviceChanges(attachedChannel)
-	err = screencapture.EnableQTConfig(deviceList, attachedChannel)
+	err = screencapture.EnableQTConfig(deviceList)
 	if err != nil {
 		log.Fatal("Error enabling QT config", err)
 	}
@@ -131,9 +127,6 @@ func dumpraw(outFilePath string) {
 	}
 	log.Infof("Writing output to:%s", outFilePath)
 	dev := deviceList[0]
-	//This channel will get a UDID string whenever a device is connected
-	attachedChannel := make(chan string)
-	listenForDeviceChanges(attachedChannel)
 
 	file, err := os.Create(outFilePath)
 	if err != nil {
@@ -146,40 +139,6 @@ func dumpraw(outFilePath string) {
 	waitForSigInt(stopSignal)
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, writer)
 
-	adapter.StartReading(dev, attachedChannel, &mp, stopSignal)
+	adapter.StartReading(dev, &mp, stopSignal)
 	return
-}
-
-func listenForDeviceChanges(attachedChannel chan string) {
-	muxConnection := usbmux.NewUsbMuxConnection()
-
-	usbmuxDeviceEventReader, err := muxConnection.Listen()
-	if err != nil {
-		log.Fatal("Failed issuing LISTEN command", err)
-		os.Exit(1)
-	}
-
-	//read first message and throw away
-	_, err = usbmuxDeviceEventReader()
-	if err != nil {
-		log.Fatal("error reading from LISTEN command", err)
-		os.Exit(1)
-	}
-
-	//keep reading attached messages and publish on channel
-	go func() {
-		defer muxConnection.Close()
-		for {
-			//the usbmuxDeviceEventReader blocks until a message is received
-			msg, err := usbmuxDeviceEventReader()
-			if err != nil {
-				log.Error("Stopped listening because of error")
-				return
-			}
-			if msg.DeviceAttached() {
-				log.Debugf("Received attached message for %s", msg.Properties.SerialNumber)
-				attachedChannel <- msg.Properties.SerialNumber
-			}
-		}
-	}()
 }

@@ -1,6 +1,7 @@
 package screencapture
 
 import (
+	"fmt"
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -10,9 +11,9 @@ import (
 // We will send a control transfer to the device via USB which will cause the device to disconnect and then
 // re-connect with a new device configuration. Usually the usbmuxd will automatically enable that new config
 // as it will detect it as the device's preferredConfig.
-func EnableQTConfig(devices []IosDevice, attachedDevicesChannel chan string) error {
+func EnableQTConfig(devices []IosDevice) error {
 	for _, device := range devices {
-		err := enableQTConfigSingleDevice(device, attachedDevicesChannel)
+		err := enableQTConfigSingleDevice(device)
 		if err != nil {
 			return err
 		}
@@ -20,9 +21,10 @@ func EnableQTConfig(devices []IosDevice, attachedDevicesChannel chan string) err
 	return nil
 }
 
-func enableQTConfigSingleDevice(device IosDevice, attachedDevicesChannel chan string) error {
+func enableQTConfigSingleDevice(device IosDevice) error {
+	udid := device.SerialNumber
 	if isValidIosDeviceWithActiveQTConfig(device.usbDevice.Desc) {
-		log.Debugf("Skipping %s because it already has an active QT config", device.SerialNumber)
+		log.Debugf("Skipping %s because it already has an active QT config", udid)
 		return nil
 	}
 
@@ -30,13 +32,30 @@ func enableQTConfigSingleDevice(device IosDevice, attachedDevicesChannel chan st
 	if err != nil {
 		return err
 	}
-
-	duratio, _ := time.ParseDuration("2s")
-	time.Sleep(duratio)
-	ctx.Close()
-	ctx = gousb.NewContext()
-	device.usbDevice, err = findBySerialNumber(device.SerialNumber)
-
+	duration, _ := time.ParseDuration("500ms")
+	var i int
+	for {
+		log.Infof("Checking for active QT config for %s", udid)
+		time.Sleep(duration)
+		err = ctx.Close()
+		if err != nil {
+			log.Warn("failed closing context", err)
+		}
+		log.Debug("Reopening Context")
+		ctx = gousb.NewContext()
+		device.usbDevice, err = findBySerialNumber(udid)
+		if err != nil {
+			log.Debugf("device not found:%s", err)
+			continue
+		}
+		i++
+		if i > 10 {
+			log.Error("Failed activating config")
+			return fmt.Errorf("could not activate Quicktime Config for %s", udid)
+		}
+		break
+	}
+	log.Infof("QTConfig for %s activated", udid)
 	return err
 }
 
