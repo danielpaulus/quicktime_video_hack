@@ -2,7 +2,7 @@ package dict_test
 
 import (
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/messages"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
@@ -29,7 +29,7 @@ func TestFullSerialization(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	serializedBytes := dict.SerializeStringKeyDict(messages.CreateHpa1DeviceInfoDict())
+	serializedBytes := dict.SerializeStringKeyDict(packet.CreateHpa1DeviceInfoDict())
 	assert.Equal(t, dictBytes, serializedBytes)
 
 	dictBytes2, err := ioutil.ReadFile("fixtures/dict.bin")
@@ -37,7 +37,7 @@ func TestFullSerialization(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	serializedBytes2 := dict.SerializeStringKeyDict(messages.CreateHpd1DeviceInfoDict())
+	serializedBytes2 := dict.SerializeStringKeyDict(packet.CreateHpd1DeviceInfoDict())
 	assert.Equal(t, dictBytes2, serializedBytes2)
 
 }

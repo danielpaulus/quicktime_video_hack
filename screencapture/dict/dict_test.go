@@ -2,7 +2,7 @@ package dict_test
 
 import (
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/messages"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -83,7 +83,7 @@ func TestComplexDict(t *testing.T) {
 
 func TestStringFunction(t *testing.T) {
 	//TODO: add an assertion
-	print(messages.CreateHpa1DeviceInfoDict().String())
+	print(packet.CreateHpa1DeviceInfoDict().String())
 	numberDict := dict.IndexKeyDict{Entries: make([]dict.IndexKeyEntry, 1)}
 	numberDict.Entries[0] = dict.IndexKeyEntry{
 		Key: 5,

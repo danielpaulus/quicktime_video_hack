@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/messages"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
 	log "github.com/sirupsen/logrus"
 )
@@ -75,14 +74,14 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 		log.Debugf("Rcv:%s", cwpaPacket.String())
 		clockRef := cwpaPacket.DeviceClockRef + 1000
 
-		deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
+		deviceInfo := packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict())
 		log.Debug("Sending ASYN HPD1")
 		mp.usbWriter.writeDataToUsb(deviceInfo)
 		log.Debugf("Send CWPA-RPLY {correlation:%x, clockRef:%x}", cwpaPacket.CorrelationID, clockRef)
 		mp.usbWriter.writeDataToUsb(cwpaPacket.NewReply(clockRef))
 		log.Debug("Sending ASYN HPD1")
 		mp.usbWriter.writeDataToUsb(deviceInfo)
-		deviceInfo1 := packet.NewAsynHpa1Packet(messages.CreateHpa1DeviceInfoDict(), cwpaPacket.DeviceClockRef)
+		deviceInfo1 := packet.NewAsynHpa1Packet(packet.CreateHpa1DeviceInfoDict(), cwpaPacket.DeviceClockRef)
 		log.Debug("Sending ASYN HPA1")
 		mp.usbWriter.writeDataToUsb(deviceInfo1)
 	case packet.CVRP:
