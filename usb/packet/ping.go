@@ -8,10 +8,7 @@ const (
 	PingHeader      uint64 = 0x0000000100000000
 )
 
-type PingPacket struct {
-	Header uint64
-}
-
+//NewPingPacketAsBytes generates a new default Ping packet
 func NewPingPacketAsBytes() []byte {
 	packetBytes := make([]byte, 16)
 	binary.LittleEndian.PutUint32(packetBytes, PingLength)
