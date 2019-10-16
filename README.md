@@ -7,6 +7,8 @@
 This repository contains all the code you will need to grab and record video and audio from your iPhone or iPad 
 without needing one of these expensive MacOS X computers :-D
 It probably does something similar to what `QuickTime` and `com.apple.cmio.iOSScreenCaptureAssistant` are doing on MacOS.
+Currently you can use it to create a h264 file that is playable with VLC and watch a recording of your devices screen :-D
+
 
 run `go run main.go --help` to see how it works
 
