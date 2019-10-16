@@ -20,12 +20,17 @@ type NSNumber struct {
 	FloatValue float64
 }
 
+//NewNSNumberFromUInt32 create NSNumber of type 0x03 with a 4 byte int as value
 func NewNSNumberFromUInt32(intValue uint32) NSNumber {
 	return NSNumber{typeSpecifier: 03, IntValue: intValue}
 }
+
+//NewNSNumberFromUInt64 create NSNumber of type 0x04 with a 8 byte int as value
 func NewNSNumberFromUInt64(longValue uint64) NSNumber {
 	return NSNumber{typeSpecifier: 04, LongValue: longValue}
 }
+
+//NewNSNumberFromUFloat64 create NSNumber of type 0x06 with a 8 byte int as value
 func NewNSNumberFromUFloat64(floatValue float64) NSNumber {
 	return NSNumber{typeSpecifier: 06, FloatValue: floatValue}
 }
@@ -58,6 +63,7 @@ func NewNSNumber(bytes []byte) (NSNumber, error) {
 
 }
 
+//ToBytes serializes a NSNumber into a []byte.
 //FIXME: remove allocation of array and use one that is passed in instead
 func (n NSNumber) ToBytes() []byte {
 	switch n.typeSpecifier {

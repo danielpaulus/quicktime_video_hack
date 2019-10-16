@@ -16,7 +16,7 @@ const (
 	CMTimeLengthInBytes               int    = 24
 )
 
-//Taken from https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.8.sdk/System/Library/Frameworks/CoreMedia.framework/Versions/A/Headers/CMTime.h
+//CMTime is taken from https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.8.sdk/System/Library/Frameworks/CoreMedia.framework/Versions/A/Headers/CMTime.h
 type CMTime struct {
 	CMTimeValue uint64 /*! @field value The value of the CMTime. value/timescale = seconds. */
 	CMTimeScale uint32 /*! @field timescale The timescale of the CMTime. value/timescale = seconds.  */

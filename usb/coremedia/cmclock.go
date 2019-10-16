@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// CMClock represents a monotonic Clock that will start counting when created
 type CMClock struct {
 	ID        uint64
 	TimeScale uint32

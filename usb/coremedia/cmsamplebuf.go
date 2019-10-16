@@ -3,10 +3,12 @@ package coremedia
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
 )
 
+//CMItemCount is a simple typedef to int to be a bit closer to MacOS/iOS
 type CMItemCount = int
 
 //https://github.com/phracker/MacOSX-SDKs/blob/master/MacOSX10.9.sdk/System/Library/Frameworks/CoreMedia.framework/Versions/A/Headers/CMSampleBuffer.h
@@ -23,6 +25,7 @@ const (
 	cmSampleTimingInfoLength = 3 * CMTimeLengthInBytes
 )
 
+//CMSampleTimingInfo is a simple struct containing 3 CMtimes: Duration, PresentationTimeStamp and DecodeTimeStamp
 type CMSampleTimingInfo struct {
 	Duration CMTime /*! @field duration
 	The duration of the sample. If a single struct applies to
@@ -66,6 +69,7 @@ func (buffer CMSampleBuffer) String() string {
 		fdscString, buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
 }
 
+//NewCMSampleBufferFromBytes parses a CMSampleBuffer from a []byte assuming it begins with a 4 byte length and the 4byte magic int "sbuf"
 func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	var sbuffer CMSampleBuffer
 	sbuffer.HasFormatDescription = false

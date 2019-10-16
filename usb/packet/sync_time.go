@@ -3,10 +3,11 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 )
 
-//Contains the data from a decoded Time Packet sent by the device
+//SyncTimePacket contains the data from a decoded Time Packet sent by the device
 type SyncTimePacket struct {
 	SyncMagic     uint32
 	ClockRef      CFTypeID
