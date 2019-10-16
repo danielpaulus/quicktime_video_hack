@@ -10,7 +10,7 @@ import (
 )
 
 type CmSampleBufConsumer interface {
-	Consume(buf coremedia.CMSampleBuffer)
+	Consume(buf coremedia.CMSampleBuffer) error
 }
 type messageProcessor struct {
 	connectionState      int
@@ -149,7 +149,10 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 			log.Warn("unknown feed")
 			return
 		}
-		mp.cmSampleBufConsumer.Consume(feedPacket.CMSampleBuf)
+		err = mp.cmSampleBufConsumer.Consume(feedPacket.CMSampleBuf)
+		if err != nil {
+			log.Fatal("Failed writing sample data to Consumer", err)
+		}
 		log.Debugf("Rcv:%s", feedPacket.String())
 		mp.writeToUsb(mp.needMessage)
 	case packet.SPRP:

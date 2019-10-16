@@ -129,11 +129,11 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 	log.Debug("Endpoint claimed")
 	outFilePath := "/home/ganjalf/tmp/out.h264"
 	file, err := os.Create(outFilePath)
-
-	writer, err := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
 	if err != nil {
 		log.Fatal("Could not open file", err)
 	}
+	writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
+
 	mp := newMessageProcessor(func(bytes []byte) {
 		n, err := outEndpoint.Write(bytes)
 		if err != nil {
