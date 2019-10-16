@@ -1,6 +1,7 @@
 package screencapture
 
 import (
+	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -64,6 +65,19 @@ func findIosDevices(validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]Ios
 	}
 
 	return iosDevices, nil
+}
+
+func findBySerialNumber(udid string) (*gousb.Device, error) {
+	devices, err := FindIosDevices()
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range devices {
+		if d.SerialNumber == udid {
+			return d.usbDevice, nil
+		}
+	}
+	return nil, errors.New("not found")
 }
 
 func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
