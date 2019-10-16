@@ -25,6 +25,12 @@ Options:
   --version     Show version.
   -u=<udid>, --udid     UDID of the device.
   -o=<filepath>, --output
+
+The commands work as following:
+	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
+	activate	only enables the video streaming config for the given device
+	dumpraw		will start video recording and dump it to a raw h264 file playable by VLC. 
+				Run like: "qvh dumpraw /home/yourname/out.h264"
   `
 	arguments, _ := docopt.ParseDoc(usage)
 	//TODO: add verbose switch to conf this

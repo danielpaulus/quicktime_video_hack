@@ -21,11 +21,15 @@ type MessageProcessor struct {
 	cmSampleBufConsumer  CmSampleBufConsumer
 }
 
+//NewMessageProcessor creates a new MessageProcessor that will write answers to the given UsbWriter,
+// forward extracted CMSampleBuffers to the CMSampleBufConsumer and wait for the stopSignal.
 func NewMessageProcessor(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer) MessageProcessor {
 	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer}
 	return mp
 }
 
+//ReceiveData waits for byte frames of the correct length without the length field.
+//This function will only accept byte frames starting with the ASYN, SYNC or PING uint32 magic.
 func (mp *MessageProcessor) ReceiveData(data []byte) {
 	switch binary.LittleEndian.Uint32(data) {
 	case packet.PingPacketMagic:
