@@ -3,8 +3,8 @@ package main
 import (
 	"bufio"
 	"github.com/danielpaulus/go-ios/usbmux"
-	"github.com/danielpaulus/quicktime_video_hack/usb"
-	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -39,9 +39,9 @@ The commands work as following:
 	//TODO:add device selection here
 	log.Info(udid)
 
-	cleanup := usb.Init()
+	cleanup := screencapture.Init()
 	defer cleanup()
-	deviceList, err := usb.FindIosDevices()
+	deviceList, err := screencapture.FindIosDevices()
 
 	if err != nil {
 		log.Fatal("Error finding iOS Devices", err)
@@ -78,10 +78,10 @@ The commands work as following:
 			log.Errorf("Could not open file '%s'", outFilePath)
 		}
 		writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
-		adapter := usb.UsbAdapter{}
+		adapter := screencapture.UsbAdapter{}
 		stopSignal := make(chan interface{})
 		waitForSigInt(stopSignal)
-		mp := usb.NewMessageProcessor(&adapter, stopSignal, writer)
+		mp := screencapture.NewMessageProcessor(&adapter, stopSignal, writer)
 
 		adapter.StartReading(dev, attachedChannel, &mp, stopSignal)
 		return
@@ -101,33 +101,33 @@ func waitForSigInt(stopSignalChannel chan interface{}) {
 }
 
 // Just dump a list of what was discovered to the console
-func devices(devices []usb.IosDevice) {
+func devices(devices []screencapture.IosDevice) {
 	log.Infof("(%d) iOS Devices with UsbMux Endpoint:", len(devices))
 
-	output := usb.PrintDeviceDetails(devices)
+	output := screencapture.PrintDeviceDetails(devices)
 	log.Info(output)
 }
 
 // This command is for testing if we can enable the hidden Quicktime device config
-func activate(devices []usb.IosDevice) {
+func activate(devices []screencapture.IosDevice) {
 	log.Info("iOS Devices with UsbMux Endpoint:")
 
-	output := usb.PrintDeviceDetails(devices)
+	output := screencapture.PrintDeviceDetails(devices)
 	log.Info(output)
 
 	//This channel will get a UDID string whenever a device is connected
 	attachedChannel := make(chan string)
 	listenForDeviceChanges(attachedChannel)
-	err := usb.EnableQTConfig(devices, attachedChannel)
+	err := screencapture.EnableQTConfig(devices, attachedChannel)
 	if err != nil {
 		log.Fatal("Error enabling QT config", err)
 	}
 
-	qtDevices, err := usb.FindIosDevicesWithQTEnabled()
+	qtDevices, err := screencapture.FindIosDevicesWithQTEnabled()
 	if err != nil {
 		log.Fatal("Error finding QT Devices", err)
 	}
-	qtOutput := usb.PrintDeviceDetails(qtDevices)
+	qtOutput := screencapture.PrintDeviceDetails(qtDevices)
 	if len(qtDevices) != len(devices) {
 		log.Warnf("Less qt devices (%d) than plain usbmux devices (%d)", len(qtDevices), len(devices))
 	}
