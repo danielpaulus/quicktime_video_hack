@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
 )
 
@@ -54,7 +55,7 @@ func CreateHpa1DeviceInfoDict() dict.StringKeyDict {
 
 	resultDict.Entries[3] = dict.StringKeyEntry{
 		Key:   "formats",
-		Value: createLpcmInfo(),
+		Value: coremedia.CreateLpcmInfo(),
 	}
 
 	resultDict.Entries[4] = dict.StringKeyEntry{

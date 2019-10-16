@@ -1,4 +1,4 @@
-package messages
+package coremedia
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -13,6 +13,6 @@ func TestLpcmSerializer(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	assert.Equal(t, dat, createLpcmInfo())
+	assert.Equal(t, dat, CreateLpcmInfo())
 
 }

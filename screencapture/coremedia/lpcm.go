@@ -1,4 +1,4 @@
-package messages
+package coremedia
 
 import (
 	"bytes"
@@ -50,7 +50,8 @@ func NewLPCMDataFromBytes(data []byte) (LPCMData, error) {
 	return lpcmData, nil
 }
 
-func createLpcmInfo() []byte {
+//CreateLpcmInfo re-creates lpcm data from a hex dump. I am not yet sure about what the values mean.
+func CreateLpcmInfo() []byte {
 	lpcmBytes := make([]byte, 56)
 	binary.LittleEndian.PutUint64(lpcmBytes, separator)
 	var index = 8

@@ -3,9 +3,9 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/messages"
 )
 
 // SyncAfmtPacket contains what I think is information about the audio format
@@ -17,7 +17,7 @@ type SyncAfmtPacket struct {
 	Unknown1      uint32
 	Unknown2      uint32
 	LpcmMagic     uint32
-	LpcmData      messages.LPCMData
+	LpcmData      coremedia.LPCMData
 }
 
 func (sp SyncAfmtPacket) String() string {
@@ -42,7 +42,7 @@ func NewSyncAfmtPacketFromBytes(data []byte) (SyncAfmtPacket, error) {
 	packet.Unknown2 = binary.LittleEndian.Uint32(data[28:])
 	packet.LpcmMagic = binary.LittleEndian.Uint32(data[32:])
 	var err error
-	packet.LpcmData, err = messages.NewLPCMDataFromBytes(data[36:])
+	packet.LpcmData, err = coremedia.NewLPCMDataFromBytes(data[36:])
 	if err != nil {
 		return packet, fmt.Errorf("Error parsing LPCM data in asyn afmt: %s, ", err)
 	}
