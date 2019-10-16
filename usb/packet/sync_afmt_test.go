@@ -20,7 +20,7 @@ func TestAfmt(t *testing.T) {
 		assert.Equal(t, packet.SyncPacketMagic, afmtPacket.SyncMagic)
 		assert.Equal(t, packet.AFMT, afmtPacket.MessageType)
 		assert.Equal(t, messages.LpcmMagic, afmtPacket.LpcmMagic)
-		assert.Equal(t, uint32(0x4c), afmtPacket.LpcmData.Unknown_int1)
+		assert.Equal(t, uint32(0x4c), afmtPacket.LpcmData.UnknownInt1)
 		testSerializationOfAfmtReply(afmtPacket, t)
 	}
 }

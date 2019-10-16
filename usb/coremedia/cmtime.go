@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+//Constants for the CMTime struct
 const (
 	KCMTimeFlagsValid                 uint32 = 0x0
 	KCMTimeFlagsHasBeenRounded        uint32 = 0x1

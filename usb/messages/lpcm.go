@@ -19,20 +19,21 @@ HexDump:
 
 //LPCMData contains 7 ints that probably mean something related to linear pulse code audio things
 type LPCMData struct {
-	Unknown_int1 uint32
-	Unknown_int2 uint32
-	Unknown_int3 uint32
-	Unknown_int4 uint32
-	Unknown_int5 uint32
-	Unknown_int6 uint32
-	Unknown_int7 uint32
+	UnknownInt1 uint32
+	UnknownInt2 uint32
+	UnknownInt3 uint32
+	UnknownInt4 uint32
+	UnknownInt5 uint32
+	UnknownInt6 uint32
+	UnknownInt7 uint32
 }
 
 func (data LPCMData) String() string {
-	return fmt.Sprintf("[%d,%d,%d,%d,%d,%d,%d]", data.Unknown_int1, data.Unknown_int2, data.Unknown_int3,
-		data.Unknown_int4, data.Unknown_int5, data.Unknown_int6, data.Unknown_int7)
+	return fmt.Sprintf("[%d,%d,%d,%d,%d,%d,%d]", data.UnknownInt1, data.UnknownInt2, data.UnknownInt3,
+		data.UnknownInt4, data.UnknownInt5, data.UnknownInt6, data.UnknownInt7)
 }
 
+//Constants needed for creating a LPCM byte array
 const (
 	separator uint64 = 0x40E7700000000000
 	LpcmMagic uint32 = 0x6C70636D

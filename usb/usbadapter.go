@@ -48,6 +48,7 @@ func sendQTConfigControlRequest(device IosDevice) error {
 	return nil
 }
 
+//UsbAdapter reads and writes from AV Quicktime USB Bulk endpoints
 type UsbAdapter struct {
 	outEndpoint *gousb.OutEndpoint
 }
@@ -60,6 +61,8 @@ func (usa UsbAdapter) writeDataToUsb(bytes []byte) {
 	log.Debugf("bytes written:%d", n)
 }
 
+//StartReading claims the AV Quicktime USB Bulk endpoints and starts reading until a stopSignal is sent.
+//Every received data is added to a frameextractor and when it is complete, sent to the UsbDataReceiver.
 func (usa *UsbAdapter) StartReading(device IosDevice, attachedDevicesChannel chan string, receiver UsbDataReceiver, stopSignal chan interface{}) {
 	err := enableQTConfigSingleDevice(device, attachedDevicesChannel)
 	if err != nil {

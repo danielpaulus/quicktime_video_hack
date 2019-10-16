@@ -2,6 +2,7 @@ package packet
 
 import "encoding/binary"
 
+//Constants for creating a Ping packet
 const (
 	PingPacketMagic uint32 = 0x70696E67
 	PingLength      uint32 = 16
