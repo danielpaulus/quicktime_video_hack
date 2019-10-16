@@ -26,7 +26,7 @@ type StringKeyDict struct {
 	Entries []StringKeyEntry
 }
 
-//StringKeyEntry a pair of a string key and an arbitray value
+//StringKeyEntry a pair of a string key and an arbitrary value
 type StringKeyEntry struct {
 	Key   string
 	Value interface{}
@@ -37,7 +37,7 @@ type IndexKeyDict struct {
 	Entries []IndexKeyEntry
 }
 
-//IndexKeyEntry is a pair of a uint16 key and an arbitray value.
+//IndexKeyEntry is a pair of a uint16 key and an arbitrary value.
 type IndexKeyEntry struct {
 	Key   uint16
 	Value interface{}
