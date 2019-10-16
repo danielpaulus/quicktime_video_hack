@@ -8,20 +8,15 @@ This repository contains all the code you will need to grab and record video and
 without needing one of these expensive MacOS X computers :-D
 It probably does something similar to what `QuickTime` and `com.apple.cmio.iOSScreenCaptureAssistant` are doing on MacOS.
 
+run `go run main.go --help` to see how it works
+
 Progress:
-1. [~~Write a prototype decoder in Java to reconstruct a Video from a USB Dump taken with Wireshark~~](https://github.com/danielpaulus/quicktime_video_hack/tree/JavaCMSampleBufDecoder/java-x264-decoder) 
-2. ~~Create a Golang App to successfully enable and grab the first video stream data from the iOS Device on Linux~~
-3. ~~port decoder from Java to Golang~~
-3. Make the `go run main.go dumpraw` work on the first execution (currently you have to run it twice)
-4. ~~Add support for CMSync.h style CMClock packets~~ 
-5. ~~Get a continuous Feed from the Device~~
-6. Make the dumpraw command work without having to unplug the device every time
-7. ~~Parse Async Feed packets correctly~~ 
-8. ~~Generate SPS and PPS h264 NaLus~~ 
-9. ~~Fix last issue to get a working stream of FEEDs, currently my NEED packets are rejected~~
-10. Create a .h264 file drom the dumpraw command 
-11. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
-12. Complete packet documentation
+1. Make the `go run main.go dumpraw` work on the first execution (currently you have to run it twice and it will start recording on the second run)
+2. FIX: After running the dumpraw command and saving a video, you have to unplug the device to record another video currently
+3. Make a release :-D
+4. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
+5. Complete packet documentation
+6. Also save the device audio stream (I am already decoding it and receiving it, just not doing anything with it for now) 
 
 Extra Goals:
 1. [Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)
