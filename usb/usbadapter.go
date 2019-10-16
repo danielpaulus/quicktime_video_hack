@@ -1,11 +1,8 @@
 package usb
 
 import (
-	"bufio"
-	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
-	"os"
 	"time"
 )
 
@@ -51,13 +48,25 @@ func sendQTConfigControlRequest(device IosDevice) error {
 	return nil
 }
 
-func StartReading(device IosDevice, attachedDevicesChannel chan string) {
+type UsbAdapter struct {
+	outEndpoint *gousb.OutEndpoint
+}
+
+func (usa UsbAdapter) writeDataToUsb(bytes []byte) {
+	n, err := usa.outEndpoint.Write(bytes)
+	if err != nil {
+		log.Error("failed sending to usb", err)
+	}
+	log.Debugf("bytes written:%d", n)
+}
+
+func (usa *UsbAdapter) StartReading(device IosDevice, attachedDevicesChannel chan string, receiver UsbDataReceiver, stopSignal chan interface{}) {
 	err := enableQTConfigSingleDevice(device, attachedDevicesChannel)
 	if err != nil {
 		log.Error("Failed enabling QT Config", err)
 		return
 	}
-	stopSignal := make(chan interface{})
+
 	log.Debugf("Enabling Quicktime Config for %s", device.SerialNumber)
 
 	muxConfig, qtConfig := findConfigurations(device.usbDevice.Desc)
@@ -120,6 +129,7 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 		return
 	}
 	log.Debugf("Outbound Bulk: %s", outEndpoint.String())
+	usa.outEndpoint = outEndpoint
 
 	stream, err := inEndpoint.NewStream(4096, 5)
 	if err != nil {
@@ -127,20 +137,6 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 		return
 	}
 	log.Debug("Endpoint claimed")
-	outFilePath := "/home/ganjalf/tmp/out.h264"
-	file, err := os.Create(outFilePath)
-	if err != nil {
-		log.Fatal("Could not open file", err)
-	}
-	writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
-
-	mp := newMessageProcessor(func(bytes []byte) {
-		n, err := outEndpoint.Write(bytes)
-		if err != nil {
-			log.Error("failed sending to usb", err)
-		}
-		log.Debugf("bytes written:%d", n)
-	}, stopSignal, writer)
 
 	go func() {
 
@@ -155,17 +151,11 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 			}
 			frame, isCompleteFrame := frameExtractor.ExtractFrame(buffer[:n])
 			if isCompleteFrame {
-				mp.receiveData(frame)
+				receiver.ReceiveData(frame)
 			}
 		}
 	}()
-	go func() {
-		d, _ := time.ParseDuration("60s")
-		time.Sleep(d)
-		var signal interface{}
-		log.Info("Stopping")
-		stopSignal <- signal
-	}()
+
 	<-stopSignal
 	log.Debugf("Closing stream")
 	err = stream.Close()

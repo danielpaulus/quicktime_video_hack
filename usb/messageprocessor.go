@@ -9,12 +9,9 @@ import (
 	"os"
 )
 
-type CmSampleBufConsumer interface {
-	Consume(buf coremedia.CMSampleBuffer) error
-}
-type messageProcessor struct {
+type MessageProcessor struct {
 	connectionState      int
-	writeToUsb           func([]byte)
+	usbWriter            UsbWriter
 	stopSignal           chan interface{}
 	clock                coremedia.CMClock
 	totalBytesReceived   int
@@ -24,16 +21,16 @@ type messageProcessor struct {
 	cmSampleBufConsumer  CmSampleBufConsumer
 }
 
-func newMessageProcessor(writeToUsb func([]byte), stopSignal chan interface{}, consumer CmSampleBufConsumer) messageProcessor {
-	var mp = messageProcessor{writeToUsb: writeToUsb, stopSignal: stopSignal, cmSampleBufConsumer: consumer}
+func NewMessageProcessor(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer) MessageProcessor {
+	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer}
 	return mp
 }
 
-func (mp *messageProcessor) receiveData(data []byte) {
+func (mp *MessageProcessor) ReceiveData(data []byte) {
 	switch binary.LittleEndian.Uint32(data) {
 	case packet.PingPacketMagic:
 		log.Debug("initial ping received, sending ping back")
-		mp.writeToUsb(packet.NewPingPacketAsBytes())
+		mp.usbWriter.writeDataToUsb(packet.NewPingPacketAsBytes())
 		return
 	case packet.SyncPacketMagic:
 		mp.handleSyncPacket(data)
@@ -49,7 +46,7 @@ func (mp *messageProcessor) receiveData(data []byte) {
 	mp.stopSignal <- stop
 }
 
-func (mp *messageProcessor) handleSyncPacket(data []byte) {
+func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.OG:
 		ogPacket, err := packet.NewSyncOgPacketFromBytes(data)
@@ -60,7 +57,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 
 		replyBytes := ogPacket.NewReply()
 		log.Debugf("Send OG-REPLY {correlation:%x}", ogPacket.CorrelationID)
-		mp.writeToUsb(replyBytes)
+		mp.usbWriter.writeDataToUsb(replyBytes)
 	case packet.CWPA:
 		cwpaPacket, err := packet.NewSyncCwpaPacketFromBytes(data)
 		if err != nil {
@@ -72,14 +69,14 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 
 		deviceInfo := packet.NewAsynHpd1Packet(messages.CreateHpd1DeviceInfoDict())
 		log.Debug("Sending ASYN HPD1")
-		mp.writeToUsb(deviceInfo)
+		mp.usbWriter.writeDataToUsb(deviceInfo)
 		log.Debugf("Send CWPA-RPLY {correlation:%x, clockRef:%x}", cwpaPacket.CorrelationID, clockRef)
-		mp.writeToUsb(cwpaPacket.NewReply(clockRef))
+		mp.usbWriter.writeDataToUsb(cwpaPacket.NewReply(clockRef))
 		log.Debug("Sending ASYN HPD1")
-		mp.writeToUsb(deviceInfo)
+		mp.usbWriter.writeDataToUsb(deviceInfo)
 		deviceInfo1 := packet.NewAsynHpa1Packet(messages.CreateHpa1DeviceInfoDict(), cwpaPacket.DeviceClockRef)
 		log.Debug("Sending ASYN HPA1")
-		mp.writeToUsb(deviceInfo1)
+		mp.usbWriter.writeDataToUsb(deviceInfo1)
 	case packet.CVRP:
 		cvrpPacket, err := packet.NewSyncCvrpPacketFromBytes(data)
 		if err != nil {
@@ -92,11 +89,11 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		mp.needClockRef = cvrpPacket.DeviceClockRef
 		mp.needMessage = packet.AsynNeedPacketBytes(mp.needClockRef)
 		log.Debugf("Send NEED %x", mp.needClockRef)
-		mp.writeToUsb(mp.needMessage)
+		mp.usbWriter.writeDataToUsb(mp.needMessage)
 
 		clockRef2 := cvrpPacket.DeviceClockRef + 0x1000AF
 		log.Debugf("Send CVRP-RPLY {correlation:%x, clockRef:%x}", cvrpPacket.CorrelationID, clockRef2)
-		mp.writeToUsb(cvrpPacket.NewReply(clockRef2))
+		mp.usbWriter.writeDataToUsb(cvrpPacket.NewReply(clockRef2))
 	case packet.CLOK:
 		clokPacket, err := packet.NewSyncClokPacketFromBytes(data)
 		if err != nil {
@@ -106,7 +103,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 		clockRef := clokPacket.ClockRef + 0x10000
 		mp.clock = coremedia.NewCMClockWithHostTime(clockRef)
 		log.Debugf("Send CLOK-RPLY {correlation:%x, clockRef:%x}", clokPacket.CorrelationID, clockRef)
-		mp.writeToUsb(clokPacket.NewReply(clockRef))
+		mp.usbWriter.writeDataToUsb(clokPacket.NewReply(clockRef))
 	case packet.TIME:
 		timePacket, err := packet.NewSyncTimePacketFromBytes(data)
 		if err != nil {
@@ -119,7 +116,7 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 			log.Error("Could not create SYNC TIME REPLY")
 		}
 		log.Debugf("Send TIME-REPLY {correlation:%x, time:%s}", timePacket.CorrelationID, timeToSend)
-		mp.writeToUsb(replyBytes)
+		mp.usbWriter.writeDataToUsb(replyBytes)
 	case packet.AFMT:
 		afmtPacket, err := packet.NewSyncAfmtPacketFromBytes(data)
 		if err != nil {
@@ -129,13 +126,13 @@ func (mp *messageProcessor) handleSyncPacket(data []byte) {
 
 		replyBytes := afmtPacket.NewReply()
 		log.Debugf("Send AFMT-REPLY {correlation:%x}", afmtPacket.CorrelationID)
-		mp.writeToUsb(replyBytes)
+		mp.usbWriter.writeDataToUsb(replyBytes)
 	default:
 		log.Warnf("received unknown sync packet type: %x", data)
 	}
 }
 
-func (mp *messageProcessor) handleAsyncPacket(data []byte) {
+func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.EAT:
 		mp.audioSamplesReceived++
@@ -154,7 +151,7 @@ func (mp *messageProcessor) handleAsyncPacket(data []byte) {
 			log.Fatal("Failed writing sample data to Consumer", err)
 		}
 		log.Debugf("Rcv:%s", feedPacket.String())
-		mp.writeToUsb(mp.needMessage)
+		mp.usbWriter.writeDataToUsb(mp.needMessage)
 	case packet.SPRP:
 		sprpPacket, err := packet.NewAsynSprpPacketFromBytes(data)
 		if err != nil {
