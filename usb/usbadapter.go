@@ -173,7 +173,6 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 		log.Error("Error closing stream", err)
 	}
 	iface.Close()
-	writer.Close()
 }
 
 func grabOutBulk(setting gousb.InterfaceSetting) int {

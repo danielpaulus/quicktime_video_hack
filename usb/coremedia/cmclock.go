@@ -30,5 +30,4 @@ func (c CMClock) GetTime() CMTime {
 		CMTimeFlags: KCMTimeFlagsHasBeenRounded,
 		CMTimeEpoch: 0,
 	}
-
 }

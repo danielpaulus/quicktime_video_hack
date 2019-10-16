@@ -14,8 +14,8 @@ const (
 	SPRP            uint32 = 0x73707270 // Set Property
 	TBAS            uint32 = 0x74626173 //TimeBase https://developer.apple.com/library/archive/qa/qa1643/_index.html
 	RELS            uint32 = 0x72656C73
-	HPD1            uint32 = 0x68706431 //hpd1 - 1dph | Maybe Hotplug Detection?
-	HPA1            uint32 = 0x68706131 //hpa1 - 1aph | high performance addressing?
+	HPD1            uint32 = 0x68706431 //hpd1 - 1dph | For specifying/requesting the video format
+	HPA1            uint32 = 0x68706131 //hpa1 - 1aph | For specifying/requesting the audio format
 	NEED            uint32 = 0x6E656564 //need - deen
 	EAT             uint32 = 0x65617421 //contains audio sbufs
 )
