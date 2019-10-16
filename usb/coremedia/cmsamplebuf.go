@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/danielpaulus/quicktime_video_hack/usb/common"
 	"github.com/danielpaulus/quicktime_video_hack/usb/dict"
-	"github.com/danielpaulus/quicktime_video_hack/usb/h264"
 )
 
 type CMItemCount = int
@@ -63,7 +62,7 @@ func (buffer CMSampleBuffer) String() string {
 		fdscString = "none"
 	}
 	return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, Nalus:%s, fdsc:%s, attach:%s, sary:%s, SampleTimingInfoArray:%s}",
-		buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, h264.GetNaluDetails(buffer.SampleData),
+		buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, GetNaluDetails(buffer.SampleData),
 		fdscString, buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
 }
 

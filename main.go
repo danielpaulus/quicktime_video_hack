@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"github.com/danielpaulus/go-ios/usbmux"
 	"github.com/danielpaulus/quicktime_video_hack/usb"
+	"github.com/danielpaulus/quicktime_video_hack/usb/coremedia"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"os/signal"
 )
 
 func main() {
@@ -15,13 +18,19 @@ func main() {
 Usage:
   qvh devices
   qvh activate
-  qvh dumpraw
+  qvh dumpraw <outfile>
  
 Options:
   -h --help     Show this screen.
   --version     Show version.
   -u=<udid>, --udid     UDID of the device.
   -o=<filepath>, --output
+
+The commands work as following:
+	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
+	activate	only enables the video streaming config for the given device
+	dumpraw		will start video recording and dump it to a raw h264 file playable by VLC. 
+				Run like: "qvh dumpraw /home/yourname/out.h264"
   `
 	arguments, _ := docopt.ParseDoc(usage)
 	//TODO: add verbose switch to conf this
@@ -52,13 +61,43 @@ Options:
 
 	rawStreamCommand, _ := arguments.Bool("dumpraw")
 	if rawStreamCommand {
+		outFilePath, err := arguments.String("<outfile>")
+		if err != nil {
+			log.Error("Missing outfile parameter. Please specify a valid path like '/home/me/out.h264'")
+			return
+		}
+		log.Infof("Writing output to:%s", outFilePath)
 		dev := deviceList[0]
 		//This channel will get a UDID string whenever a device is connected
 		attachedChannel := make(chan string)
 		listenForDeviceChanges(attachedChannel)
-		usb.StartReading(dev, attachedChannel)
+
+		file, err := os.Create(outFilePath)
+		if err != nil {
+			log.Debugf("Error creating file:%s", err)
+			log.Errorf("Could not open file '%s'", outFilePath)
+		}
+		writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
+		adapter := usb.UsbAdapter{}
+		stopSignal := make(chan interface{})
+		waitForSigInt(stopSignal)
+		mp := usb.NewMessageProcessor(&adapter, stopSignal, writer)
+
+		adapter.StartReading(dev, attachedChannel, &mp, stopSignal)
 		return
 	}
+}
+
+func waitForSigInt(stopSignalChannel chan interface{}) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			log.Debugf("Signal received: %s", sig)
+			var stopSignal interface{}
+			stopSignalChannel <- stopSignal
+		}
+	}()
 }
 
 // Just dump a list of what was discovered to the console

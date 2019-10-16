@@ -48,13 +48,25 @@ func sendQTConfigControlRequest(device IosDevice) error {
 	return nil
 }
 
-func StartReading(device IosDevice, attachedDevicesChannel chan string) {
+type UsbAdapter struct {
+	outEndpoint *gousb.OutEndpoint
+}
+
+func (usa UsbAdapter) writeDataToUsb(bytes []byte) {
+	n, err := usa.outEndpoint.Write(bytes)
+	if err != nil {
+		log.Error("failed sending to usb", err)
+	}
+	log.Debugf("bytes written:%d", n)
+}
+
+func (usa *UsbAdapter) StartReading(device IosDevice, attachedDevicesChannel chan string, receiver UsbDataReceiver, stopSignal chan interface{}) {
 	err := enableQTConfigSingleDevice(device, attachedDevicesChannel)
 	if err != nil {
 		log.Error("Failed enabling QT Config", err)
 		return
 	}
-	stopSignal := make(chan interface{})
+
 	log.Debugf("Enabling Quicktime Config for %s", device.SerialNumber)
 
 	muxConfig, qtConfig := findConfigurations(device.usbDevice.Desc)
@@ -117,21 +129,14 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 		return
 	}
 	log.Debugf("Outbound Bulk: %s", outEndpoint.String())
+	usa.outEndpoint = outEndpoint
 
-	stream, err := inEndpoint.NewStream(512, 1)
+	stream, err := inEndpoint.NewStream(4096, 5)
 	if err != nil {
 		log.Fatal("couldnt create stream")
 		return
 	}
 	log.Debug("Endpoint claimed")
-
-	mp := newMessageProcessor(func(bytes []byte) {
-		n, err := outEndpoint.Write(bytes)
-		if err != nil {
-			log.Error("failed sending to usb", err)
-		}
-		log.Debugf("bytes written:%d", n)
-	}, stopSignal)
 
 	go func() {
 
@@ -146,10 +151,11 @@ func StartReading(device IosDevice, attachedDevicesChannel chan string) {
 			}
 			frame, isCompleteFrame := frameExtractor.ExtractFrame(buffer[:n])
 			if isCompleteFrame {
-				mp.receiveData(frame)
+				receiver.ReceiveData(frame)
 			}
 		}
 	}()
+
 	<-stopSignal
 	log.Debugf("Closing stream")
 	err = stream.Close()

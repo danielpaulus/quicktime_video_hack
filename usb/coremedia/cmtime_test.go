@@ -37,7 +37,7 @@ func TestCodec(t *testing.T) {
 
 func TestString(t *testing.T) {
 	time := createCmTime()
-	expected := "CMTime{2s, flags:KCMTimeFlagsHasBeenRounded, epoch:6}"
+	expected := "CMTime{1000/500, flags:KCMTimeFlagsHasBeenRounded, epoch:6}"
 	s := time.String()
 	assert.Equal(t, expected, s)
 }

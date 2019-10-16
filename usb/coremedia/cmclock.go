@@ -10,6 +10,8 @@ type CMClock struct {
 	startTime time.Time
 }
 
+//NewCMClockWithHostTime creates a new Clock with the given ID with a nanosecond scale.
+//Calls to GetTime will measure the time difference since the clock was created.
 func NewCMClockWithHostTime(ID uint64) CMClock {
 	return CMClock{
 		ID: ID,
@@ -19,6 +21,8 @@ func NewCMClockWithHostTime(ID uint64) CMClock {
 	}
 }
 
+//GetTime returns a CMTime that gives the time passed since the clock started.
+//This is monotonic and does NOT use wallclock time.
 func (c CMClock) GetTime() CMTime {
 	return CMTime{
 		CMTimeValue: uint64(time.Since(c.startTime).Nanoseconds()),
@@ -26,5 +30,4 @@ func (c CMClock) GetTime() CMTime {
 		CMTimeFlags: KCMTimeFlagsHasBeenRounded,
 		CMTimeEpoch: 0,
 	}
-
 }

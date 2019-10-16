@@ -1,4 +1,4 @@
-package h264
+package coremedia
 
 import (
 	"encoding/binary"
@@ -6,12 +6,12 @@ import (
 	"strings"
 )
 
+//This code is just for printing human readable details about h264 nalus.
+//check out these resources if you want to know more about what nalus are:
 //https://yumichan.net/video-processing/video-compression/introduction-to-h264-nal-unit/
 //https://www.semanticscholar.org/paper/Multiplexing-the-elementary-streams-of-H.264-video-Siddaraju-Rao/c7b0e625198b663be9d61c3ec7e1ec341627168c/figure/0
-//for debugging purposes
 
-var naluTypes = Table()
-
+//Table Returns a table containing all h264 nalu types
 func Table() []string {
 	return []string{"unspecified", "coded slice", "data partition A",
 		"data partition B", "data partition C", "IDR", "SEI", "sequence parameter set", "picture parameter set",
@@ -20,6 +20,9 @@ func Table() []string {
 		"undefined", "undefined", "undefined", "undefined", "undefined", "undefined", "undefined", "undefined"}
 }
 
+var naluTypes = Table()
+
+//GetNaluDetails creates a string containing length and type of a h264-nalu.
 func GetNaluDetails(nalu []byte) string {
 	slice := nalu
 	sb := strings.Builder{}

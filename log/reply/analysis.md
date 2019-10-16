@@ -61,7 +61,7 @@ Seems like the first two bytes of our clock identifier are always 0, and in the 
 
 #### Example Request
 
-| 4 Byte Length (68)   |4 Byte Magic (SYNC)   | 8 bytes clock CFTypeID| 4 byte magic (AFMT)| 8 byte correlation id| some weird data| 4 byte magic (LPCM) |  28 bytes what i think is pcm data|
+| 4 Byte Length (68)   |4 Byte Magic (SYNC)   | 8 bytes clock CFTypeID| 4 byte magic (AFMT)| 8 byte correlation id| 2x4byte some unknown data| 4 byte magic (LPCM) |  28 bytes what i think is pcm data|
 |---|---|---|---|---|---|---|---|
 |44000000| 636E7973| B00CE26C A67F0000| 746D6661 | 809D2213 01000000| 00000000 0070E740 |6D63706C| 4C000000 04000000 01000000 04000000 02000000 10000000 00000000|
 
