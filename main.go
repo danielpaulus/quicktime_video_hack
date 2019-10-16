@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"github.com/danielpaulus/go-ios/usbmux"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/docopt/docopt-go"
@@ -39,23 +38,15 @@ The commands work as following:
 	//TODO:add device selection here
 	log.Info(udid)
 
-	cleanup := screencapture.Init()
-	defer cleanup()
-	deviceList, err := screencapture.FindIosDevices()
-
-	if err != nil {
-		log.Fatal("Error finding iOS Devices", err)
-	}
-
 	devicesCommand, _ := arguments.Bool("devices")
 	if devicesCommand {
-		devices(deviceList)
+		devices()
 		return
 	}
 
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
-		activate(deviceList)
+		activate()
 		return
 	}
 
@@ -66,25 +57,7 @@ The commands work as following:
 			log.Error("Missing outfile parameter. Please specify a valid path like '/home/me/out.h264'")
 			return
 		}
-		log.Infof("Writing output to:%s", outFilePath)
-		dev := deviceList[0]
-		//This channel will get a UDID string whenever a device is connected
-		attachedChannel := make(chan string)
-		listenForDeviceChanges(attachedChannel)
-
-		file, err := os.Create(outFilePath)
-		if err != nil {
-			log.Debugf("Error creating file:%s", err)
-			log.Errorf("Could not open file '%s'", outFilePath)
-		}
-		writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
-		adapter := screencapture.UsbAdapter{}
-		stopSignal := make(chan interface{})
-		waitForSigInt(stopSignal)
-		mp := screencapture.NewMessageProcessor(&adapter, stopSignal, writer)
-
-		adapter.StartReading(dev, attachedChannel, &mp, stopSignal)
-		return
+		dumpraw(outFilePath)
 	}
 }
 
@@ -101,24 +74,34 @@ func waitForSigInt(stopSignalChannel chan interface{}) {
 }
 
 // Just dump a list of what was discovered to the console
-func devices(devices []screencapture.IosDevice) {
-	log.Infof("(%d) iOS Devices with UsbMux Endpoint:", len(devices))
+func devices() {
+	cleanup := screencapture.Init()
+	deviceList, err := screencapture.FindIosDevices()
+	defer cleanup()
+	log.Infof("(%d) iOS Devices with UsbMux Endpoint:", len(deviceList))
 
-	output := screencapture.PrintDeviceDetails(devices)
+	if err != nil {
+		log.Fatal("Error finding iOS Devices", err)
+	}
+	output := screencapture.PrintDeviceDetails(deviceList)
 	log.Info(output)
 }
 
 // This command is for testing if we can enable the hidden Quicktime device config
-func activate(devices []screencapture.IosDevice) {
+func activate() {
+	cleanup := screencapture.Init()
+	deviceList, err := screencapture.FindIosDevices()
+	defer cleanup()
+	if err != nil {
+		log.Fatal("Error finding iOS Devices", err)
+	}
+
 	log.Info("iOS Devices with UsbMux Endpoint:")
 
-	output := screencapture.PrintDeviceDetails(devices)
+	output := screencapture.PrintDeviceDetails(deviceList)
 	log.Info(output)
 
-	//This channel will get a UDID string whenever a device is connected
-	attachedChannel := make(chan string)
-	listenForDeviceChanges(attachedChannel)
-	err := screencapture.EnableQTConfig(devices, attachedChannel)
+	err = screencapture.EnableQTConfig(deviceList)
 	if err != nil {
 		log.Fatal("Error enabling QT config", err)
 	}
@@ -128,43 +111,35 @@ func activate(devices []screencapture.IosDevice) {
 		log.Fatal("Error finding QT Devices", err)
 	}
 	qtOutput := screencapture.PrintDeviceDetails(qtDevices)
-	if len(qtDevices) != len(devices) {
-		log.Warnf("Less qt devices (%d) than plain usbmux devices (%d)", len(qtDevices), len(devices))
+	if len(qtDevices) != len(deviceList) {
+		log.Warnf("Less qt devices (%d) than plain usbmux devices (%d)", len(qtDevices), len(deviceList))
 	}
 	log.Info("iOS Devices with QT Endpoint:")
 	log.Info(qtOutput)
 }
 
-func listenForDeviceChanges(attachedChannel chan string) {
-	muxConnection := usbmux.NewUsbMuxConnection()
-
-	usbmuxDeviceEventReader, err := muxConnection.Listen()
+func dumpraw(outFilePath string) {
+	activate()
+	cleanup := screencapture.Init()
+	deviceList, err := screencapture.FindIosDevices()
+	defer cleanup()
 	if err != nil {
-		log.Fatal("Failed issuing LISTEN command", err)
-		os.Exit(1)
+		log.Fatal("Error finding iOS Devices", err)
 	}
+	log.Infof("Writing output to:%s", outFilePath)
+	dev := deviceList[0]
 
-	//read first message and throw away
-	_, err = usbmuxDeviceEventReader()
+	file, err := os.Create(outFilePath)
 	if err != nil {
-		log.Fatal("error reading from LISTEN command", err)
-		os.Exit(1)
+		log.Debugf("Error creating file:%s", err)
+		log.Errorf("Could not open file '%s'", outFilePath)
 	}
+	writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
+	adapter := screencapture.UsbAdapter{}
+	stopSignal := make(chan interface{})
+	waitForSigInt(stopSignal)
+	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, writer)
 
-	//keep reading attached messages and publish on channel
-	go func() {
-		defer muxConnection.Close()
-		for {
-			//the usbmuxDeviceEventReader blocks until a message is received
-			msg, err := usbmuxDeviceEventReader()
-			if err != nil {
-				log.Error("Stopped listening because of error")
-				return
-			}
-			if msg.DeviceAttached() {
-				log.Debugf("Received attached message for %s", msg.Properties.SerialNumber)
-				attachedChannel <- msg.Properties.SerialNumber
-			}
-		}
-	}()
+	adapter.StartReading(dev, &mp, stopSignal)
+	return
 }
