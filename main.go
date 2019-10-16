@@ -119,6 +119,7 @@ func activate() {
 }
 
 func dumpraw(outFilePath string) {
+	activate()
 	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
 	defer cleanup()
