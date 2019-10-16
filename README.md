@@ -18,7 +18,7 @@ Progress:
 6. Make the dumpraw command work without having to unplug the device every time
 7. ~~Parse Async Feed packets correctly~~ 
 8. ~~Generate SPS and PPS h264 NaLus~~ 
-9. Fix last issue to get a working stream of FEEDs, currently my NEED packets are rejected 
+9. ~~Fix last issue to get a working stream of FEEDs, currently my NEED packets are rejected~~
 10. Create a .h264 file drom the dumpraw command 
 11. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
 12. Complete packet documentation
