@@ -11,7 +11,7 @@ type UsbAdapter struct {
 	outEndpoint *gousb.OutEndpoint
 }
 
-func (usa UsbAdapter) writeDataToUsb(bytes []byte) {
+func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
 	n, err := usa.outEndpoint.Write(bytes)
 	if err != nil {
 		log.Error("failed sending to usb", err)

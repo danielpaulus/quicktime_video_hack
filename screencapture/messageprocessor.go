@@ -2,8 +2,6 @@ package screencapture
 
 import (
 	"encoding/binary"
-	"os"
-
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
 	log "github.com/sirupsen/logrus"
@@ -22,12 +20,18 @@ type MessageProcessor struct {
 	needMessage          []byte
 	audioSamplesReceived int
 	cmSampleBufConsumer  CmSampleBufConsumer
+	clockBuilder         func(uint64) coremedia.CMClock
 }
 
 //NewMessageProcessor creates a new MessageProcessor that will write answers to the given UsbWriter,
 // forward extracted CMSampleBuffers to the CMSampleBufConsumer and wait for the stopSignal.
 func NewMessageProcessor(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer) MessageProcessor {
-	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer}
+	clockBuilder := func(ID uint64) coremedia.CMClock { return coremedia.NewCMClockWithHostTime(ID) }
+	return NewMessageProcessorWithClockBuilder(usbWriter, stopSignal, consumer, clockBuilder)
+}
+
+func NewMessageProcessorWithClockBuilder(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer, clockBuilder func(uint64) coremedia.CMClock) MessageProcessor {
+	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer, clockBuilder: clockBuilder}
 	return mp
 }
 
@@ -37,7 +41,7 @@ func (mp *MessageProcessor) ReceiveData(data []byte) {
 	switch binary.LittleEndian.Uint32(data) {
 	case packet.PingPacketMagic:
 		log.Debug("initial ping received, sending ping back")
-		mp.usbWriter.writeDataToUsb(packet.NewPingPacketAsBytes())
+		mp.usbWriter.WriteDataToUsb(packet.NewPingPacketAsBytes())
 		return
 	case packet.SyncPacketMagic:
 		mp.handleSyncPacket(data)
@@ -48,9 +52,7 @@ func (mp *MessageProcessor) ReceiveData(data []byte) {
 	default:
 		log.Warnf("received unknown packet type: %x", data[:4])
 	}
-
-	var stop interface{}
-	mp.stopSignal <- stop
+	mp.stop()
 }
 
 func (mp *MessageProcessor) handleSyncPacket(data []byte) {
@@ -64,7 +66,7 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 
 		replyBytes := ogPacket.NewReply()
 		log.Debugf("Send OG-REPLY {correlation:%x}", ogPacket.CorrelationID)
-		mp.usbWriter.writeDataToUsb(replyBytes)
+		mp.usbWriter.WriteDataToUsb(replyBytes)
 	case packet.CWPA:
 		cwpaPacket, err := packet.NewSyncCwpaPacketFromBytes(data)
 		if err != nil {
@@ -76,14 +78,14 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 
 		deviceInfo := packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict())
 		log.Debug("Sending ASYN HPD1")
-		mp.usbWriter.writeDataToUsb(deviceInfo)
+		mp.usbWriter.WriteDataToUsb(deviceInfo)
 		log.Debugf("Send CWPA-RPLY {correlation:%x, clockRef:%x}", cwpaPacket.CorrelationID, clockRef)
-		mp.usbWriter.writeDataToUsb(cwpaPacket.NewReply(clockRef))
+		mp.usbWriter.WriteDataToUsb(cwpaPacket.NewReply(clockRef))
 		log.Debug("Sending ASYN HPD1")
-		mp.usbWriter.writeDataToUsb(deviceInfo)
+		mp.usbWriter.WriteDataToUsb(deviceInfo)
 		deviceInfo1 := packet.NewAsynHpa1Packet(packet.CreateHpa1DeviceInfoDict(), cwpaPacket.DeviceClockRef)
 		log.Debug("Sending ASYN HPA1")
-		mp.usbWriter.writeDataToUsb(deviceInfo1)
+		mp.usbWriter.WriteDataToUsb(deviceInfo1)
 	case packet.CVRP:
 		cvrpPacket, err := packet.NewSyncCvrpPacketFromBytes(data)
 		if err != nil {
@@ -96,11 +98,11 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 		mp.needClockRef = cvrpPacket.DeviceClockRef
 		mp.needMessage = packet.AsynNeedPacketBytes(mp.needClockRef)
 		log.Debugf("Send NEED %x", mp.needClockRef)
-		mp.usbWriter.writeDataToUsb(mp.needMessage)
+		mp.usbWriter.WriteDataToUsb(mp.needMessage)
 
 		clockRef2 := cvrpPacket.DeviceClockRef + 0x1000AF
 		log.Debugf("Send CVRP-RPLY {correlation:%x, clockRef:%x}", cvrpPacket.CorrelationID, clockRef2)
-		mp.usbWriter.writeDataToUsb(cvrpPacket.NewReply(clockRef2))
+		mp.usbWriter.WriteDataToUsb(cvrpPacket.NewReply(clockRef2))
 	case packet.CLOK:
 		clokPacket, err := packet.NewSyncClokPacketFromBytes(data)
 		if err != nil {
@@ -110,7 +112,7 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 		clockRef := clokPacket.ClockRef + 0x10000
 		mp.clock = coremedia.NewCMClockWithHostTime(clockRef)
 		log.Debugf("Send CLOK-RPLY {correlation:%x, clockRef:%x}", clokPacket.CorrelationID, clockRef)
-		mp.usbWriter.writeDataToUsb(clokPacket.NewReply(clockRef))
+		mp.usbWriter.WriteDataToUsb(clokPacket.NewReply(clockRef))
 	case packet.TIME:
 		timePacket, err := packet.NewSyncTimePacketFromBytes(data)
 		if err != nil {
@@ -123,7 +125,7 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 			log.Error("Could not create SYNC TIME REPLY")
 		}
 		log.Debugf("Send TIME-REPLY {correlation:%x, time:%s}", timePacket.CorrelationID, timeToSend)
-		mp.usbWriter.writeDataToUsb(replyBytes)
+		mp.usbWriter.WriteDataToUsb(replyBytes)
 	case packet.AFMT:
 		afmtPacket, err := packet.NewSyncAfmtPacketFromBytes(data)
 		if err != nil {
@@ -133,9 +135,10 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 
 		replyBytes := afmtPacket.NewReply()
 		log.Debugf("Send AFMT-REPLY {correlation:%x}", afmtPacket.CorrelationID)
-		mp.usbWriter.writeDataToUsb(replyBytes)
+		mp.usbWriter.WriteDataToUsb(replyBytes)
 	default:
 		log.Warnf("received unknown sync packet type: %x", data)
+		mp.stop()
 	}
 }
 
@@ -158,7 +161,7 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 			log.Fatal("Failed writing sample data to Consumer", err)
 		}
 		log.Debugf("Rcv:%s", feedPacket.String())
-		mp.usbWriter.writeDataToUsb(mp.needMessage)
+		mp.usbWriter.WriteDataToUsb(mp.needMessage)
 	case packet.SPRP:
 		sprpPacket, err := packet.NewAsynSprpPacketFromBytes(data)
 		if err != nil {
@@ -189,6 +192,11 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 		log.Debugf("Rcv:%s", tbasPacket.String())
 	default:
 		log.Warnf("received unknown async packet type: %x", data)
-		os.Exit(1)
+		mp.stop()
 	}
+}
+
+func (mp MessageProcessor) stop() {
+	var stop interface{}
+	mp.stopSignal <- stop
 }
