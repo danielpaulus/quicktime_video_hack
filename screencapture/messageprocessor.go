@@ -2,8 +2,6 @@ package screencapture
 
 import (
 	"encoding/binary"
-	"os"
-
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
 	log "github.com/sirupsen/logrus"
@@ -48,9 +46,7 @@ func (mp *MessageProcessor) ReceiveData(data []byte) {
 	default:
 		log.Warnf("received unknown packet type: %x", data[:4])
 	}
-
-	var stop interface{}
-	mp.stopSignal <- stop
+	mp.stop()
 }
 
 func (mp *MessageProcessor) handleSyncPacket(data []byte) {
@@ -136,6 +132,7 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 		mp.usbWriter.WriteDataToUsb(replyBytes)
 	default:
 		log.Warnf("received unknown sync packet type: %x", data)
+		mp.stop()
 	}
 }
 
@@ -189,6 +186,11 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 		log.Debugf("Rcv:%s", tbasPacket.String())
 	default:
 		log.Warnf("received unknown async packet type: %x", data)
-		os.Exit(1)
+		mp.stop()
 	}
+}
+
+func (mp MessageProcessor) stop() {
+	var stop interface{}
+	mp.stopSignal <- stop
 }
