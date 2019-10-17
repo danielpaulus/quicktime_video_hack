@@ -11,7 +11,7 @@ import (
 )
 
 type UsbTestDummy struct {
-	dataReceiver        chan [] byte
+	dataReceiver        chan []byte
 	cmSampleBufConsumer chan coremedia.CMSampleBuffer
 }
 
@@ -34,31 +34,67 @@ func TestMessageProcessorStopsOnUnknownPacket(t *testing.T) {
 
 type syncTestCase struct {
 	receivedData  []byte
-	expectedReply []byte
-	descrription  string
+	expectedReply [][]byte
+	description   string
 }
 
 func TestMessageProcessorRespondsCorrectlyToSyncMessages(t *testing.T) {
+	clokRequest := loadFromFile("clok-request")[4:]
+	parsedClokRequest, _ := packet.NewSyncClokPacketFromBytes(clokRequest)
+
+	cvrpRequest := loadFromFile("cvrp-request")[4:]
+	parsedCvrpRequest, _ := packet.NewSyncCvrpPacketFromBytes(cvrpRequest)
+
+	cwpaRequest := loadFromFile("cwpa-request1")[4:]
+	parsedCwpaRequest, _ := packet.NewSyncCwpaPacketFromBytes(cwpaRequest)
+
 	cases := []syncTestCase{
 		{
 			receivedData:  packet.NewPingPacketAsBytes()[4:],
-			expectedReply: packet.NewPingPacketAsBytes(),
-			descrription:  "Expect Ping as a response to a ping packet",
+			expectedReply: [][]byte{packet.NewPingPacketAsBytes()},
+			description:   "Expect Ping as a response to a ping packet",
 		},
 		{
-			receivedData:  loadFromFile("afmt-request"),
-			expectedReply: loadFromFile("afmt-reply"),
-			descrription:  "Expect correct reply for afmt",
+			receivedData:  loadFromFile("afmt-request")[4:],
+			expectedReply: [][]byte{loadFromFile("afmt-reply")},
+			description:   "Expect correct reply for afmt",
+		},
+		{
+			receivedData:  clokRequest,
+			expectedReply: [][]byte{parsedClokRequest.NewReply(parsedClokRequest.ClockRef + 0x10000)},
+			description:   "Expect correct reply for clok",
+		},
+		{
+			receivedData:  cvrpRequest,
+			expectedReply: [][]byte{packet.AsynNeedPacketBytes(parsedCvrpRequest.DeviceClockRef), parsedCvrpRequest.NewReply(parsedCvrpRequest.DeviceClockRef + 0x1000AF)},
+			description:   "Expect correct reply for cvrp",
+		},
+		{
+			receivedData: cwpaRequest,
+			expectedReply: [][]byte{packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict()),
+				parsedCwpaRequest.NewReply(parsedCwpaRequest.DeviceClockRef + 1000),
+				packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict()),
+				packet.NewAsynHpa1Packet(packet.CreateHpa1DeviceInfoDict(), parsedCwpaRequest.DeviceClockRef)},
+			description: "Expect correct reply for cwpa",
+		},
+		{
+			receivedData:  loadFromFile("og-request")[4:],
+			expectedReply: [][]byte{loadFromFile("og-reply")},
+			description:   "Expect correct reply for og",
 		},
 	}
 
 	usbDummy := UsbTestDummy{dataReceiver: make(chan []byte)}
 	stopChannel := make(chan interface{})
-	mp := screencapture.NewMessageProcessor(usbDummy, stopChannel, usbDummy)
+	mp := screencapture.NewMessageProcessorWithClockBuilder(usbDummy, stopChannel, usbDummy,
+		func(ID uint64) coremedia.CMClock { return coremedia.NewCMClockWithHostTime(5) })
+
 	for _, testCase := range cases {
 		go func() { mp.ReceiveData(testCase.receivedData) }()
-		response := <-usbDummy.dataReceiver
-		assert.Equal(t, testCase.expectedReply, response, testCase.descrription)
+		for _, expectedResponse := range testCase.expectedReply {
+			response := <-usbDummy.dataReceiver
+			assert.Equal(t, expectedResponse, response, testCase.description)
+		}
 	}
 
 }
@@ -84,5 +120,5 @@ func loadFromFile(name string) []byte {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return dat[4:]
+	return dat
 }

@@ -20,12 +20,18 @@ type MessageProcessor struct {
 	needMessage          []byte
 	audioSamplesReceived int
 	cmSampleBufConsumer  CmSampleBufConsumer
+	clockBuilder         func(uint64) coremedia.CMClock
 }
 
 //NewMessageProcessor creates a new MessageProcessor that will write answers to the given UsbWriter,
 // forward extracted CMSampleBuffers to the CMSampleBufConsumer and wait for the stopSignal.
 func NewMessageProcessor(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer) MessageProcessor {
-	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer}
+	clockBuilder := func(ID uint64) coremedia.CMClock { return coremedia.NewCMClockWithHostTime(ID) }
+	return NewMessageProcessorWithClockBuilder(usbWriter, stopSignal, consumer, clockBuilder)
+}
+
+func NewMessageProcessorWithClockBuilder(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer, clockBuilder func(uint64) coremedia.CMClock) MessageProcessor {
+	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer, clockBuilder: clockBuilder}
 	return mp
 }
 
