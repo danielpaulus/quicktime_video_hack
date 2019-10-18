@@ -280,6 +280,21 @@ we have to reply back with a 8bytes zero
 |---|---|---|---|
 |18000000 |796C7072 |302FD302 01000000| 00000000 00000000|
 
+#### 3.2.9. STOP Packet
+##### General Description
+This one tells us to stop our clock
+##### Request Format Description
+
+| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock CFTypeID  |  4 bytes magic (STOP) | 8 bytes correlation id | 
+|---|---|---|---|---|
+|1C000000| 636E7973| F05F4235 BA7F0000 | 706F7473 | 1049FD02 01000000 | 
+
+
+##### Reply - RPLY Format Description
+
+| 4 Byte Length (24)   |4 Byte Magic (RPLY)   | 8 Byte correllation id  |  4 bytes 0x0 | 4 bytes 0x0 |
+|---|---|---|---|---|
+|18000000 |796C7072 |1049FD02 01000000| 00000000 | 00000000|
 
 ### 3.3 Asyn Packets
 ##### 3.3.0 General Description

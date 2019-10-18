@@ -15,6 +15,7 @@ const (
 	CLOK             uint32 = 0x636C6F6B
 	OG               uint32 = 0x676F2120
 	SKEW             uint32 = 0x736B6577
+	STOP             uint32 = 0x73746F70
 )
 
 //CFTypeID is just a type alias for uint64 but I think it is closer to what is happening on MAC/iOS
