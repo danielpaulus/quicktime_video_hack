@@ -4,18 +4,20 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+
 	log "github.com/sirupsen/logrus"
 )
 
-type lengthFieldBasedFrameExtractor struct {
+//LengthFieldBasedFrameExtractor extracts frames from the packetized byte stream we get from USB
+type LengthFieldBasedFrameExtractor struct {
 	frameBuffer       *bytes.Buffer
 	readyForNextFrame bool
 	nextFrameSize     int
 }
 
 //NewLengthFieldBasedFrameExtractor intializes a new Extractor with a 2MB buffer
-func NewLengthFieldBasedFrameExtractor() *lengthFieldBasedFrameExtractor {
-	extractor := &lengthFieldBasedFrameExtractor{
+func NewLengthFieldBasedFrameExtractor() *LengthFieldBasedFrameExtractor {
+	extractor := &LengthFieldBasedFrameExtractor{
 		frameBuffer:       bytes.NewBuffer(make([]byte, 1024*1024*2)),
 		readyForNextFrame: true}
 	extractor.frameBuffer.Reset()
@@ -25,7 +27,7 @@ func NewLengthFieldBasedFrameExtractor() *lengthFieldBasedFrameExtractor {
 //ExtractFrame writes new bytes into the extractor and if possible
 //returns a frame when the returned bool is true and nil otherwise.
 //It can be called with an empty slice to check if there are multiple frames in the Extractor.
-func (fe *lengthFieldBasedFrameExtractor) ExtractFrame(bytes []byte) ([]byte, bool) {
+func (fe *LengthFieldBasedFrameExtractor) ExtractFrame(bytes []byte) ([]byte, bool) {
 	if fe.readyForNextFrame && fe.frameBuffer.Len() == 0 {
 		return fe.handleNewFrame(bytes)
 	}
@@ -47,7 +49,7 @@ func (fe *lengthFieldBasedFrameExtractor) ExtractFrame(bytes []byte) ([]byte, bo
 	return nil, false
 }
 
-func (fe *lengthFieldBasedFrameExtractor) handleNewFrame(bytes []byte) ([]byte, bool) {
+func (fe *LengthFieldBasedFrameExtractor) handleNewFrame(bytes []byte) ([]byte, bool) {
 	if len(bytes) < 4 {
 		log.Fatalf("Received less than four bytes, cannot read a valid frameLength field: %s", hex.Dump(bytes))
 	}

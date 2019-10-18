@@ -240,7 +240,22 @@ This packet requests from us to send a RPLY with the current CMTime for the Cloc
 |2C000000 |796C7072 |503D2213 01000000| 00000000 | E1E142C4 62BA0000 00CA9A3B 01000000 00000000 00000000|
 
 #### 3.2.7. SKEW Packet
-tbd
+##### General Description
+This is clearly some message related to clock skew. I am still in process of figuring out how it works exactly.
+The stream works even if these are completely ignored for now. 
+
+##### Request Format Description
+
+| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock CFTypeID  |  4 bytes magic (SKEW) | 8 bytes correlation id | 
+|---|---|---|---|---|
+|20000000| 636E7973| 8079C17C A67F0000 |77656B73 | 60B9FD02 01000000 | 
+
+##### Reply - RPLY Format Description
+
+| 4 Byte Length (24)   |4 Byte Magic (RPLY)   | 8 Byte correllation id  | 4bytes padding 0x0| 8 bytes floating point number (48000.0) | 
+|---|---|---|---|
+|18000000 |796C7072 |60B9FD02 01000000| 00000000 | 00000000 0070E740 |
+
 #### 3.2.8. OG Packet
 ##### General Description
 I do not know what this does or what it is for. It seems like it sends one uint32 as payload that is always equal to 1 and 
