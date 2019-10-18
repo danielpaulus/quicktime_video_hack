@@ -30,18 +30,7 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}
 	device.UsbMuxConfigIndex = muxConfig
 	config, err := device.enableQuickTimeConfig()
-	defer func() {
-		log.Debug("closing Device")
-		err := config.Close()
-		if err != nil {
-			log.Warn("Failed closing device in shutdown", err)
-		}
-		log.Debug("re-enabling default device config")
-		err = device.enableUsbMuxConfig()
-		if err != nil {
-			log.Error("Failed re-enabling UsbMuxConfig, your device might be broken.", err)
-		}
-	}()
+
 	if err != nil {
 		log.Fatal("Failed enabling Quicktime Device Config. Is Quicktime running on your Machine? If so, close it.", err)
 		return
@@ -116,7 +105,11 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	<-stopSignal
 	receiver.CloseSession()
 	log.Info("Closing usb stream")
-	device.usbDevice.Reset()
+	err = sendQTDisableConfigControlRequest(device)
+	if err != nil {
+		log.Error("Error disabling config", err)
+	}
+	_, err = device.usbDevice.Config(4)
 	err = stream.Close()
 	if err != nil {
 		log.Error("Error closing stream", err)
@@ -124,6 +117,7 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	log.Info("Closing usb interface")
 	iface.Close()
 
+	print(err)
 }
 
 func grabOutBulk(setting gousb.InterfaceSetting) int {

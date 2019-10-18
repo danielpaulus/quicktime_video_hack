@@ -234,7 +234,7 @@ func (mp *MessageProcessor) CloseSession() {
 	for i := 0; i < 2; i++ {
 		select {
 		case <-mp.releaseWaiter:
-		case <-time.After(1 * time.Second):
+		case <-time.After(3 * time.Second):
 			log.Warn("Timed out waiting for device closing")
 			return
 		}
