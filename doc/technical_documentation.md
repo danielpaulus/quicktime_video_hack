@@ -156,6 +156,7 @@ We need to send NEED packets for video periodically
 ### 3.1 Ping Packet
 As soon as we connect to the USB endpoint, we need to wait for the device to send us a ping packet. Once we received it, we will send a ping back to the device and 
 then progress to the rest of the communication. Example Ping:
+
 | 4 Byte Length (16)   |4 Byte Magic (PING)   | 4byte 0x0| 4 byte 0x1   | 
 |---|---|---|---|
 |10000000 |676E6970 | 00000000 | 01000000 |
@@ -214,6 +215,7 @@ Similar to this the device sends all ASYN_FEED sample buffer with a reference to
 
 Contains a Dict with a FormatDescription and timing information. With the FormatDescription for the first time we get the h264 Picture and Sequence ParameterSet(PPS/SPS) already encoded in nice NALUs ready for streaming
 over the network. They are hidden inside a dictionary inside the extension dictionary.
+
 |4 Byte Length (649)|4 Byte Magic (SYNC)|8 byte empty(?) clock reference|4 byte magic(CVRP)|8 byte correlation id|CFTypeID of clock on device (needs to be in NEED packets we send)|4 byte length of dictionary (613)|4 byte magic (DICT)| Dict bytes|
 |---|---|---|---|---|---|---|---|---|
 |89020000 |636E7973| 01000000 00000000 |70727663| D0595613 01000000 |A08D5313 01000000 |65020000| 74636964|   0x.....|
@@ -270,7 +272,7 @@ The stream works even if these are completely ignored for now.
 ##### Reply - RPLY Format Description
 
 | 4 Byte Length (24)   |4 Byte Magic (RPLY)   | 8 Byte correllation id  | 4bytes padding 0x0| 8 bytes floating point number (48000.0) | 
-|---|---|---|---|
+|---|---|---|---|---|
 |18000000 |796C7072 |60B9FD02 01000000| 00000000 | 00000000 0070E740 |
 
 #### 3.2.8. OG Packet
