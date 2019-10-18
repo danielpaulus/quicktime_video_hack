@@ -27,6 +27,7 @@ Progress:
 
 
 Extra Goals:
+
 0. Also save the device audio stream (I am already decoding it and receiving it, just not doing anything with it for now) 
 1. [Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)
 
