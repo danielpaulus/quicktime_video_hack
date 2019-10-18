@@ -22,7 +22,7 @@ Progress:
 2. FIX: After running the dumpraw command and saving a video, you have to unplug the device to record another video currently
 3. Make a release :-D
 4. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
-5. Complete packet documentation
+5. ~~Complete packet documentation~~
 6. Also save the device audio stream (I am already decoding it and receiving it, just not doing anything with it for now) 
 
 Extra Goals:
