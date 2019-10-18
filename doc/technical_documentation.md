@@ -395,6 +395,14 @@ Send this to stop the device from streaming
 |---|---|---|---|
 |14000000| 6E797361| 10FCC502 01000000 |30617068 | 
 
+##### 3.3.10 Asyn RELS - Tell us about a released Clock on the device
+
+###### Packet Format Description
+
+| 4 Byte Length (20)   |4 Byte Magic (ASYN)   | 8 Byte clock CFTypeID of audio clock on device  |  4 bytes magic (RELS) |
+|---|---|---|---|
+|14000000| 6E797361| 008A6035 BA7F0000 | 736C6572 | 
+
 ## 4 Serializing/Deserializing Objects
 ### 4.0 General Description
 This chapter explains how to serialize and deserialize all the necessary payload objects that you will find in the various SYNC and ASYN packets. 
