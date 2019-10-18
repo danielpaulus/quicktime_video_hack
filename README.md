@@ -23,9 +23,11 @@ Progress:
 3. Make a release :-D
 4. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
 5. ~~Complete packet documentation~~
-6. Also save the device audio stream (I am already decoding it and receiving it, just not doing anything with it for now) 
+6. Send correct replies for clock SKEW packets
+
 
 Extra Goals:
+0. Also save the device audio stream (I am already decoding it and receiving it, just not doing anything with it for now) 
 1. [Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)
 
 
