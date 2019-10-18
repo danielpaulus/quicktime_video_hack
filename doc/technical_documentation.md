@@ -361,6 +361,24 @@ For easier implementation I just send one whenever I received a FEED.
 |---|---|---|---|
 |14000000| 6E797361| A08D5313 01000000 |6465656E | 
 
+##### 3.3.8 Asyn HPD0 - Tell the device to stop video streaming
+Send this to stop the device from streaming
+
+###### Packet Format Description
+
+| 4 Byte Length (20)   |4 Byte Magic (ASYN)   | 8 Byte empty clock CFTypeID  |  4 bytes magic (HPD0) |
+|---|---|---|---|
+|14000000| 6E797361| 01000000 00000000 |30617068 | 
+
+##### 3.3.9 Asyn HPA0 - Tell the device to stop audio streaming
+
+Send this to stop the device from streaming
+
+###### Packet Format Description
+
+| 4 Byte Length (20)   |4 Byte Magic (ASYN)   | 8 Byte clock CFTypeID of audio clock on device  |  4 bytes magic (HPA0) |
+|---|---|---|---|
+|14000000| 6E797361| 10FCC502 01000000 |30617068 | 
 
 ## 4 Serializing/Deserializing Objects
 ### 4.0 General Description
