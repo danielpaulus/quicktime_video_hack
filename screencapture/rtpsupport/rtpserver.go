@@ -34,6 +34,8 @@ func (srv *Rtpserver) StartServerSocket() {
 func (srv Rtpserver) Consume(buf coremedia.CMSampleBuffer) error {
 	packets := srv.packetizer.Packetize(buf.SampleData, 1)
 	for _, packet := range packets {
+		packet.Timestamp = uint32(float64(buf.OutputPresentationTimestamp.CMTimeValue) * 0.00009)
+		println(packet.Timestamp)
 		data, _ := packet.Marshal()
 		srv.clientConn.Write(data)
 	}

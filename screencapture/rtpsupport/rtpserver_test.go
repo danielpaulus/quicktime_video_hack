@@ -16,7 +16,7 @@ func TestNewRtpServer(t *testing.T) {
 	var process *os.Process
 	go func() {
 		process = startGst()
-		process.Wait()
+		//process.Wait()
 	}()
 	srv.StartServerSocket()
 
@@ -25,14 +25,24 @@ func TestNewRtpServer(t *testing.T) {
 		log.Fatal(err)
 	}
 	singleNalus := bytes.Split(nalus, []byte{0, 0, 0, 1})
+	timer := coremedia.CMTime{
+		CMTimeValue: 0,
+		CMTimeScale: 1000000000,
+		CMTimeFlags: 0,
+		CMTimeEpoch: 0,
+	}
 	for _, nalu := range singleNalus {
 		sbuf := coremedia.CMSampleBuffer{
-			SampleData: nalu,
+			SampleData:                  nalu,
+			OutputPresentationTimestamp: timer,
 		}
 
 		srv.Consume(sbuf)
+		time.Sleep(time.Millisecond*10)
+		timer.CMTimeValue += 16666666
+
 	}
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 60)
 	process.Kill()
 }
 func startGst() *os.Process {
@@ -40,9 +50,9 @@ func startGst() *os.Process {
 		"decodebin", "!", "videoconvert", "!", "autovideosink")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Start()
+	/*err := cmd.Start()
 	if err != nil {
 		log.Fatal(err)
-	}
+	}*/
 	return cmd.Process
 }
