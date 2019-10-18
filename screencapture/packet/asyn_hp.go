@@ -2,6 +2,7 @@ package packet
 
 import "encoding/binary"
 
+//NewAsynHPD0 creates the bytes needed for stopping video streaming
 func NewAsynHPD0() []byte {
 	length := 20
 	data := make([]byte, length)
@@ -12,6 +13,7 @@ func NewAsynHPD0() []byte {
 	return data
 }
 
+//NewAsynHPA0 creates the bytes needed for stopping audio streaming
 func NewAsynHPA0(clockRef uint64) []byte {
 	length := 20
 	data := make([]byte, length)
