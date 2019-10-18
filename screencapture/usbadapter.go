@@ -22,6 +22,9 @@ func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
 //StartReading claims the AV Quicktime USB Bulk endpoints and starts reading until a stopSignal is sent.
 //Every received data is added to a frameextractor and when it is complete, sent to the UsbDataReceiver.
 func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, stopSignal chan interface{}) {
+	confignum, _ := device.usbDevice.ActiveConfigNum()
+
+	log.Debugf("Config is active: %d",confignum )
 	muxConfig, qtConfig := findConfigurations(device.usbDevice.Desc)
 	device.QTConfigIndex = qtConfig
 	if qtConfig == -1 {
@@ -30,17 +33,24 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}
 	device.UsbMuxConfigIndex = muxConfig
 	config, err := device.enableQuickTimeConfig()
-
 	if err != nil {
 		log.Fatal("Failed enabling Quicktime Device Config. Is Quicktime running on your Machine? If so, close it.", err)
 		return
 	}
 
+
+
+	err = sendQTConfigControlRequest(device)
+
+	if err != nil {
+		log.Error("Error disabling config", err)
+	}
+
+
 	log.Infof("QT Config is active: %s", config.String())
 
-	//in idx muss sicher der endpoint rein
-	duration, _ := time.ParseDuration("20ms")
-	device.usbDevice.ControlTimeout = duration
+
+
 	val, err := device.usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
 	if err != nil {
 		log.Fatal("failed control", err)
@@ -93,23 +103,22 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 			n, err := stream.Read(buffer)
 			if err != nil {
 				log.Error("couldn't read bytes", err)
+				log.Debug(frameExtractor.String())
 				return
 			}
 			frame, isCompleteFrame := frameExtractor.ExtractFrame(buffer[:n])
 			if isCompleteFrame {
 				receiver.ReceiveData(frame)
 			}
+
 		}
 	}()
 
 	<-stopSignal
 	receiver.CloseSession()
 	log.Info("Closing usb stream")
-	err = sendQTDisableConfigControlRequest(device)
-	if err != nil {
-		log.Error("Error disabling config", err)
-	}
-	_, err = device.usbDevice.Config(4)
+
+
 	err = stream.Close()
 	if err != nil {
 		log.Error("Error closing stream", err)
@@ -117,7 +126,28 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	log.Info("Closing usb interface")
 	iface.Close()
 
-	print(err)
+	err = sendQTDisableConfigControlRequest(device)
+
+	err = device.usbDevice.SetAutoDetach(true)
+
+	if err != nil {
+		log.Fatal("Failed setting autodetach.", err)
+		return
+	}
+	/*ctx = gousb.NewContext()
+	device.usbDevice, err = findBySerialNumber(device.SerialNumber)
+
+	if err != nil {
+		log.Debugf("device not found:%s", err)
+			}
+*/
+	time.Sleep(time.Second*1)
+	_, err = device.usbDevice.Config(4)
+
+	ac, _ := device.usbDevice.ActiveConfigNum()
+	log.Infof("Err:%s code: %d", err, ac)
+
+
 }
 
 func grabOutBulk(setting gousb.InterfaceSetting) int {

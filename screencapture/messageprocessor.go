@@ -175,6 +175,7 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 		if err != nil {
 			//log.Errorf("Error parsing FEED packet: %x %s", data, err)
 			log.Warn("unknown feed")
+			mp.usbWriter.WriteDataToUsb(mp.needMessage)
 			return
 		}
 		err = mp.cmSampleBufConsumer.Consume(feedPacket.CMSampleBuf)
@@ -239,6 +240,7 @@ func (mp *MessageProcessor) CloseSession() {
 			return
 		}
 	}
+	mp.usbWriter.WriteDataToUsb(packet.NewAsynHPD0())
 	log.Info("OK. Ready to release USB Device.")
 }
 
