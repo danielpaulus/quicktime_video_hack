@@ -102,8 +102,38 @@ To enable the hidden QTconfig you have to send a specific Control Request to the
 If you did it correctly, it will cause the device to disconnect from the host machine and re-connect after a few moments with an additional config.
 The new config contains 4 bulk endpoints. 2 For communication with the usbmuxd on the device, and two additional endpoints for receiving and sending AV data.
 Call setActiveConfiguration on that config and you can claim the new endpoint for sending and receiving AV data.
-## 2. How to Initiate a Video Recording Session
-tbd
+## 2. AV Session LifeCycle
+
+### 2.1 Initiate the session
+1. enable hidden device config
+2. claim endpoint
+3. wait to receive a PING packet
+4. respond with a PING packet
+5. wait for SYNC CWPA packet to receive the clockref for the devices audio clock
+6. create local clock, put clockref in reply to the SYNC CWPA and send
+7. send ASYN_HPD1
+8. send ASYN_HPA1 with the device audio clockref received in step 6
+9. receive SYNC AFMT and reply with a zero error code
+10. receive SYNC CVRP with the devices video clockRef
+11. reply with the local video clockRef
+12. start sending ASYN NEED with the device's video clockRef
+13. receive two ASYN Set Properties
+14. receive Sync Clok and reply with newly created clock
+15. receive two SYNC TIME and reply with two CMTimes 
+### 2.2 Receive data
+FEED and EAT! Packets for video and audio will be sent by the device.
+We need to send NEED packets for video periodically
+
+### 2.3 Shutting down streaming
+1. send asyn hpa0 with the deviceclockref from the cwpa sync packet to tell the device to stop sending audio
+2. send hpd0 with empty clockRef to stop video
+3. receive sync stop package for our video clock we created when cvrp was sent to us and that is in every feed packet
+4. reply to sync stop with 8 zero bytes
+5. receive a ASYN RELS for the local video clockRef (the one found in FEED packets)
+6. receive a ASYN RELS for the local clock created after the SYNC CLOCK 
+7. release usb endpoint
+8. set the device active config to usbmux only
+
 
 ## 3. Protocol Reference
 ### 3.1 Ping Packet
@@ -129,7 +159,7 @@ The clockref send by the device needs to go in the ASYN-1APH packet we send.
 ##### Request Format Description
 
 | 4 Byte Length (36)   |4 Byte Magic (SYNC)   | 8 Empty clock reference| 4 byte message type (CWPA)   | 8 byte correlation id  | 8 bytes CFTypeID of the device clock |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|
 |24000000 |636E7973 |01000000 00000000 | 61707763 |E03D5713 01000000| E0740000 5A130040 |
 
 ##### Reply - RPLY Format Description
@@ -138,7 +168,7 @@ Sends back our clockRef. The device will use the clockRef from here in the SYNC_
 Also this will be used for all ASYN_EAT packets containing audio sample buffers. 
 
 | 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 Byte correlation id  |   4 Byte: 0  | 8 bytes CFTypeID of our clock |
-|---|---|---|---|---|---|
+|---|---|---|---|---|
 |1C000000 | 796C7072 |E03D5713 01000000 | 00000000 |B00CE26C A67F0000|
 
 #### 3.2.3. AFMT Packet
@@ -224,7 +254,7 @@ we have to reply back with a 8bytes zero
 ##### Reply - RPLY Format Description
 
 | 4 Byte Length (24)   |4 Byte Magic (RPLY)   | 8 Byte correllation id  |  8 bytes 0x0 | 
-|---|---|---|---|---|
+|---|---|---|---|
 |18000000 |796C7072 |302FD302 01000000| 00000000 00000000|
 
 
@@ -330,6 +360,7 @@ This example of a string key dictionary containing one boolean value nicely illu
 |28000000| 74636964| 20000000 |7679656B | 0F000000|6B727473|56616C65 726961|09000000|766C7562| 01|
 
 Here are the value types I know about:
+
 | magic little endian| magic big endian | description | value example |
 |---|---|---|---|
 |vlub|bulv|Boolean|0x1 or 0x0|
