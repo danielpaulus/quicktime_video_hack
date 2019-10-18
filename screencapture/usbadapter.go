@@ -114,12 +114,16 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}()
 
 	<-stopSignal
-	log.Debugf("Closing stream")
+	receiver.CloseSession()
+	log.Info("Closing usb stream")
+	device.usbDevice.Reset()
 	err = stream.Close()
 	if err != nil {
 		log.Error("Error closing stream", err)
 	}
+	log.Info("Closing usb interface")
 	iface.Close()
+
 }
 
 func grabOutBulk(setting gousb.InterfaceSetting) int {

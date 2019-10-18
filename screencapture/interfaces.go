@@ -10,6 +10,7 @@ type CmSampleBufConsumer interface {
 //UsbDataReceiver should receive USB SYNC, ASYN and PING packets with the correct length and with the 4 bytes length removed.
 type UsbDataReceiver interface {
 	ReceiveData(data []byte)
+	CloseSession()
 }
 
 //UsbWriter can be used to send data to a USB Endpoint
