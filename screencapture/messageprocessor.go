@@ -2,6 +2,7 @@ package screencapture
 
 import (
 	"encoding/binary"
+
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
 	log "github.com/sirupsen/logrus"
@@ -30,6 +31,7 @@ func NewMessageProcessor(usbWriter UsbWriter, stopSignal chan interface{}, consu
 	return NewMessageProcessorWithClockBuilder(usbWriter, stopSignal, consumer, clockBuilder)
 }
 
+//NewMessageProcessorWithClockBuilder lets you inject a clockBuilder for the sake of testability.
 func NewMessageProcessorWithClockBuilder(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer, clockBuilder func(uint64) coremedia.CMClock) MessageProcessor {
 	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer, clockBuilder: clockBuilder}
 	return mp
@@ -129,13 +131,20 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 	case packet.AFMT:
 		afmtPacket, err := packet.NewSyncAfmtPacketFromBytes(data)
 		if err != nil {
-			log.Error("Error parsing TIME AFMT packet", err)
+			log.Error("Error parsing SYNC AFMT packet", err)
 		}
 		log.Debugf("Rcv:%s", afmtPacket.String())
 
 		replyBytes := afmtPacket.NewReply()
 		log.Debugf("Send AFMT-REPLY {correlation:%x}", afmtPacket.CorrelationID)
 		mp.usbWriter.WriteDataToUsb(replyBytes)
+	case packet.SKEW:
+		skewPacket, err := packet.NewSyncSkewPacketFromBytes(data)
+		if err != nil {
+			log.Error("Error parsing SYNC SKEW packet", err)
+		}
+		log.Debugf("Rcv and ignore:%s", skewPacket.String())
+
 	default:
 		log.Warnf("received unknown sync packet type: %x", data)
 		mp.stop()

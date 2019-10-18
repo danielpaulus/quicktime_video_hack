@@ -2,6 +2,7 @@ package packet
 
 import (
 	"encoding/binary"
+
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 
@@ -21,6 +22,8 @@ const (
 	HPA1            uint32 = 0x68706131 //hpa1 - 1aph | For specifying/requesting the audio format
 	NEED            uint32 = 0x6E656564 //need - deen
 	EAT             uint32 = 0x65617421 //contains audio sbufs
+	HPD0            uint32 = 0x68706430
+	HPA0            uint32 = 0x68706130
 )
 
 //NewAsynHpd1Packet creates a []byte containing a valid ASYN packet with the Hpd1 dictionary

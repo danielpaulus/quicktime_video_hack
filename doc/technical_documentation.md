@@ -6,7 +6,10 @@
     + [1.2 Finding Devices and Configurations using LibUsb](#12-finding-devices-and-configurations-using-libusb)
     + [1.3 Hidden Configuration](#13-hidden-configuration)
     + [1.4 Enabling the Hidden Config](#14-enabling-the-hidden-config)
-  * [2. How to Initiate a Video Recording Session](#2-how-to-initiate-a-video-recording-session)
+  * [2. AV Session LifeCycle](#2-av-session-lifecycle)
+    + [2.1 Initiate the session](#21-initiate-the-session)
+    + [2.2 Receive data](#22-receive-data)
+    + [2.3 Shutting down streaming](#23-shutting-down-streaming)
   * [3. Protocol Reference](#3-protocol-reference)
     + [3.1 Ping Packet](#31-ping-packet)
     + [3.2 Sync Packets](#32-sync-packets)
@@ -32,34 +35,48 @@
         * [Request Format Description](#request-format-description-4)
         * [Reply - RPLY Format Description](#reply---rply-format-description-4)
       - [3.2.7. SKEW Packet](#327-skew-packet)
-      - [3.2.8. OG Packet](#328-og-packet)
         * [General Description](#general-description-5)
         * [Request Format Description](#request-format-description-5)
         * [Reply - RPLY Format Description](#reply---rply-format-description-5)
+      - [3.2.8. OG Packet](#328-og-packet)
+        * [General Description](#general-description-6)
+        * [Request Format Description](#request-format-description-6)
+        * [Reply - RPLY Format Description](#reply---rply-format-description-6)
+      - [3.2.9. STOP Packet](#329-stop-packet)
+        * [General Description](#general-description-7)
+        * [Request Format Description](#request-format-description-7)
+        * [Reply - RPLY Format Description](#reply---rply-format-description-7)
     + [3.3 Asyn Packets](#33-asyn-packets)
         * [3.3.0 General Description](#330-general-description)
         * [3.3.1. Asyn SPRP - Set Property](#331-asyn-sprp---set-property)
-          + [General Description](#general-description-6)
+          + [General Description](#general-description-8)
           + [Packet Format Description](#packet-format-description)
         * [3.3.2. Asyn SRAT - Set time rate and Anchor](#332-asyn-srat---set-time-rate-and-anchor)
-          + [General Description](#general-description-7)
+          + [General Description](#general-description-9)
           + [Packet Format Description](#packet-format-description-1)
         * [3.3.3. Asyn TBAS - Set TimeBase](#333-asyn-tbas---set-timebase)
-          + [General Description](#general-description-8)
+          + [General Description](#general-description-10)
           + [Packet Format Description](#packet-format-description-2)
         * [3.3.4. Asyn TJMP - Time Jump Notification](#334-asyn-tjmp---time-jump-notification)
-          + [General Description](#general-description-9)
+          + [General Description](#general-description-11)
           + [Packet Format Description](#packet-format-description-3)
         * [3.3.5 Asyn FEED - CMSampleBuffer with h264 Video Data](#335-asyn-feed---cmsamplebuffer-with-h264-video-data)
           + [Packet Format Description](#packet-format-description-4)
         * [3.3.6 Asyn EAT! - CMSampleBuffer with Audio Data](#336-asyn-eat----cmsamplebuffer-with-audio-data)
         * [3.3.7 Asyn NEED - Tell the device to send more](#337-asyn-need---tell-the-device-to-send-more)
           + [Packet Format Description](#packet-format-description-5)
+        * [3.3.8 Asyn HPD0 - Tell the device to stop video streaming](#338-asyn-hpd0---tell-the-device-to-stop-video-streaming)
+          + [Packet Format Description](#packet-format-description-6)
+        * [3.3.9 Asyn HPA0 - Tell the device to stop audio streaming](#339-asyn-hpa0---tell-the-device-to-stop-audio-streaming)
+          + [Packet Format Description](#packet-format-description-7)
+        * [3.3.10 Asyn RELS - Tell us about a released Clock on the device](#3310-asyn-rels---tell-us-about-a-released-clock-on-the-device)
+          + [Packet Format Description](#packet-format-description-8)
   * [4 Serializing/Deserializing Objects](#4-serializing-deserializing-objects)
     + [4.0 General Description](#40-general-description)
     + [4.1 Dictionaries](#41-dictionaries)
       - [4.1.0 General Description](#410-general-description)
       - [4.1.1 Dictionaries with String Keys](#411-dictionaries-with-string-keys)
+        * [4.1.1.1 General Dictionary Structure](#4111-general-dictionary-structure)
       - [4.1.2 Dictionaries with 4-Byte Integer Index Keys](#412-dictionaries-with-4-byte-integer-index-keys)
     + [4.2 CMTime](#42-cmtime)
       - [Example](#example)
@@ -102,13 +119,44 @@ To enable the hidden QTconfig you have to send a specific Control Request to the
 If you did it correctly, it will cause the device to disconnect from the host machine and re-connect after a few moments with an additional config.
 The new config contains 4 bulk endpoints. 2 For communication with the usbmuxd on the device, and two additional endpoints for receiving and sending AV data.
 Call setActiveConfiguration on that config and you can claim the new endpoint for sending and receiving AV data.
-## 2. How to Initiate a Video Recording Session
-tbd
+## 2. AV Session LifeCycle
+
+### 2.1 Initiate the session
+1. enable hidden device config
+2. claim endpoint
+3. wait to receive a PING packet
+4. respond with a PING packet
+5. wait for SYNC CWPA packet to receive the clockref for the devices audio clock
+6. create local clock, put clockref in reply to the SYNC CWPA and send
+7. send ASYN_HPD1
+8. send ASYN_HPA1 with the device audio clockref received in step 6
+9. receive SYNC AFMT and reply with a zero error code
+10. receive SYNC CVRP with the devices video clockRef
+11. reply with the local video clockRef
+12. start sending ASYN NEED with the device's video clockRef
+13. receive two ASYN Set Properties
+14. receive Sync Clok and reply with newly created clock
+15. receive two SYNC TIME and reply with two CMTimes 
+### 2.2 Receive data
+FEED and EAT! Packets for video and audio will be sent by the device.
+We need to send NEED packets for video periodically
+
+### 2.3 Shutting down streaming
+1. send asyn hpa0 with the deviceclockref from the cwpa sync packet to tell the device to stop sending audio
+2. send hpd0 with empty clockRef to stop video
+3. receive sync stop package for our video clock we created when cvrp was sent to us and that is in every feed packet
+4. reply to sync stop with 8 zero bytes
+5. receive a ASYN RELS for the local video clockRef (the one found in FEED packets)
+6. receive a ASYN RELS for the local clock created after the SYNC CLOCK 
+7. release usb endpoint
+8. set the device active config to usbmux only
+
 
 ## 3. Protocol Reference
 ### 3.1 Ping Packet
 As soon as we connect to the USB endpoint, we need to wait for the device to send us a ping packet. Once we received it, we will send a ping back to the device and 
 then progress to the rest of the communication. Example Ping:
+
 | 4 Byte Length (16)   |4 Byte Magic (PING)   | 4byte 0x0| 4 byte 0x1   | 
 |---|---|---|---|
 |10000000 |676E6970 | 00000000 | 01000000 |
@@ -129,7 +177,7 @@ The clockref send by the device needs to go in the ASYN-1APH packet we send.
 ##### Request Format Description
 
 | 4 Byte Length (36)   |4 Byte Magic (SYNC)   | 8 Empty clock reference| 4 byte message type (CWPA)   | 8 byte correlation id  | 8 bytes CFTypeID of the device clock |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|
 |24000000 |636E7973 |01000000 00000000 | 61707763 |E03D5713 01000000| E0740000 5A130040 |
 
 ##### Reply - RPLY Format Description
@@ -138,7 +186,7 @@ Sends back our clockRef. The device will use the clockRef from here in the SYNC_
 Also this will be used for all ASYN_EAT packets containing audio sample buffers. 
 
 | 4 Byte Length (28)   |4 Byte Magic (RPLY)   | 8 Byte correlation id  |   4 Byte: 0  | 8 bytes CFTypeID of our clock |
-|---|---|---|---|---|---|
+|---|---|---|---|---|
 |1C000000 | 796C7072 |E03D5713 01000000 | 00000000 |B00CE26C A67F0000|
 
 #### 3.2.3. AFMT Packet
@@ -167,6 +215,7 @@ Similar to this the device sends all ASYN_FEED sample buffer with a reference to
 
 Contains a Dict with a FormatDescription and timing information. With the FormatDescription for the first time we get the h264 Picture and Sequence ParameterSet(PPS/SPS) already encoded in nice NALUs ready for streaming
 over the network. They are hidden inside a dictionary inside the extension dictionary.
+
 |4 Byte Length (649)|4 Byte Magic (SYNC)|8 byte empty(?) clock reference|4 byte magic(CVRP)|8 byte correlation id|CFTypeID of clock on device (needs to be in NEED packets we send)|4 byte length of dictionary (613)|4 byte magic (DICT)| Dict bytes|
 |---|---|---|---|---|---|---|---|---|
 |89020000 |636E7973| 01000000 00000000 |70727663| D0595613 01000000 |A08D5313 01000000 |65020000| 74636964|   0x.....|
@@ -210,7 +259,22 @@ This packet requests from us to send a RPLY with the current CMTime for the Cloc
 |2C000000 |796C7072 |503D2213 01000000| 00000000 | E1E142C4 62BA0000 00CA9A3B 01000000 00000000 00000000|
 
 #### 3.2.7. SKEW Packet
-tbd
+##### General Description
+This is clearly some message related to clock skew. I am still in process of figuring out how it works exactly.
+The stream works even if these are completely ignored for now. 
+
+##### Request Format Description
+
+| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock CFTypeID  |  4 bytes magic (SKEW) | 8 bytes correlation id | 
+|---|---|---|---|---|
+|20000000| 636E7973| 8079C17C A67F0000 |77656B73 | 60B9FD02 01000000 | 
+
+##### Reply - RPLY Format Description
+
+| 4 Byte Length (24)   |4 Byte Magic (RPLY)   | 8 Byte correllation id  | 4bytes padding 0x0| 8 bytes floating point number (48000.0) | 
+|---|---|---|---|---|
+|18000000 |796C7072 |60B9FD02 01000000| 00000000 | 00000000 0070E740 |
+
 #### 3.2.8. OG Packet
 ##### General Description
 I do not know what this does or what it is for. It seems like it sends one uint32 as payload that is always equal to 1 and 
@@ -224,9 +288,24 @@ we have to reply back with a 8bytes zero
 ##### Reply - RPLY Format Description
 
 | 4 Byte Length (24)   |4 Byte Magic (RPLY)   | 8 Byte correllation id  |  8 bytes 0x0 | 
-|---|---|---|---|---|
+|---|---|---|---|
 |18000000 |796C7072 |302FD302 01000000| 00000000 00000000|
 
+#### 3.2.9. STOP Packet
+##### General Description
+This one tells us to stop our clock
+##### Request Format Description
+
+| 4 Byte Length (28)   |4 Byte Magic (SYNC)   | 8 Byte clock CFTypeID  |  4 bytes magic (STOP) | 8 bytes correlation id | 
+|---|---|---|---|---|
+|1C000000| 636E7973| F05F4235 BA7F0000 | 706F7473 | 1049FD02 01000000 | 
+
+
+##### Reply - RPLY Format Description
+
+| 4 Byte Length (24)   |4 Byte Magic (RPLY)   | 8 Byte correllation id  |  4 bytes 0x0 | 4 bytes 0x0 |
+|---|---|---|---|---|
+|18000000 |796C7072 |1049FD02 01000000| 00000000 | 00000000|
 
 ### 3.3 Asyn Packets
 ##### 3.3.0 General Description
@@ -308,6 +387,32 @@ For easier implementation I just send one whenever I received a FEED.
 |---|---|---|---|
 |14000000| 6E797361| A08D5313 01000000 |6465656E | 
 
+##### 3.3.8 Asyn HPD0 - Tell the device to stop video streaming
+Send this to stop the device from streaming
+
+###### Packet Format Description
+
+| 4 Byte Length (20)   |4 Byte Magic (ASYN)   | 8 Byte empty clock CFTypeID  |  4 bytes magic (HPD0) |
+|---|---|---|---|
+|14000000| 6E797361| 01000000 00000000 |30617068 | 
+
+##### 3.3.9 Asyn HPA0 - Tell the device to stop audio streaming
+
+Send this to stop the device from streaming
+
+###### Packet Format Description
+
+| 4 Byte Length (20)   |4 Byte Magic (ASYN)   | 8 Byte clock CFTypeID of audio clock on device  |  4 bytes magic (HPA0) |
+|---|---|---|---|
+|14000000| 6E797361| 10FCC502 01000000 |30617068 | 
+
+##### 3.3.10 Asyn RELS - Tell us about a released Clock on the device
+
+###### Packet Format Description
+
+| 4 Byte Length (20)   |4 Byte Magic (ASYN)   | 8 Byte clock CFTypeID of audio clock on device  |  4 bytes magic (RELS) |
+|---|---|---|---|
+|14000000| 6E797361| 008A6035 BA7F0000 | 736C6572 | 
 
 ## 4 Serializing/Deserializing Objects
 ### 4.0 General Description
@@ -330,6 +435,7 @@ This example of a string key dictionary containing one boolean value nicely illu
 |28000000| 74636964| 20000000 |7679656B | 0F000000|6B727473|56616C65 726961|09000000|766C7562| 01|
 
 Here are the value types I know about:
+
 | magic little endian| magic big endian | description | value example |
 |---|---|---|---|
 |vlub|bulv|Boolean|0x1 or 0x0|
