@@ -18,6 +18,7 @@ Usage:
   qvh devices
   qvh activate
   qvh dumpraw <outfile>
+  qvh rtpstream <host> <port>
  
 Options:
   -h --help     Show this screen.
@@ -30,6 +31,9 @@ The commands work as following:
 	activate	only enables the video streaming config for the given device
 	dumpraw		will start video recording and dump it to a raw h264 file playable by VLC. 
 				Run like: "qvh dumpraw /home/yourname/out.h264"
+	rtpstream   qvh will start an AV session on the specified device and start streaming UDP RTP packets to the specified
+				server. Make sure you start the RTP server before you start qvh as PPS and SPS are not frequently resend your stream
+				might not work otherwise.
   `
 	arguments, _ := docopt.ParseDoc(usage)
 	//TODO: add verbose switch to conf this
@@ -59,6 +63,23 @@ The commands work as following:
 		}
 		dumpraw(outFilePath)
 	}
+	rtpCommand, _ := arguments.Bool("rtpstream")
+	if rtpCommand {
+		ip, err := arguments.String("<host>")
+		if err != nil {
+			log.Error("Missing host address")
+			return
+		}
+		port, err := arguments.Int("<port>")
+		if err != nil {
+			log.Error("Invalid or no port specified")
+		}
+		startRtpStream(ip, port)
+	}
+}
+
+func startRtpStream(host string, port int) {
+	log.Infof("Starting UDP RTP stream to %s:%d", host, port)
 }
 
 func waitForSigInt(stopSignalChannel chan interface{}) {
