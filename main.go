@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/rtpsupport"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -80,6 +81,9 @@ The commands work as following:
 
 func startRtpStream(host string, port int) {
 	log.Infof("Starting UDP RTP stream to %s:%d", host, port)
+	rtpSender := rtpsupport.NewRtpServer(host, port)
+	rtpSender.StartServerSocket()
+	startWithConsumer(rtpSender)
 }
 
 func waitForSigInt(stopSignalChannel chan interface{}) {
