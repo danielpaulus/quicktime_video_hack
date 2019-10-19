@@ -17,6 +17,12 @@ So if you are just interested in the protocol or if you want to implement this i
 ## 3. Usage& Current State of the Tool
 run `go run main.go --help` to see how it works
 
+To run RTP you can use this gstreamer command 
+```
+gst-launch-1.0 -v udpsrc port=4000 caps = "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96" ! rtph264depay ! decodebin ! videoconvert ! autovideosink
+```
+and then run `go run main.go rtpstream localhost 4000`
+
 Progress:
 1. ~~Make the `go run main.go dumpraw` work on the first execution (currently you have to run it twice and it will start recording on the second run)~~
 2. FIX: After running the dumpraw command and saving a video, you have to unplug the device to record another video currently
