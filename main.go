@@ -140,6 +140,17 @@ func activate() {
 }
 
 func dumpraw(outFilePath string) {
+	log.Infof("Writing output to:%s", outFilePath)
+	file, err := os.Create(outFilePath)
+	if err != nil {
+		log.Debugf("Error creating file:%s", err)
+		log.Errorf("Could not open file '%s'", outFilePath)
+	}
+	writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
+	startWithConsumer(writer)
+}
+
+func startWithConsumer(consumer screencapture.CmSampleBufConsumer) {
 	activate()
 	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
@@ -147,20 +158,13 @@ func dumpraw(outFilePath string) {
 	if err != nil {
 		log.Fatal("Error finding iOS Devices", err)
 	}
-	log.Infof("Writing output to:%s", outFilePath)
+
 	dev := deviceList[0]
 
-	file, err := os.Create(outFilePath)
-	if err != nil {
-		log.Debugf("Error creating file:%s", err)
-		log.Errorf("Could not open file '%s'", outFilePath)
-	}
-	writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
 	adapter := screencapture.UsbAdapter{}
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, writer)
+	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
 
 	adapter.StartReading(dev, &mp, stopSignal)
-	return
 }
