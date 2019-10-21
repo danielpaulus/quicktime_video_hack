@@ -1,11 +1,12 @@
 package packet_test
 
 import (
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
 	"testing"
+
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFeed(t *testing.T) {
@@ -13,10 +14,23 @@ func TestFeed(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sprpPacket, err := packet.NewAsynFeedPacketFromBytes(dat[4:])
+	feedPacket, err := packet.NewAsynFeedPacketFromBytes(dat[4:])
 	if assert.NoError(t, err) {
-		assert.Equal(t, uint64(0x7ffb5cc32f60), sprpPacket.ClockRef)
-		assert.Equal(t, packet.AsynPacketMagic, sprpPacket.AsyncMagic)
-		assert.Equal(t, packet.FEED, sprpPacket.MessageType)
+		assert.Equal(t, uint64(0x7ffb5cc32f60), feedPacket.ClockRef)
+		assert.Equal(t, packet.AsynPacketMagic, feedPacket.AsyncMagic)
+		assert.Equal(t, packet.FEED, feedPacket.MessageType)
+	}
+}
+
+func TestEat(t *testing.T) {
+	dat, err := ioutil.ReadFile("fixtures/asyn-eat")
+	if err != nil {
+		log.Fatal(err)
+	}
+	feedPacket, err := packet.NewAsynEatPacketFromBytes(dat)
+	if assert.NoError(t, err) {
+		assert.Equal(t, uint64(0x133959728), feedPacket.ClockRef)
+		assert.Equal(t, packet.AsynPacketMagic, feedPacket.AsyncMagic)
+		assert.Equal(t, packet.EAT, feedPacket.MessageType)
 	}
 }
