@@ -7,6 +7,9 @@ import (
 	"math"
 )
 
+//AudioFormatIDLpcm is the CoreMedia MediaID for LPCM
+const AudioFormatIDLpcm uint32 = 0x6C70636D
+
 //AudioStreamBasicDescription represents the struct found here: https://github.com/nu774/MSResampler/blob/master/CoreAudio/CoreAudioTypes.h
 type AudioStreamBasicDescription struct {
 	SampleRate       float64
@@ -20,7 +23,7 @@ type AudioStreamBasicDescription struct {
 	Reserved         uint32
 }
 
-//DefaultAudioStreamBasicDescription creates a LPCM asbd with default values I grabbed from the hex dump
+//DefaultAudioStreamBasicDescription creates a LPCM AudioStreamBasicDescription with default values I grabbed from the hex dump
 func DefaultAudioStreamBasicDescription() AudioStreamBasicDescription {
 	return AudioStreamBasicDescription{FormatFlags: 12,
 		BytesPerPacket: 4, FramesPerPacket: 1, BytesPerFrame: 4, ChannelsPerFrame: 2, BitsPerChannel: 16, Reserved: 0,
@@ -33,20 +36,15 @@ func (adsb AudioStreamBasicDescription) String() string {
 		adsb.BytesPerFrame, adsb.ChannelsPerFrame, adsb.BitsPerChannel, adsb.Reserved)
 }
 
-//Constants needed for creating a LPCM byte array
-const (
-	AudioFormatIDLpcm uint32 = 0x6C70636D
-)
-
 //NewAudioStreamBasicDescriptionFromBytes reads AudioStreamBasicDescription from bytes
 func NewAudioStreamBasicDescriptionFromBytes(data []byte) (AudioStreamBasicDescription, error) {
 	r := bytes.NewReader(data)
-	var lpcmData AudioStreamBasicDescription
-	err := binary.Read(r, binary.LittleEndian, &lpcmData)
+	var audioStreamBasicDescription AudioStreamBasicDescription
+	err := binary.Read(r, binary.LittleEndian, &audioStreamBasicDescription)
 	if err != nil {
-		return lpcmData, err
+		return audioStreamBasicDescription, err
 	}
-	return lpcmData, nil
+	return audioStreamBasicDescription, nil
 }
 
 //SerializeAudioStreamBasicDescription puts an AudioStreamBasicDescription into the given byte array
