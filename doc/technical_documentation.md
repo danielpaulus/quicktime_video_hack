@@ -191,14 +191,14 @@ Also this will be used for all ASYN_EAT packets containing audio sample buffers.
 
 #### 3.2.3. AFMT Packet
 ##### General Description
-This packet contains information about the Audio Format(AMFT).  I assume the lpcm marker, which is followed by 7 integer values is somekind of information about Linear pulse-code modulation (LPCM)
+This packet contains information about the Audio Format(AMFT). It contains a AudioStreamBasicDescription struct [see here](https://github.com/nu774/MSResampler/blob/master/CoreAudio/CoreAudioTypes.h). It is usually of MediaID Linear pulse-code modulation (LPCM), which means uncompressed audio.
 The response is basically a dictionary containing an error code. Normally we send 0 to indicate everything is ok.
 Note how the device references the Clock we gave it in the SYNC_CWPA_RPLY
 ##### Request Format Description
 
-| 4 Byte Length (68)   |4 Byte Magic (SYNC)   | 8 bytes clock CFTypeID| 4 byte magic (AFMT)| 8 byte correlation id| some weird data| 4 byte magic (LPCM) |  28 bytes what i think is pcm data|
-|---|---|---|---|---|---|---|---|
-|44000000| 636E7973| B00CE26C A67F0000| 746D6661 | 809D2213 01000000| 00000000 0070E740 |6D63706C| 4C000000 04000000 01000000 04000000 02000000 10000000 00000000|
+| 4 Byte Length (68)   |4 Byte Magic (SYNC)   | 8 bytes clock CFTypeID| 4 byte magic (AFMT)| 8 byte correlation id| AudioStreamBasicDescription struct: float64 sampling frequency (48khz), data 4 byte magic (LPCM),   28 bytes rest|
+|---|---|---|---|---|---|
+|44000000| 636E7973| B00CE26C A67F0000| 746D6661 | 809D2213 01000000| 00000000 0070E740 6D63706C 4C000000 04000000 01000000 04000000 02000000 10000000 00000000|
 
 ##### Reply - RPLY Format Description
 Contains the correlationID from the request as well as a simple Dictionary:  {"Error":NSNumberUint32(0)}
@@ -260,8 +260,8 @@ This packet requests from us to send a RPLY with the current CMTime for the Cloc
 
 #### 3.2.7. SKEW Packet
 ##### General Description
-This is clearly some message related to clock skew. I am still in process of figuring out how it works exactly.
-The stream works even if these are completely ignored for now. 
+(WIP) It seems like this packet requires us to reply with the difference of our local clock in 48khz ticks to the device clock, which
+we can get from the audio samples. 
 
 ##### Request Format Description
 
