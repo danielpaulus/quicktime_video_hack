@@ -25,6 +25,11 @@ const (
 	cmSampleTimingInfoLength = 3 * CMTimeLengthInBytes
 )
 
+const (
+	MediaTypeVideo int = iota
+	MediaTypeSound int = iota
+)
+
 //CMSampleTimingInfo is a simple struct containing 3 CMtimes: Duration, PresentationTimeStamp and DecodeTimeStamp
 type CMSampleTimingInfo struct {
 	Duration CMTime /*! @field duration
@@ -57,6 +62,7 @@ type CMSampleBuffer struct {
 	SampleSizes                 []int
 	Attachments                 dict.IndexKeyDict //satt
 	Sary                        dict.IndexKeyDict //sary
+	MediaType                   int
 }
 
 func (buffer CMSampleBuffer) String() string {
@@ -66,14 +72,29 @@ func (buffer CMSampleBuffer) String() string {
 	} else {
 		fdscString = "none"
 	}
-	return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, Nalus:%s, fdsc:%s, attach:%s, sary:%s, SampleTimingInfoArray:%s}",
-		buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, GetNaluDetails(buffer.SampleData),
-		fdscString, buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
+	if buffer.MediaType == MediaTypeVideo {
+		return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, Nalus:%s, fdsc:%s, attach:%s, sary:%s, SampleTimingInfoArray:%s}",
+			buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, GetNaluDetails(buffer.SampleData),
+			fdscString, buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
+	} else {
+		return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, SampleSize:%d, fdsc:%s}",
+			buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, buffer.SampleSizes[0],
+			fdscString)
+	}
+}
+
+func NewCMSampleBufferFromBytesAudio(data []byte) (CMSampleBuffer, error) {
+	return NewCMSampleBufferFromBytes(data, MediaTypeSound)
+}
+
+func NewCMSampleBufferFromBytesVideo(data []byte) (CMSampleBuffer, error) {
+	return NewCMSampleBufferFromBytes(data, MediaTypeVideo)
 }
 
 //NewCMSampleBufferFromBytes parses a CMSampleBuffer from a []byte assuming it begins with a 4 byte length and the 4byte magic int "sbuf"
-func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
+func NewCMSampleBufferFromBytes(data []byte, mediaType int) (CMSampleBuffer, error) {
 	var sbuffer CMSampleBuffer
+	sbuffer.MediaType = mediaType
 	sbuffer.HasFormatDescription = false
 	length, remainingBytes, err := common.ParseLengthAndMagic(data, sbuf)
 	if err != nil {
@@ -114,6 +135,11 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	sbuffer.SampleSizes, remainingBytes, err = parseSampleSizeArray(remainingBytes[4:])
 	if err != nil {
 		return sbuffer, err
+	}
+
+	//audio buffers usually end after samplesize
+	if len(remainingBytes) == 0 {
+		return sbuffer, nil
 	}
 	if binary.LittleEndian.Uint32(remainingBytes[4:]) == dict.FormatDescriptorMagic {
 		sbuffer.HasFormatDescription = true

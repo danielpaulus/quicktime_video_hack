@@ -26,7 +26,7 @@ func NewAsynFeedPacketFromBytes(data []byte) (AsynFeedPacket, error) {
 	if packet.MessageType != FEED {
 		return packet, fmt.Errorf("invalid packet type in asyn feed:%x", data)
 	}
-	entry, err := coremedia.NewCMSampleBufferFromBytes(data[16:])
+	entry, err := coremedia.NewCMSampleBufferFromBytesVideo(data[16:])
 	if err != nil {
 		return packet, err
 	}
