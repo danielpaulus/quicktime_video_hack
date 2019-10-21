@@ -1,8 +1,6 @@
 package screencapture
 
 import (
-	"time"
-
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
 )
@@ -26,7 +24,7 @@ func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
 func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, stopSignal chan interface{}) {
 	confignum, _ := device.usbDevice.ActiveConfigNum()
 
-	log.Debugf("Config is active: %d",confignum )
+	log.Debugf("Config is active: %d", confignum)
 	muxConfig, qtConfig := findConfigurations(device.usbDevice.Desc)
 	device.QTConfigIndex = qtConfig
 	if qtConfig == -1 {
@@ -40,18 +38,13 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 		return
 	}
 
-
-
 	err = sendQTConfigControlRequest(device)
 
 	if err != nil {
 		log.Error("Error disabling config", err)
 	}
 
-
 	log.Infof("QT Config is active: %s", config.String())
-
-
 
 	val, err := device.usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
 	if err != nil {
@@ -105,21 +98,18 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 			n, err := stream.Read(buffer)
 			if err != nil {
 				log.Error("couldn't read bytes", err)
-				log.Debug(frameExtractor.String())
 				return
 			}
 			frame, isCompleteFrame := frameExtractor.ExtractFrame(buffer[:n])
 			if isCompleteFrame {
 				receiver.ReceiveData(frame)
 			}
-
 		}
 	}()
 
 	<-stopSignal
 	receiver.CloseSession()
 	log.Info("Closing usb stream")
-
 
 	err = stream.Close()
 	if err != nil {
@@ -129,27 +119,9 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	iface.Close()
 
 	err = sendQTDisableConfigControlRequest(device)
-
-	err = device.usbDevice.SetAutoDetach(true)
-
 	if err != nil {
-		log.Fatal("Failed setting autodetach.", err)
-		return
+		log.Error("Error sending disable control request", err)
 	}
-	/*ctx = gousb.NewContext()
-	device.usbDevice, err = findBySerialNumber(device.SerialNumber)
-
-	if err != nil {
-		log.Debugf("device not found:%s", err)
-			}
-*/
-	time.Sleep(time.Second*1)
-	_, err = device.usbDevice.Config(4)
-
-	ac, _ := device.usbDevice.ActiveConfigNum()
-	log.Infof("Err:%s code: %d", err, ac)
-
-
 }
 
 func grabOutBulk(setting gousb.InterfaceSetting) int {
