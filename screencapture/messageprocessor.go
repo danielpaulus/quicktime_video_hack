@@ -2,6 +2,8 @@ package screencapture
 
 import (
 	"encoding/binary"
+	"fmt"
+	"os"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
@@ -154,6 +156,12 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.EAT:
+		if (mp.audioSamplesReceived<100) {
+			file, _ := os.Create(
+				fmt.Sprintf("/home/ganjalf/tmp/audio/sample%d.bin",mp.audioSamplesReceived))
+			file.Write(data)
+			file.Close()
+		}
 		mp.audioSamplesReceived++
 		if mp.audioSamplesReceived%100 == 0 {
 			log.Debugf("RCV Audio Samples:%d", mp.audioSamplesReceived)
