@@ -1,4 +1,4 @@
-package dict
+package coremedia
 
 import (
 	"encoding/binary"

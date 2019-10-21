@@ -1,9 +1,10 @@
 package screencapture
 
 import (
+	"time"
+
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 //UsbAdapter reads and writes from AV Quicktime USB Bulk endpoints
@@ -11,6 +12,7 @@ type UsbAdapter struct {
 	outEndpoint *gousb.OutEndpoint
 }
 
+//WriteDataToUsb implements the UsbWriter interface and sends the byte array to the usb bulk endpoint.
 func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
 	n, err := usa.outEndpoint.Write(bytes)
 	if err != nil {

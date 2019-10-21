@@ -169,6 +169,12 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 		mp.audioSamplesReceived++
 		if mp.audioSamplesReceived%100 == 0 {
 			log.Debugf("RCV Audio Samples:%d", mp.audioSamplesReceived)
+			eatPacket, err := packet.NewAsynEatPacketFromBytes(data)
+			if err != nil {
+				log.Warn("unknown eat")
+				return
+			}
+			log.Debugf("last audiopacket:%s", eatPacket.String())
 		}
 	case packet.FEED:
 		feedPacket, err := packet.NewAsynFeedPacketFromBytes(data)
