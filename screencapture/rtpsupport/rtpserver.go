@@ -9,7 +9,7 @@ import (
 	"log"
 	"net"
 )
-
+//https://developer.ridgerun.com/wiki/index.php?title=Streaming_RAW_Video_with_GStreamer#Build_udpsrc_for_IMX6
 type Rtpserver struct {
 	packetizer rtp.Packetizer
 	clientConn net.Conn
@@ -20,7 +20,7 @@ type Rtpserver struct {
 func NewRtpServer(host string, port int) *Rtpserver {
 	//payload type https://docs.microsoft.com/en-us/openspecs/office_protocols/ms-rtp/3b8dc3c6-34b8-4827-9b38-3b00154f471c
 	payloader := codecs.H264Payloader{}
-	packetizer := rtp.NewPacketizer(30000, 0x60, 5, &payloader, rtp.NewRandomSequencer(), 90000)
+	packetizer := rtp.NewPacketizer(60000, 0x60, 5, &payloader, rtp.NewRandomSequencer(), 90000)
 	server := Rtpserver{packetizer: packetizer, host: host, port: port}
 
 	return &server
@@ -68,6 +68,8 @@ func (srv Rtpserver) writeNalu(naluBytes []byte, buf coremedia.CMSampleBuffer) e
 	packets := srv.packetizer.Packetize(naluBytes, 1)
 	for _, packet := range packets {
 		packet.Timestamp = uint32(float64(buf.OutputPresentationTimestamp.CMTimeValue) * 0.00009)
+		//println(packet.Timestamp)
+
 		//println(packet.Timestamp)
 		data, _ := packet.Marshal()
 		_,err := srv.clientConn.Write(data)

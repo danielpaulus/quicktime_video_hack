@@ -19,7 +19,8 @@ run `go run main.go --help` to see how it works
 
 To run RTP you can use this gstreamer command 
 ```
-gst-launch-1.0 -v udpsrc port=4000 caps = "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96" ! rtph264depay ! decodebin ! videoconvert ! autovideosink
+gst-launch-1.0 -v udpsrc port=4000 buffer-size=622080 caps = "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96,framerate=(fraction)60/1" ! rtpjitterbuffer latency=100 ! rtph264depay  ! queue! decodebin ! queue ! videoconvert ! xvimagesink sync=false
+
 ```
 and then run `go run main.go rtpstream localhost 4000`
 

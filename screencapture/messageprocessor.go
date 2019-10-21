@@ -175,7 +175,7 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 		if err != nil {
 			log.Fatal("Failed writing sample data to Consumer", err)
 		}
-		log.Debugf("Rcv:%s", feedPacket.String())
+		//log.Debugf("Rcv:%s", feedPacket.String())
 		mp.usbWriter.WriteDataToUsb(mp.needMessage)
 	case packet.SPRP:
 		sprpPacket, err := packet.NewAsynSprpPacketFromBytes(data)

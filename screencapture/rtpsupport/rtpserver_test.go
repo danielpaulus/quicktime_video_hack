@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewRtpServer(t *testing.T) {
-	srv := NewRtpServer()
+	srv := NewRtpServer("localhost", 4000)
 	var process *os.Process
 	go func() {
 		process = startGst()
@@ -20,7 +20,7 @@ func TestNewRtpServer(t *testing.T) {
 	}()
 	srv.StartServerSocket()
 
-	nalus, err := ioutil.ReadFile("/home/ganjalf/out.h264")
+	nalus, err := ioutil.ReadFile("/home/ganjalf/tmp/out.h264")
 	if err != nil {
 		log.Fatal(err)
 	}
