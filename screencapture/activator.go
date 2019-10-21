@@ -70,3 +70,15 @@ func sendQTConfigControlRequest(device IosDevice) error {
 	log.Debugf("Enabling QT config RC:%d", val)
 	return nil
 }
+
+func sendQTDisableConfigControlRequest(device IosDevice) error {
+	response := make([]byte, 0)
+	val, err := device.usbDevice.Control(0x40, 0x52, 0x00, 0x00, response)
+
+	if err != nil {
+		log.Fatal("Failed sending control transfer for disabling hidden QT config", err)
+		return err
+	}
+	log.Debugf("Disabled QT config RC:%d", val)
+	return nil
+}

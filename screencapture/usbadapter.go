@@ -1,8 +1,6 @@
 package screencapture
 
 import (
-	"time"
-
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,6 +22,9 @@ func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
 //StartReading claims the AV Quicktime USB Bulk endpoints and starts reading until a stopSignal is sent.
 //Every received data is added to a frameextractor and when it is complete, sent to the UsbDataReceiver.
 func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, stopSignal chan interface{}) {
+	confignum, _ := device.usbDevice.ActiveConfigNum()
+
+	log.Debugf("Config is active: %d", confignum)
 	muxConfig, qtConfig := findConfigurations(device.usbDevice.Desc)
 	device.QTConfigIndex = qtConfig
 	if qtConfig == -1 {
@@ -32,28 +33,19 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}
 	device.UsbMuxConfigIndex = muxConfig
 	config, err := device.enableQuickTimeConfig()
-	defer func() {
-		log.Debug("closing Device")
-		err := config.Close()
-		if err != nil {
-			log.Warn("Failed closing device in shutdown", err)
-		}
-		log.Debug("re-enabling default device config")
-		err = device.enableUsbMuxConfig()
-		if err != nil {
-			log.Error("Failed re-enabling UsbMuxConfig, your device might be broken.", err)
-		}
-	}()
 	if err != nil {
 		log.Fatal("Failed enabling Quicktime Device Config. Is Quicktime running on your Machine? If so, close it.", err)
 		return
 	}
 
+	err = sendQTConfigControlRequest(device)
+
+	if err != nil {
+		log.Error("Error disabling config", err)
+	}
+
 	log.Infof("QT Config is active: %s", config.String())
 
-	//in idx muss sicher der endpoint rein
-	duration, _ := time.ParseDuration("20ms")
-	device.usbDevice.ControlTimeout = duration
 	val, err := device.usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
 	if err != nil {
 		log.Fatal("failed control", err)
@@ -116,12 +108,20 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}()
 
 	<-stopSignal
-	log.Debugf("Closing stream")
+	receiver.CloseSession()
+	log.Info("Closing usb stream")
+
 	err = stream.Close()
 	if err != nil {
 		log.Error("Error closing stream", err)
 	}
+	log.Info("Closing usb interface")
 	iface.Close()
+
+	err = sendQTDisableConfigControlRequest(device)
+	if err != nil {
+		log.Error("Error sending disable control request", err)
+	}
 }
 
 func grabOutBulk(setting gousb.InterfaceSetting) int {
