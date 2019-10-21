@@ -166,16 +166,6 @@ func (d *IosDevice) String() string {
 	return fmt.Sprintf("'%s'  %s serial: %s", d.ProductName, d.usbDevice.String(), d.SerialNumber)
 }
 
-//Always call this when you're done recording your video to
-//put the device back into non-video mode
-func (d *IosDevice) enableUsbMuxConfig() error {
-	config, err := d.usbDevice.Config(d.UsbMuxConfigIndex)
-	if err != nil {
-		return err
-	}
-	return config.Close()
-}
-
 //This enables the config needed for grabbing video of the device
 //it should open two additional bulk endpoints where video frames
 //will be received
