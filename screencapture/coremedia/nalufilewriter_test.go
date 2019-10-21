@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/stretchr/testify/assert"
 )
 
 var fakePPS = []byte{1, 2, 3, 4, 5}
@@ -53,14 +53,14 @@ func cmSampleBufWithFdscAndAFewBytes() coremedia.CMSampleBuffer {
 func cmSampleBufWithFdscAndSampleData(sampleData []byte) coremedia.CMSampleBuffer {
 	return coremedia.CMSampleBuffer{
 		OutputPresentationTimestamp: coremedia.CMTime{},
-		FormatDescription:           dict.FormatDescriptor{PPS: fakePPS, SPS: fakeSPS},
+		FormatDescription:           coremedia.FormatDescriptor{PPS: fakePPS, SPS: fakeSPS},
 		HasFormatDescription:        true,
 		NumSamples:                  0,
 		SampleTimingInfoArray:       nil,
 		SampleData:                  sampleData,
 		SampleSizes:                 nil,
-		Attachments:                 dict.IndexKeyDict{},
-		Sary:                        dict.IndexKeyDict{},
+		Attachments:                 coremedia.IndexKeyDict{},
+		Sary:                        coremedia.IndexKeyDict{},
 	}
 }
 
@@ -72,13 +72,13 @@ func cmSampleBufWithAFewBytes() coremedia.CMSampleBuffer {
 func cmSampleBufWithSampleData(sampleData []byte) coremedia.CMSampleBuffer {
 	return coremedia.CMSampleBuffer{
 		OutputPresentationTimestamp: coremedia.CMTime{},
-		FormatDescription:           dict.FormatDescriptor{},
+		FormatDescription:           coremedia.FormatDescriptor{},
 		HasFormatDescription:        false,
 		NumSamples:                  0,
 		SampleTimingInfoArray:       nil,
 		SampleData:                  sampleData,
 		SampleSizes:                 nil,
-		Attachments:                 dict.IndexKeyDict{},
-		Sary:                        dict.IndexKeyDict{},
+		Attachments:                 coremedia.IndexKeyDict{},
+		Sary:                        coremedia.IndexKeyDict{},
 	}
 }

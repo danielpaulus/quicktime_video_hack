@@ -1,8 +1,9 @@
-package dict
+package coremedia
 
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
 	"github.com/sirupsen/logrus"
 )
@@ -12,13 +13,15 @@ import (
 //in normal byte order and reverse byteorder (so you can find them in the hex dumps)
 // Note: I have just guessed what the names could be from the marker ascii, I could be wrong ;-)
 const (
-	FormatDescriptorMagic uint32 = 0x66647363 //fdsc - csdf
-	MediaTypeVideo        uint32 = 0x76696465 //vide - ediv
-	MediaTypeMagic        uint32 = 0x6D646961 //mdia - aidm
-	VideoDimensionMagic   uint32 = 0x7664696D //vdim - midv
-	CodecMagic            uint32 = 0x636F6463 //codc - cdoc
-	CodecAvc1             uint32 = 0x61766331 //avc1 - 1cva
-	ExtensionMagic        uint32 = 0x6578746E //extn - ntxe
+	FormatDescriptorMagic            uint32 = 0x66647363 //fdsc - csdf
+	MediaTypeVideo                   uint32 = 0x76696465 //vide - ediv
+	MediaTypeSound                   uint32 = 0x736F756E //nuos - soun
+	MediaTypeMagic                   uint32 = 0x6D646961 //mdia - aidm
+	VideoDimensionMagic              uint32 = 0x7664696D //vdim - midv
+	CodecMagic                       uint32 = 0x636F6463 //codc - cdoc
+	CodecAvc1                        uint32 = 0x61766331 //avc1 - 1cva
+	ExtensionMagic                   uint32 = 0x6578746E //extn - ntxe
+	AudioStreamBasicDescriptionMagic uint32 = 0x61736264 //asdb - dbsa
 )
 
 //FormatDescriptor is actually a CMFormatDescription
@@ -33,7 +36,8 @@ type FormatDescriptor struct {
 	//PPS contains bytes of the Picture Parameter Set h264 NALu
 	PPS []byte
 	//SPS contains bytes of the Picture Parameter Set h264 NALu
-	SPS []byte
+	SPS                         []byte
+	AudioStreamBasicDescription AudioStreamBasicDescription
 }
 
 //NewFormatDescriptorFromBytes parses a CMFormatDescription from bytes
@@ -48,6 +52,29 @@ func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
 		return FormatDescriptor{}, err
 	}
 
+	if mediaType == MediaTypeSound {
+		return parseSoundFdsc(remainingBytes)
+	}
+	return parseVideoFdsc(remainingBytes)
+}
+func parseSoundFdsc(remainingBytes []byte) (FormatDescriptor, error) {
+
+	length, _, err := common.ParseLengthAndMagic(remainingBytes, AudioStreamBasicDescriptionMagic)
+	if err != nil {
+		return FormatDescriptor{}, err
+	}
+
+	asdb, err := NewAudioStreamBasicDescriptionFromBytes(remainingBytes[8:length])
+	if err != nil {
+		return FormatDescriptor{}, err
+	}
+
+	return FormatDescriptor{
+		MediaType:                   MediaTypeSound,
+		AudioStreamBasicDescription: asdb,
+	}, nil
+}
+func parseVideoFdsc(remainingBytes []byte) (FormatDescriptor, error) {
 	videoDimensionWidth, videoDimensionHeight, remainingBytes, err := parseVideoDimension(remainingBytes)
 	if err != nil {
 		return FormatDescriptor{}, err
@@ -65,7 +92,7 @@ func NewFormatDescriptorFromBytes(data []byte) (FormatDescriptor, error) {
 
 	pps, sps := extractPPS(extensions)
 	return FormatDescriptor{
-		MediaType:            mediaType,
+		MediaType:            MediaTypeVideo,
 		VideoDimensionHeight: videoDimensionHeight,
 		VideoDimensionWidth:  videoDimensionWidth,
 		Codec:                codec,
@@ -132,10 +159,14 @@ func parseMediaType(bytes []byte) (uint32, []byte, error) {
 }
 
 func (fdsc FormatDescriptor) String() string {
+	if fdsc.MediaType == MediaTypeVideo {
+		return fmt.Sprintf(
+			"fdsc:{MediaType:%s, VideoDimension:(%dx%d), Codec:%s, PPS:%x, SPS:%x, Extensions:%s}",
+			readableMediaType(fdsc.MediaType), fdsc.VideoDimensionWidth, fdsc.VideoDimensionHeight,
+			readableCodec(fdsc.Codec), fdsc.PPS, fdsc.SPS, fdsc.Extensions.String())
+	}
 	return fmt.Sprintf(
-		"fdsc:{MediaType:%s, VideoDimension:(%dx%d), Codec:%s, PPS:%x, SPS:%x, Extensions:%s}",
-		readableMediaType(fdsc.MediaType), fdsc.VideoDimensionWidth, fdsc.VideoDimensionHeight,
-		readableCodec(fdsc.Codec), fdsc.PPS, fdsc.SPS, fdsc.Extensions.String())
+		"fdsc:{MediaType:%s, AudioStreamBasicDescription: %s}", readableMediaType(fdsc.MediaType), fdsc.AudioStreamBasicDescription.String())
 }
 
 func readableCodec(codec uint32) string {
@@ -148,6 +179,9 @@ func readableCodec(codec uint32) string {
 func readableMediaType(mediaType uint32) string {
 	if mediaType == MediaTypeVideo {
 		return "Video"
+	}
+	if mediaType == MediaTypeSound {
+		return "Sound"
 	}
 	return fmt.Sprintf("Unknown(%x)", mediaType)
 }

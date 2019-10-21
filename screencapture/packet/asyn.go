@@ -5,8 +5,6 @@ import (
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
 )
 
 //Async Packet types
@@ -27,17 +25,17 @@ const (
 )
 
 //NewAsynHpd1Packet creates a []byte containing a valid ASYN packet with the Hpd1 dictionary
-func NewAsynHpd1Packet(stringKeyDict dict.StringKeyDict) []byte {
+func NewAsynHpd1Packet(stringKeyDict coremedia.StringKeyDict) []byte {
 	return newAsynDictPacket(stringKeyDict, HPD1, EmptyCFType)
 }
 
 //NewAsynHpa1Packet creates a []byte containing a valid ASYN packet with the Hpa1 dictionary
-func NewAsynHpa1Packet(stringKeyDict dict.StringKeyDict, clockRef CFTypeID) []byte {
+func NewAsynHpa1Packet(stringKeyDict coremedia.StringKeyDict, clockRef CFTypeID) []byte {
 	return newAsynDictPacket(stringKeyDict, HPA1, clockRef)
 }
 
-func newAsynDictPacket(stringKeyDict dict.StringKeyDict, subtypeMarker uint32, asynTypeHeader uint64) []byte {
-	serialize := dict.SerializeStringKeyDict(stringKeyDict)
+func newAsynDictPacket(stringKeyDict coremedia.StringKeyDict, subtypeMarker uint32, asynTypeHeader uint64) []byte {
+	serialize := coremedia.SerializeStringKeyDict(stringKeyDict)
 	length := len(serialize) + 20
 	header := make([]byte, 20)
 	binary.LittleEndian.PutUint32(header, uint32(length))
@@ -59,28 +57,28 @@ func AsynNeedPacketBytes(clockRef CFTypeID) []byte {
 }
 
 //CreateHpd1DeviceInfoDict creates a dict.StringKeyDict that needs to be sent to the device before receiving a feed
-func CreateHpd1DeviceInfoDict() dict.StringKeyDict {
-	resultDict := dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 3)}
-	displaySizeDict := dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 2)}
-	resultDict.Entries[0] = dict.StringKeyEntry{
+func CreateHpd1DeviceInfoDict() coremedia.StringKeyDict {
+	resultDict := coremedia.StringKeyDict{Entries: make([]coremedia.StringKeyEntry, 3)}
+	displaySizeDict := coremedia.StringKeyDict{Entries: make([]coremedia.StringKeyEntry, 2)}
+	resultDict.Entries[0] = coremedia.StringKeyEntry{
 		Key:   "Valeria",
 		Value: true,
 	}
-	resultDict.Entries[1] = dict.StringKeyEntry{
+	resultDict.Entries[1] = coremedia.StringKeyEntry{
 		Key:   "HEVCDecoderSupports444",
 		Value: true,
 	}
 
-	displaySizeDict.Entries[0] = dict.StringKeyEntry{
+	displaySizeDict.Entries[0] = coremedia.StringKeyEntry{
 		Key:   "Width",
 		Value: common.NewNSNumberFromUFloat64(1920),
 	}
-	displaySizeDict.Entries[1] = dict.StringKeyEntry{
+	displaySizeDict.Entries[1] = coremedia.StringKeyEntry{
 		Key:   "Height",
 		Value: common.NewNSNumberFromUFloat64(1200),
 	}
 
-	resultDict.Entries[2] = dict.StringKeyEntry{
+	resultDict.Entries[2] = coremedia.StringKeyEntry{
 		Key:   "DisplaySize",
 		Value: displaySizeDict,
 	}
@@ -89,34 +87,36 @@ func CreateHpd1DeviceInfoDict() dict.StringKeyDict {
 }
 
 //CreateHpa1DeviceInfoDict creates a dict.StringKeyDict that needs to be sent to the device before receiving a feed
-func CreateHpa1DeviceInfoDict() dict.StringKeyDict {
-	resultDict := dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 6)}
-	resultDict.Entries[0] = dict.StringKeyEntry{
+func CreateHpa1DeviceInfoDict() coremedia.StringKeyDict {
+	asbdBytes := make([]byte, 56)
+	coremedia.DefaultAudioStreamBasicDescription().SerializeAudioStreamBasicDescription(asbdBytes)
+	resultDict := coremedia.StringKeyDict{Entries: make([]coremedia.StringKeyEntry, 6)}
+	resultDict.Entries[0] = coremedia.StringKeyEntry{
 		Key:   "BufferAheadInterval",
 		Value: common.NewNSNumberFromUFloat64(0.07300000000000001),
 	}
 
-	resultDict.Entries[1] = dict.StringKeyEntry{
+	resultDict.Entries[1] = coremedia.StringKeyEntry{
 		Key:   "deviceUID",
 		Value: "Valeria",
 	}
 
-	resultDict.Entries[2] = dict.StringKeyEntry{
+	resultDict.Entries[2] = coremedia.StringKeyEntry{
 		Key:   "ScreenLatency",
 		Value: common.NewNSNumberFromUFloat64(0.04),
 	}
 
-	resultDict.Entries[3] = dict.StringKeyEntry{
+	resultDict.Entries[3] = coremedia.StringKeyEntry{
 		Key:   "formats",
-		Value: coremedia.CreateLpcmInfo(),
+		Value: asbdBytes,
 	}
 
-	resultDict.Entries[4] = dict.StringKeyEntry{
+	resultDict.Entries[4] = coremedia.StringKeyEntry{
 		Key:   "EDIDAC3Support",
 		Value: common.NewNSNumberFromUInt32(0),
 	}
 
-	resultDict.Entries[5] = dict.StringKeyEntry{
+	resultDict.Entries[5] = coremedia.StringKeyEntry{
 		Key:   "deviceName",
 		Value: "Valeria",
 	}

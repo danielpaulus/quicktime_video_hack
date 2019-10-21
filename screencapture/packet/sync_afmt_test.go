@@ -1,12 +1,13 @@
 package packet_test
 
 import (
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
 	"testing"
+
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAfmt(t *testing.T) {
@@ -19,8 +20,11 @@ func TestAfmt(t *testing.T) {
 		assert.Equal(t, uint64(0x7fa66ce20cb0), afmtPacket.ClockRef)
 		assert.Equal(t, packet.SyncPacketMagic, afmtPacket.SyncMagic)
 		assert.Equal(t, packet.AFMT, afmtPacket.MessageType)
-		assert.Equal(t, coremedia.LpcmMagic, afmtPacket.LpcmMagic)
-		assert.Equal(t, uint32(0x4c), afmtPacket.LpcmData.UnknownInt1)
+		expectedAsbd := coremedia.DefaultAudioStreamBasicDescription()
+		expectedAsbd.FormatFlags = 0x4C
+		assert.Equal(t, expectedAsbd, afmtPacket.AudioStreamBasicDescription)
+		expectedString := "SYNC_AFMT{ClockRef:7fa66ce20cb0, CorrelationID:113229d80, AudioStreamBasicDescription:{SampleRate:48000.000000,FormatFlags:76,BytesPerPacket:4,FramesPerPacket:1,BytesPerFrame:4,ChannelsPerFrame:2,BitsPerChannel:16,Reserved:0}}"
+		assert.Equal(t, expectedString, afmtPacket.String())
 		testSerializationOfAfmtReply(afmtPacket, t)
 	}
 }

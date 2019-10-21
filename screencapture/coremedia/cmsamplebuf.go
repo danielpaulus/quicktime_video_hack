@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
 )
 
 //CMItemCount is a simple typedef to int to be a bit closer to MacOS/iOS
@@ -49,14 +48,15 @@ func (info CMSampleTimingInfo) String() string {
 //optional FormatDescriptors
 type CMSampleBuffer struct {
 	OutputPresentationTimestamp CMTime
-	FormatDescription           dict.FormatDescriptor
+	FormatDescription           FormatDescriptor
 	HasFormatDescription        bool
 	NumSamples                  CMItemCount          //nsmp
 	SampleTimingInfoArray       []CMSampleTimingInfo //stia
 	SampleData                  []byte
 	SampleSizes                 []int
-	Attachments                 dict.IndexKeyDict //satt
-	Sary                        dict.IndexKeyDict //sary
+	Attachments                 IndexKeyDict //satt
+	Sary                        IndexKeyDict //sary
+	MediaType                   uint32
 }
 
 func (buffer CMSampleBuffer) String() string {
@@ -66,14 +66,30 @@ func (buffer CMSampleBuffer) String() string {
 	} else {
 		fdscString = "none"
 	}
-	return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, Nalus:%s, fdsc:%s, attach:%s, sary:%s, SampleTimingInfoArray:%s}",
-		buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, GetNaluDetails(buffer.SampleData),
-		fdscString, buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
+	if buffer.MediaType == MediaTypeVideo {
+		return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, Nalus:%s, fdsc:%s, attach:%s, sary:%s, SampleTimingInfoArray:%s}",
+			buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, GetNaluDetails(buffer.SampleData),
+			fdscString, buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
+	}
+	return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, SampleSize:%d, fdsc:%s}",
+		buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, buffer.SampleSizes[0],
+		fdscString)
+}
+
+//NewCMSampleBufferFromBytesAudio parses a CMSampleBuffer containing audio data.
+func NewCMSampleBufferFromBytesAudio(data []byte) (CMSampleBuffer, error) {
+	return NewCMSampleBufferFromBytes(data, MediaTypeSound)
+}
+
+//NewCMSampleBufferFromBytesVideo parses a CMSampleBuffer containing audio video.
+func NewCMSampleBufferFromBytesVideo(data []byte) (CMSampleBuffer, error) {
+	return NewCMSampleBufferFromBytes(data, MediaTypeVideo)
 }
 
 //NewCMSampleBufferFromBytes parses a CMSampleBuffer from a []byte assuming it begins with a 4 byte length and the 4byte magic int "sbuf"
-func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
+func NewCMSampleBufferFromBytes(data []byte, mediaType uint32) (CMSampleBuffer, error) {
 	var sbuffer CMSampleBuffer
+	sbuffer.MediaType = mediaType
 	sbuffer.HasFormatDescription = false
 	length, remainingBytes, err := common.ParseLengthAndMagic(data, sbuf)
 	if err != nil {
@@ -115,18 +131,27 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	if err != nil {
 		return sbuffer, err
 	}
-	if binary.LittleEndian.Uint32(remainingBytes[4:]) == dict.FormatDescriptorMagic {
+
+	//audio buffers usually end after samplesize
+	if len(remainingBytes) == 0 {
+		return sbuffer, nil
+	}
+	if binary.LittleEndian.Uint32(remainingBytes[4:]) == FormatDescriptorMagic {
 		sbuffer.HasFormatDescription = true
 		fdscLength := binary.LittleEndian.Uint32(remainingBytes)
-		sbuffer.FormatDescription, err = dict.NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
+		sbuffer.FormatDescription, err = NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
 		if err != nil {
 			return sbuffer, err
 		}
 		remainingBytes = remainingBytes[fdscLength:]
 	}
+	//audio buffers usually end after samplesize
+	if len(remainingBytes) == 0 {
+		return sbuffer, nil
+	}
 
 	attachmentsLength := binary.LittleEndian.Uint32(remainingBytes)
-	sbuffer.Attachments, err = dict.NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
+	sbuffer.Attachments, err = NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
 	if err != nil {
 		return sbuffer, err
 	}
@@ -135,7 +160,7 @@ func NewCMSampleBufferFromBytes(data []byte) (CMSampleBuffer, error) {
 	if binary.LittleEndian.Uint32(remainingBytes[4:]) != sary {
 		return sbuffer, fmt.Errorf("wrong magic, expected sary got:%x", remainingBytes[4:8])
 	}
-	sbuffer.Sary, err = dict.NewIndexDictFromBytes(remainingBytes[8:saryLength])
+	sbuffer.Sary, err = NewIndexDictFromBytes(remainingBytes[8:saryLength])
 	if err != nil {
 		return sbuffer, err
 	}

@@ -3,7 +3,7 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 )
 
 //SyncCvrpPacket contains all info from a CVRP packet sent by the device
@@ -13,7 +13,7 @@ type SyncCvrpPacket struct {
 	MessageType    uint32
 	CorrelationID  uint64
 	DeviceClockRef CFTypeID
-	Payload        dict.StringKeyDict
+	Payload        coremedia.StringKeyDict
 }
 
 //NewSyncCvrpPacketFromBytes parses a SyncCvrpPacket from a []byte
@@ -34,7 +34,7 @@ func NewSyncCvrpPacketFromBytes(data []byte) (SyncCvrpPacket, error) {
 	}
 	packet.CorrelationID = binary.LittleEndian.Uint64(data[16:])
 	packet.DeviceClockRef = binary.LittleEndian.Uint64(data[24:])
-	payloadDict, err := dict.NewStringDictFromBytes(data[32:])
+	payloadDict, err := coremedia.NewStringDictFromBytes(data[32:])
 	if err != nil {
 		return packet, err
 	}

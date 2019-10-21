@@ -1,12 +1,13 @@
-package dict_test
+package coremedia_test
 
 import (
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
 	"testing"
+
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBooleanSerialization(t *testing.T) {
@@ -14,12 +15,12 @@ func TestBooleanSerialization(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	stringKeyDict := dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 1)}
-	stringKeyDict.Entries[0] = dict.StringKeyEntry{
+	stringKeyDict := coremedia.StringKeyDict{Entries: make([]coremedia.StringKeyEntry, 1)}
+	stringKeyDict.Entries[0] = coremedia.StringKeyEntry{
 		Key:   "Valeria",
 		Value: true,
 	}
-	serializedDict := dict.SerializeStringKeyDict(stringKeyDict)
+	serializedDict := coremedia.SerializeStringKeyDict(stringKeyDict)
 	assert.Equal(t, dat, serializedDict)
 }
 
@@ -29,7 +30,7 @@ func TestFullSerialization(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	serializedBytes := dict.SerializeStringKeyDict(packet.CreateHpa1DeviceInfoDict())
+	serializedBytes := coremedia.SerializeStringKeyDict(packet.CreateHpa1DeviceInfoDict())
 	assert.Equal(t, dictBytes, serializedBytes)
 
 	dictBytes2, err := ioutil.ReadFile("fixtures/dict.bin")
@@ -37,7 +38,7 @@ func TestFullSerialization(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	serializedBytes2 := dict.SerializeStringKeyDict(packet.CreateHpd1DeviceInfoDict())
+	serializedBytes2 := coremedia.SerializeStringKeyDict(packet.CreateHpd1DeviceInfoDict())
 	assert.Equal(t, dictBytes2, serializedBytes2)
 
 }
