@@ -67,8 +67,3 @@ func (fe *LengthFieldBasedFrameExtractor) handleNewFrame(bytes []byte) ([]byte, 
 	fe.nextFrameSize = frameLength - 4
 	return nil, false
 }
-
-func (fe *LengthFieldBasedFrameExtractor) String() string {
-	return hex.Dump(fe.frameBuffer.Bytes())
-
-}
