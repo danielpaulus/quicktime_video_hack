@@ -23,7 +23,7 @@ type AsynEatPacket struct {
 	CMSampleBuf coremedia.CMSampleBuffer
 }
 
-//NewAsynFeedPacketFromBytes parses a new AsynFeedPacket from bytes
+//NewAsynEatPacketFromBytes parses a new AsynEatPacket from bytes
 func NewAsynEatPacketFromBytes(data []byte) (AsynEatPacket, error) {
 	clockRef, sBuf, err := newAsynCmSampleBufferPacketFromBytes(data, EAT)
 	if err != nil {

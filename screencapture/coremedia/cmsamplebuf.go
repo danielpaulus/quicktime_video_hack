@@ -70,17 +70,18 @@ func (buffer CMSampleBuffer) String() string {
 		return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, Nalus:%s, fdsc:%s, attach:%s, sary:%s, SampleTimingInfoArray:%s}",
 			buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, GetNaluDetails(buffer.SampleData),
 			fdscString, buffer.Attachments.String(), buffer.Sary.String(), buffer.SampleTimingInfoArray[0].String())
-	} else {
-		return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, SampleSize:%d, fdsc:%s}",
-			buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, buffer.SampleSizes[0],
-			fdscString)
 	}
+	return fmt.Sprintf("{OutputPresentationTS:%s, NumSamples:%d, SampleSize:%d, fdsc:%s}",
+		buffer.OutputPresentationTimestamp.String(), buffer.NumSamples, buffer.SampleSizes[0],
+		fdscString)
 }
 
+//NewCMSampleBufferFromBytesAudio parses a CMSampleBuffer containing audio data.
 func NewCMSampleBufferFromBytesAudio(data []byte) (CMSampleBuffer, error) {
 	return NewCMSampleBufferFromBytes(data, MediaTypeSound)
 }
 
+//NewCMSampleBufferFromBytesVideo parses a CMSampleBuffer containing audio video.
 func NewCMSampleBufferFromBytesVideo(data []byte) (CMSampleBuffer, error) {
 	return NewCMSampleBufferFromBytes(data, MediaTypeVideo)
 }

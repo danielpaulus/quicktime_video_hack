@@ -164,10 +164,9 @@ func (fdsc FormatDescriptor) String() string {
 			"fdsc:{MediaType:%s, VideoDimension:(%dx%d), Codec:%s, PPS:%x, SPS:%x, Extensions:%s}",
 			readableMediaType(fdsc.MediaType), fdsc.VideoDimensionWidth, fdsc.VideoDimensionHeight,
 			readableCodec(fdsc.Codec), fdsc.PPS, fdsc.SPS, fdsc.Extensions.String())
-	} else {
-		return fmt.Sprintf(
-			"fdsc:{MediaType:%s, AudioStreamBasicDescription: %s}", readableMediaType(fdsc.MediaType), fdsc.AudioStreamBasicDescription.String())
 	}
+	return fmt.Sprintf(
+		"fdsc:{MediaType:%s, AudioStreamBasicDescription: %s}", readableMediaType(fdsc.MediaType), fdsc.AudioStreamBasicDescription.String())
 }
 
 func readableCodec(codec uint32) string {

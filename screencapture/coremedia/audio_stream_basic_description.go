@@ -20,16 +20,17 @@ type AudioStreamBasicDescription struct {
 	Reserved         uint32
 }
 
+//DefaultAudioStreamBasicDescription creates a LPCM asbd with default values I grabbed from the hex dump
 func DefaultAudioStreamBasicDescription() AudioStreamBasicDescription {
 	return AudioStreamBasicDescription{FormatFlags: 12,
 		BytesPerPacket: 4, FramesPerPacket: 1, BytesPerFrame: 4, ChannelsPerFrame: 2, BitsPerChannel: 16, Reserved: 0,
 		SampleRate: 48000, FormatID: AudioFormatIDLpcm}
 }
 
-func (data AudioStreamBasicDescription) String() string {
+func (adsb AudioStreamBasicDescription) String() string {
 	return fmt.Sprintf("{SampleRate:%f,FormatFlags:%d,BytesPerPacket:%d,FramesPerPacket:%d,BytesPerFrame:%d,ChannelsPerFrame:%d,BitsPerChannel:%d,Reserved:%d}",
-		data.SampleRate, data.FormatFlags, data.BytesPerPacket, data.FramesPerPacket,
-		data.BytesPerFrame, data.ChannelsPerFrame, data.BitsPerChannel, data.Reserved)
+		adsb.SampleRate, adsb.FormatFlags, adsb.BytesPerPacket, adsb.FramesPerPacket,
+		adsb.BytesPerFrame, adsb.ChannelsPerFrame, adsb.BitsPerChannel, adsb.Reserved)
 }
 
 //Constants needed for creating a LPCM byte array
