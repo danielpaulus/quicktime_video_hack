@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
 )
 
 //CMItemCount is a simple typedef to int to be a bit closer to MacOS/iOS
@@ -23,11 +22,6 @@ const (
 	nsmp uint32 = 0x6E736D70 //numsample so you know how many things are in the arrays
 
 	cmSampleTimingInfoLength = 3 * CMTimeLengthInBytes
-)
-
-const (
-	MediaTypeVideo int = iota
-	MediaTypeSound int = iota
 )
 
 //CMSampleTimingInfo is a simple struct containing 3 CMtimes: Duration, PresentationTimeStamp and DecodeTimeStamp
@@ -54,15 +48,15 @@ func (info CMSampleTimingInfo) String() string {
 //optional FormatDescriptors
 type CMSampleBuffer struct {
 	OutputPresentationTimestamp CMTime
-	FormatDescription           dict.FormatDescriptor
+	FormatDescription           FormatDescriptor
 	HasFormatDescription        bool
 	NumSamples                  CMItemCount          //nsmp
 	SampleTimingInfoArray       []CMSampleTimingInfo //stia
 	SampleData                  []byte
 	SampleSizes                 []int
-	Attachments                 dict.IndexKeyDict //satt
-	Sary                        dict.IndexKeyDict //sary
-	MediaType                   int
+	Attachments                 IndexKeyDict //satt
+	Sary                        IndexKeyDict //sary
+	MediaType                   uint32
 }
 
 func (buffer CMSampleBuffer) String() string {
@@ -92,7 +86,7 @@ func NewCMSampleBufferFromBytesVideo(data []byte) (CMSampleBuffer, error) {
 }
 
 //NewCMSampleBufferFromBytes parses a CMSampleBuffer from a []byte assuming it begins with a 4 byte length and the 4byte magic int "sbuf"
-func NewCMSampleBufferFromBytes(data []byte, mediaType int) (CMSampleBuffer, error) {
+func NewCMSampleBufferFromBytes(data []byte, mediaType uint32) (CMSampleBuffer, error) {
 	var sbuffer CMSampleBuffer
 	sbuffer.MediaType = mediaType
 	sbuffer.HasFormatDescription = false
@@ -141,18 +135,22 @@ func NewCMSampleBufferFromBytes(data []byte, mediaType int) (CMSampleBuffer, err
 	if len(remainingBytes) == 0 {
 		return sbuffer, nil
 	}
-	if binary.LittleEndian.Uint32(remainingBytes[4:]) == dict.FormatDescriptorMagic {
+	if binary.LittleEndian.Uint32(remainingBytes[4:]) == FormatDescriptorMagic {
 		sbuffer.HasFormatDescription = true
 		fdscLength := binary.LittleEndian.Uint32(remainingBytes)
-		sbuffer.FormatDescription, err = dict.NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
+		sbuffer.FormatDescription, err = NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
 		if err != nil {
 			return sbuffer, err
 		}
 		remainingBytes = remainingBytes[fdscLength:]
 	}
+	//audio buffers usually end after samplesize
+	if len(remainingBytes) == 0 {
+		return sbuffer, nil
+	}
 
 	attachmentsLength := binary.LittleEndian.Uint32(remainingBytes)
-	sbuffer.Attachments, err = dict.NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
+	sbuffer.Attachments, err = NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
 	if err != nil {
 		return sbuffer, err
 	}
@@ -161,7 +159,7 @@ func NewCMSampleBufferFromBytes(data []byte, mediaType int) (CMSampleBuffer, err
 	if binary.LittleEndian.Uint32(remainingBytes[4:]) != sary {
 		return sbuffer, fmt.Errorf("wrong magic, expected sary got:%x", remainingBytes[4:8])
 	}
-	sbuffer.Sary, err = dict.NewIndexDictFromBytes(remainingBytes[8:saryLength])
+	sbuffer.Sary, err = NewIndexDictFromBytes(remainingBytes[8:saryLength])
 	if err != nil {
 		return sbuffer, err
 	}
