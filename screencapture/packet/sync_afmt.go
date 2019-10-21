@@ -5,25 +5,20 @@ import (
 	"fmt"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
 )
 
 // SyncAfmtPacket contains what I think is information about the audio format
 type SyncAfmtPacket struct {
-	SyncMagic     uint32
-	ClockRef      CFTypeID
-	MessageType   uint32
-	CorrelationID uint64
-	Unknown1      uint32
-	Unknown2      uint32
-	LpcmMagic     uint32
-	LpcmData      coremedia.LPCMData
+	SyncMagic                   uint32
+	ClockRef                    CFTypeID
+	MessageType                 uint32
+	CorrelationID               uint64
+	AudioStreamBasicDescription coremedia.AudioStreamBasicDescription
 }
 
 func (sp SyncAfmtPacket) String() string {
-	return fmt.Sprintf("SYNC_AFMT{ClockRef:%x, CorrelationID:%x, Unknown1:%x, Unknown2:%x, Lpcm:%s}",
-		sp.ClockRef, sp.CorrelationID, sp.Unknown1, sp.Unknown2, sp.LpcmData.String())
+	return fmt.Sprintf("SYNC_AFMT{ClockRef:%x, CorrelationID:%x, AudioStreamBasicDescription:%s}",
+		sp.ClockRef, sp.CorrelationID, sp.AudioStreamBasicDescription.String())
 }
 
 // NewSyncAfmtPacketFromBytes parses a new AsynFmtPacket from byte array
@@ -39,13 +34,11 @@ func NewSyncAfmtPacketFromBytes(data []byte) (SyncAfmtPacket, error) {
 		return packet, fmt.Errorf("invalid packet type in sync afmt:%x", data)
 	}
 	packet.CorrelationID = binary.LittleEndian.Uint64(data[16:])
-	packet.Unknown1 = binary.LittleEndian.Uint32(data[24:])
-	packet.Unknown2 = binary.LittleEndian.Uint32(data[28:])
-	packet.LpcmMagic = binary.LittleEndian.Uint32(data[32:])
+
 	var err error
-	packet.LpcmData, err = coremedia.NewLPCMDataFromBytes(data[36:])
+	packet.AudioStreamBasicDescription, err = coremedia.NewAudioStreamBasicDescriptionFromBytes(data[24:])
 	if err != nil {
-		return packet, fmt.Errorf("Error parsing LPCM data in asyn afmt: %s, ", err)
+		return packet, fmt.Errorf("Error parsing AudioStreamBasicDescription data in asyn afmt: %s, ", err)
 	}
 	return packet, nil
 }
@@ -53,9 +46,9 @@ func NewSyncAfmtPacketFromBytes(data []byte) (SyncAfmtPacket, error) {
 //NewReply returns a []byte containing a correct reploy for afmt
 func (sp SyncAfmtPacket) NewReply() []byte {
 	responseDict := createResponseDict()
-	dictBytes := dict.SerializeStringKeyDict(responseDict)
+	dictBytes := coremedia.SerializeStringKeyDict(responseDict)
 	dictLength := uint32(len(dictBytes))
-	length := uint32(dictLength + 20)
+	length := dictLength + 20
 	responseBytes := make([]byte, length)
 	binary.LittleEndian.PutUint32(responseBytes, length)
 	binary.LittleEndian.PutUint32(responseBytes[4:], ReplyPacketMagic)
@@ -67,11 +60,11 @@ func (sp SyncAfmtPacket) NewReply() []byte {
 
 }
 
-func createResponseDict() dict.StringKeyDict {
-	var response dict.StringKeyDict
+func createResponseDict() coremedia.StringKeyDict {
+	var response coremedia.StringKeyDict
 	errorCode := common.NewNSNumberFromUInt32(0)
 	key := "Error"
-	response = dict.StringKeyDict{Entries: make([]dict.StringKeyEntry, 1)}
+	response = coremedia.StringKeyDict{Entries: make([]coremedia.StringKeyEntry, 1)}
 	response.Entries[0].Key = key
 	response.Entries[0].Value = errorCode
 	return response

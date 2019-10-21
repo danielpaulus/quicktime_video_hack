@@ -3,7 +3,7 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/dict"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 )
 
 //AsynSprpPacket seems to be a set property packet sent by the device.
@@ -11,7 +11,7 @@ type AsynSprpPacket struct {
 	AsyncMagic  uint32
 	ClockRef    CFTypeID
 	MessageType uint32
-	Property    dict.StringKeyEntry
+	Property    coremedia.StringKeyEntry
 }
 
 //NewAsynSprpPacketFromBytes creates a new AsynSprpPacket from bytes
@@ -26,7 +26,7 @@ func NewAsynSprpPacketFromBytes(data []byte) (AsynSprpPacket, error) {
 	if packet.MessageType != SPRP {
 		return packet, fmt.Errorf("invalid packet type in asyn sprp:%x", data)
 	}
-	entry, err := dict.ParseKeyValueEntry(data[16:])
+	entry, err := coremedia.ParseKeyValueEntry(data[16:])
 	if err != nil {
 		return packet, err
 	}
