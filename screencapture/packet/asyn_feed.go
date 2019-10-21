@@ -72,3 +72,7 @@ func newAsynCmSampleBufferPacketFromBytes(data []byte, magic uint32) (CFTypeID, 
 func (sp AsynFeedPacket) String() string {
 	return fmt.Sprintf("ASYN_FEED{ClockRef:%x, sBuf:%s}", sp.ClockRef, sp.CMSampleBuf.String())
 }
+
+func (sp AsynEatPacket) String() string {
+	return fmt.Sprintf("ASYN_EAT!{ClockRef:%x, sBuf:%s}", sp.ClockRef, sp.CMSampleBuf.String())
+}
