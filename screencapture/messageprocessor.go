@@ -162,7 +162,7 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 				log.Warn("unknown eat")
 				return
 			}
-			log.Debug("last audiopacket:%s", eatPacket.String())
+			log.Debugf("last audiopacket:%s", eatPacket.String())
 		}
 	case packet.FEED:
 		feedPacket, err := packet.NewAsynFeedPacketFromBytes(data)
