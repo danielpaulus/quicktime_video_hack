@@ -18,7 +18,7 @@ func main() {
 Usage:
   qvh devices
   qvh activate
-  qvh record <outfile> <audiofile>
+  qvh record <h264file> <wavfile>
  
 Options:
   -h --help     Show this screen.
@@ -54,17 +54,17 @@ The commands work as following:
 
 	rawStreamCommand, _ := arguments.Bool("record")
 	if rawStreamCommand {
-		outFilePath, err := arguments.String("<outfile>")
+		h264FilePath, err := arguments.String("<h264file>")
 		if err != nil {
 			log.Error("Missing outfile parameter. Please specify a valid path like '/home/me/out.h264'")
 			return
 		}
-		outFilePathAudio, err := arguments.String("<audiofile>")
+		waveFilePath, err := arguments.String("<wavfile>")
 		if err != nil {
 			log.Error("Missing audiofile parameter. Please specify a valid path like '/home/me/out.raw'")
 			return
 		}
-		record(outFilePath, outFilePathAudio)
+		record(h264FilePath, waveFilePath)
 	}
 }
 
@@ -125,7 +125,7 @@ func activate() {
 	log.Info(qtOutput)
 }
 
-func record(outFilePath string, outFilePathAudio string) {
+func record(h264FilePath string, wavFilePath string) {
 	activate()
 	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
@@ -133,38 +133,38 @@ func record(outFilePath string, outFilePathAudio string) {
 	if err != nil {
 		log.Fatal("Error finding iOS Devices", err)
 	}
-	log.Infof("Writing output to:%s", outFilePath)
+	log.Infof("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
 	dev := deviceList[0]
 
-	file, err := os.Create(outFilePath)
+	h264File, err := os.Create(h264FilePath)
 	if err != nil {
-		log.Debugf("Error creating file:%s", err)
-		log.Errorf("Could not open file '%s'", outFilePath)
+		log.Debugf("Error creating h264File:%s", err)
+		log.Errorf("Could not open h264File '%s'", h264FilePath)
 	}
-	audioFile, err := os.Create(outFilePathAudio)
+	wavFile, err := os.Create(wavFilePath)
 	if err != nil {
-		log.Debugf("Error creating file:%s", err)
-		log.Errorf("Could not open file '%s'", outFilePath)
+		log.Debugf("Error creating wav file:%s", err)
+		log.Errorf("Could not open wav file '%s'", wavFilePath)
 	}
 
-	writer := coremedia.NewAVFileWriter(bufio.NewWriter(file), bufio.NewWriter(audioFile))
+	writer := coremedia.NewAVFileWriter(bufio.NewWriter(h264File), bufio.NewWriter(wavFile))
 
 	defer func() {
-		stat, err := audioFile.Stat()
+		stat, err := wavFile.Stat()
 		if err != nil {
 			log.Fatal("Could not get wav file stats", err)
 		}
-		err = coremedia.WriteWavHeader(int(stat.Size()), audioFile)
+		err = coremedia.WriteWavHeader(int(stat.Size()), wavFile)
 		if err != nil {
-			log.Fatalf("Error writing wave header %s might be invalid. %s", outFilePathAudio, err.Error())
+			log.Fatalf("Error writing wave header %s might be invalid. %s", wavFilePath, err.Error())
 		}
-		err = audioFile.Close()
+		err = wavFile.Close()
 		if err != nil {
-			log.Fatalf("Error closing wave file. '%s' might be invalid. %s", outFilePathAudio, err.Error())
+			log.Fatalf("Error closing wave file. '%s' might be invalid. %s", wavFilePath, err.Error())
 		}
-		err = file.Close()
+		err = h264File.Close()
 		if err != nil {
-			log.Fatalf("Error closing h264 file '%s'. %s", outFilePath, err.Error())
+			log.Fatalf("Error closing h264File '%s'. %s", h264FilePath, err.Error())
 		}
 
 	}()
