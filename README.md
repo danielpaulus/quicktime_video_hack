@@ -18,21 +18,18 @@ So if you are just interested in the protocol or if you want to implement this i
 run `go run main.go --help` to see how it works
 
 Progress:
-1. ~~Make the `go run main.go record` work on the first execution (currently you have to run it twice and it will start recording on the second run)~~
-2. FIX: After running the record command and saving a video, you have to unplug the device to record another video currently
-3. Make a release :-D
-4. ~~Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers~~
-5. ~~Complete packet documentation~~
-6. Send correct replies for clock SKEW packets
-7. Fix small bug in lengthfield based decoder
-8. Stream device audio over rtp as well
+1. Send correct replies for clock SKEW packets
+2. Fix small bug in lengthfield based decoder
+3. Stream device audio over rtp as well
+4. Make a release :-D
 
 
 Extra Goals:
 
 0. ~~Also save the device audio stream (I am already decoding it and receiving it, just not doing anything with it for now)~~
 1. [Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)
-
+2. See if there is maybe a way to get it to work on mac
+3. BUG: After running the tool to grab AV data, you have to unplug the device to record another video currently
 
 ## 4. Additional Notes
 ### MAC OS X LIBUSB -- IMPORTANT
