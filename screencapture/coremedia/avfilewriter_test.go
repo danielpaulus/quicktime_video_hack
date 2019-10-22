@@ -17,13 +17,13 @@ var startCode = []byte{00, 00, 00, 01}
 func TestFileWriter(t *testing.T) {
 	buf := bytes.NewBuffer(make([]byte, 100))
 	buf.Reset()
-	nfw := coremedia.NewNaluFileWriter(buf, nil)
-	err := nfw.Consume(cmSampleBufWithAFewBytes())
+	avfw := coremedia.NewAVFileWriter(buf, nil)
+	err := avfw.Consume(cmSampleBufWithAFewBytes())
 	assert.NoError(t, err)
 	assert.Equal(t, 6, buf.Len())
 	assert.Equal(t, []byte{00, 00, 00, 01, 00, 00}, buf.Bytes())
 	buf.Reset()
-	err = nfw.Consume(cmSampleBufWithFdscAndAFewBytes())
+	err = avfw.Consume(cmSampleBufWithFdscAndAFewBytes())
 	assert.NoError(t, err)
 	expectedBytes := append(startCode, fakePPS...)
 	expectedBytes = append(expectedBytes, startCode...)
@@ -31,10 +31,26 @@ func TestFileWriter(t *testing.T) {
 	expectedBytes = append(expectedBytes, []byte{00, 00, 00, 01, 00, 00}...)
 	assert.Equal(t, expectedBytes, buf.Bytes())
 
-	nfw = coremedia.NewNaluFileWriter(failingWriter{}, nil)
-	err = nfw.Consume(cmSampleBufWithFdscAndAFewBytes())
+	avfw = coremedia.NewAVFileWriter(failingWriter{}, nil)
+	err = avfw.Consume(cmSampleBufWithFdscAndAFewBytes())
 	assert.Error(t, err)
-	err = nfw.Consume(cmSampleBufWithAFewBytes())
+	err = avfw.Consume(cmSampleBufWithAFewBytes())
+	assert.Error(t, err)
+}
+
+func TestFileWriterForAudio(t *testing.T) {
+	buf := bytes.NewBuffer(make([]byte, 100))
+	buf.Reset()
+	avfw := coremedia.NewAVFileWriter(nil, buf)
+	sampleBuffer := cmSampleBufWithFdscAndAFewBytes()
+	sampleBuffer.MediaType = coremedia.MediaTypeSound
+	err := avfw.Consume(sampleBuffer)
+	if assert.NoError(t, err) {
+		assert.Equal(t, sampleBuffer.SampleData, buf.Bytes())
+	}
+
+	avfw = coremedia.NewAVFileWriter(nil, failingWriter{})
+	err = avfw.Consume(sampleBuffer)
 	assert.Error(t, err)
 }
 
