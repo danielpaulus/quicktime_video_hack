@@ -67,6 +67,8 @@ func (nfw NaluFileWriter) writeNalu(naluBytes []byte) error {
 	return nil
 }
 
+//write wav file
+//http://soundfile.sapp.org/doc/WaveFormat/
 func (nfw NaluFileWriter) consumeAudio(buffer CMSampleBuffer) error {
 	_, err := nfw.audioFileWriter.Write(buffer.SampleData)
 	if err != nil {
