@@ -18,7 +18,7 @@ func main() {
 Usage:
   qvh devices
   qvh activate
-  qvh dumpraw <outfile> <audiofile>
+  qvh record <outfile> <audiofile>
  
 Options:
   -h --help     Show this screen.
@@ -29,8 +29,9 @@ Options:
 The commands work as following:
 	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
 	activate	only enables the video streaming config for the given device
-	dumpraw		will start video recording and dump it to a raw h264 file playable by VLC. 
-				Run like: "qvh dumpraw /home/yourname/out.h264"
+	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
+				Audio will be saved in a uncompressed wav file.
+				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
   `
 	arguments, _ := docopt.ParseDoc(usage)
 	//TODO: add verbose switch to conf this
@@ -51,7 +52,7 @@ The commands work as following:
 		return
 	}
 
-	rawStreamCommand, _ := arguments.Bool("dumpraw")
+	rawStreamCommand, _ := arguments.Bool("record")
 	if rawStreamCommand {
 		outFilePath, err := arguments.String("<outfile>")
 		if err != nil {
@@ -63,7 +64,7 @@ The commands work as following:
 			log.Error("Missing audiofile parameter. Please specify a valid path like '/home/me/out.raw'")
 			return
 		}
-		dumpraw(outFilePath, outFilePathAudio)
+		record(outFilePath, outFilePathAudio)
 	}
 }
 
@@ -124,7 +125,7 @@ func activate() {
 	log.Info(qtOutput)
 }
 
-func dumpraw(outFilePath string, outFilePathAudio string) {
+func record(outFilePath string, outFilePathAudio string) {
 	activate()
 	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
