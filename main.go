@@ -56,12 +56,12 @@ The commands work as following:
 	if rawStreamCommand {
 		h264FilePath, err := arguments.String("<h264file>")
 		if err != nil {
-			log.Error("Missing outfile parameter. Please specify a valid path like '/home/me/out.h264'")
+			log.Error("Missing <h264file> parameter. Please specify a valid path like '/home/me/out.h264'")
 			return
 		}
 		waveFilePath, err := arguments.String("<wavfile>")
 		if err != nil {
-			log.Error("Missing audiofile parameter. Please specify a valid path like '/home/me/out.raw'")
+			log.Error("Missing <wavfile> parameter. Please specify a valid path like '/home/me/out.raw'")
 			return
 		}
 		record(h264FilePath, waveFilePath)
