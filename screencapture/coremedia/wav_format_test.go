@@ -1,40 +1,41 @@
 package coremedia_test
 
 import (
-	"bytes"
+	"encoding/hex"
 	"io/ioutil"
 	"log"
 	"os"
 	"testing"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/stretchr/testify/assert"
 )
 
+const expectedBytes = "524946461802000057415645666d7420100000000100020080bb000000ee02000400100064617461f401000044616e69656c"
+
 func TestWav(t *testing.T) {
-	dat, err := ioutil.ReadFile("fixtures/out.raw")
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	headerPlaceholder := make([]byte, 44)
 
-	file, err := os.Create("/Users/danielpaulus/tmp/out1.wav")
+	file, err := ioutil.TempFile("", "golangtemp*")
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer os.Remove(file.Name())
+
 	file.Write(headerPlaceholder)
+	file.Write(([]byte)("Daniel"))
 	defer file.Close()
-	file.Write(dat)
-	buffer := bytes.NewBuffer(make([]byte, 100))
-	buffer.Reset()
 
-	riffHeader := coremedia.NewRiffHeader(len(dat))
-	riffHeader.Serialize(buffer)
+	err = coremedia.WriteWavHeader(500, file)
+	if assert.NoError(t, err) {
 
-	fmtSubChunk := coremedia.NewFmtSubChunk()
-	fmtSubChunk.Serialize(buffer)
+		dat, err := ioutil.ReadFile(file.Name())
+		if err != nil {
+			log.Fatal(err)
+		}
+		expectedBytes, _ := hex.DecodeString(expectedBytes)
+		assert.Equal(t, expectedBytes, dat)
+	}
 
-	coremedia.WriteWavDataSubChunkHeader(buffer, len(dat))
-	file.WriteAt(buffer.Bytes(), 0)
-	//log.Fatal(fmt.Errorf("test:%x", buffer.Bytes()))
 }

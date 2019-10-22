@@ -2,12 +2,13 @@ package main
 
 import (
 	"bufio"
+	"os"
+	"os/signal"
+
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"os/signal"
 )
 
 func main() {
@@ -146,6 +147,13 @@ func dumpraw(outFilePath string, outFilePathAudio string) {
 	}
 
 	writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file), bufio.NewWriter(audioFile))
+	defer file.Close()
+	defer func() {
+		stat, err := audioFile.Stat()
+		log.Fatal("Could not write wav header", err)
+		coremedia.WriteWavHeader(stat.Size(), audioFile)
+		audioFile.Close()
+	}()
 	adapter := screencapture.UsbAdapter{}
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)

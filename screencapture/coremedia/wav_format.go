@@ -3,7 +3,7 @@ package coremedia
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
+	"os"
 )
 
 /*
@@ -24,19 +24,19 @@ The canonical WAVE format starts with the RIFF header:
                                (0x57415645 big-endian form).
 
 */
-type RiffHeader struct {
+type riffHeader struct {
 	ChunkID   uint32
 	ChunkSize uint32
 	Format    uint32
 }
 
-//NewRiffHeader get a RIFF header set up for creating a WAVE file
-func NewRiffHeader(size int) RiffHeader {
-	return RiffHeader{ChunkID: 0x46464952, Format: 0x45564157, ChunkSize: uint32(36 + size)}
+//newRiffHeader get a RIFF header set up for creating a WAVE file
+func newRiffHeader(size int) riffHeader {
+	return riffHeader{ChunkID: 0x46464952, Format: 0x45564157, ChunkSize: uint32(36 + size)}
 }
 
-//Serialize this RiffHeader into the given target bytes.Buffer
-func (rh RiffHeader) Serialize(target *bytes.Buffer) {
+//serialize this RiffHeader into the given target bytes.Buffer
+func (rh riffHeader) serialize(target *bytes.Buffer) {
 	binary.Write(target, binary.LittleEndian, rh)
 }
 
@@ -62,7 +62,7 @@ The "fmt " subchunk describes the sound data's format:
           2   ExtraParamSize   if PCM, then doesn't exist
           X   ExtraParams      space for extra parameters
 */
-type FmtSubChunk struct {
+type fmtSubChunk struct {
 	SubChunkID    uint32
 	SubChunkSize  uint32
 	AudioFormat   uint16
@@ -74,15 +74,15 @@ type FmtSubChunk struct {
 }
 
 //NewFmtSubChunk generates the Fmt Subchunk for creating a WAV file
-func NewFmtSubChunk() FmtSubChunk {
-	result := FmtSubChunk{SubChunkID: 0x20746d66, SubChunkSize: 16, AudioFormat: 1, NumChannels: 2, SampleRate: 48000, BitsPerSample: 16}
+func newFmtSubChunk() fmtSubChunk {
+	result := fmtSubChunk{SubChunkID: 0x20746d66, SubChunkSize: 16, AudioFormat: 1, NumChannels: 2, SampleRate: 48000, BitsPerSample: 16}
 	result.ByteRate = result.SampleRate * uint32(result.NumChannels) * uint32(result.BitsPerSample) / 8
 	result.BlockAlign = result.NumChannels * (result.BitsPerSample / 8)
 	return result
 }
 
 //Serialize this RiffHeader into the given target bytes.Buffer
-func (fmsc FmtSubChunk) Serialize(target *bytes.Buffer) {
+func (fmsc fmtSubChunk) serialize(target *bytes.Buffer) {
 	binary.Write(target, binary.LittleEndian, fmsc)
 }
 
@@ -98,13 +98,34 @@ The "data" subchunk contains the size of the data and the actual sound:
                                number.
 44        *   Data             The actual sound data.
 */
-func WriteWavDataSubChunkHeader(target *bytes.Buffer, dataLength int) {
+func writeWavDataSubChunkHeader(target *bytes.Buffer, dataLength int) error {
 	err := binary.Write(target, binary.BigEndian, uint32(0x64617461))
 	if err != nil {
-		log.Fatal("noo" + err.Error())
+		return err
 	}
 	err = binary.Write(target, binary.LittleEndian, uint32(dataLength))
 	if err != nil {
-		log.Fatal("noo" + err.Error())
+		return err
 	}
+	return nil
+}
+
+//WriteWavHeader creates a wave file header using the given length and writes it at the BEGINNING of the wavFile.
+//Please make sure that the file has enough zero bytes before the audio data.
+func WriteWavHeader(length int, wavFile *os.File) error {
+	buffer := bytes.NewBuffer(make([]byte, 100))
+	buffer.Reset()
+
+	riffHeader := newRiffHeader(length)
+	riffHeader.serialize(buffer)
+
+	fmtSubChunk := newFmtSubChunk()
+	fmtSubChunk.serialize(buffer)
+
+	err := writeWavDataSubChunkHeader(buffer, length)
+	if err != nil {
+		return err
+	}
+	_, err = wavFile.WriteAt(buffer.Bytes(), 0)
+	return err
 }
