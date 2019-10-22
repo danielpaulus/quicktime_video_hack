@@ -77,7 +77,7 @@ type FmtSubChunk struct {
 func NewFmtSubChunk() FmtSubChunk {
 	result := FmtSubChunk{SubChunkID: 0x20746d66, SubChunkSize: 16, AudioFormat: 1, NumChannels: 2, SampleRate: 48000, BitsPerSample: 16}
 	result.ByteRate = result.SampleRate * uint32(result.NumChannels) * uint32(result.BitsPerSample) / 8
-	result.BlockAlign = result.NumChannels * (result.BitsPerSample / 2)
+	result.BlockAlign = result.NumChannels * (result.BitsPerSample / 8)
 	return result
 }
 
