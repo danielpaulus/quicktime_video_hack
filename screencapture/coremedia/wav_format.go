@@ -36,8 +36,8 @@ func newRiffHeader(size int) riffHeader {
 }
 
 //serialize this RiffHeader into the given target bytes.Buffer
-func (rh riffHeader) serialize(target *bytes.Buffer) {
-	binary.Write(target, binary.LittleEndian, rh)
+func (rh riffHeader) serialize(target *bytes.Buffer) error {
+	return binary.Write(target, binary.LittleEndian, rh)
 }
 
 /*
@@ -82,8 +82,8 @@ func newFmtSubChunk() fmtSubChunk {
 }
 
 //Serialize this RiffHeader into the given target bytes.Buffer
-func (fmsc fmtSubChunk) serialize(target *bytes.Buffer) {
-	binary.Write(target, binary.LittleEndian, fmsc)
+func (fmsc fmtSubChunk) serialize(target *bytes.Buffer) error {
+	return binary.Write(target, binary.LittleEndian, fmsc)
 }
 
 /*
@@ -117,12 +117,18 @@ func WriteWavHeader(length int, wavFile *os.File) error {
 	buffer.Reset()
 
 	riffHeader := newRiffHeader(length)
-	riffHeader.serialize(buffer)
+	err := riffHeader.serialize(buffer)
+	if err != nil {
+		return err
+	}
 
 	fmtSubChunk := newFmtSubChunk()
-	fmtSubChunk.serialize(buffer)
+	err = fmtSubChunk.serialize(buffer)
+	if err != nil {
+		return err
+	}
 
-	err := writeWavDataSubChunkHeader(buffer, length)
+	err = writeWavDataSubChunkHeader(buffer, length)
 	if err != nil {
 		return err
 	}

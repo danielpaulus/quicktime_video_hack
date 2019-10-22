@@ -13,7 +13,7 @@ import (
 
 const expectedBytes = "524946461802000057415645666d7420100000000100020080bb000000ee02000400100064617461f401000044616e69656c"
 
-func TestWav(t *testing.T) {
+func TestWavHeaderWrittenCorrectly(t *testing.T) {
 
 	headerPlaceholder := make([]byte, 44)
 
@@ -21,11 +21,25 @@ func TestWav(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.Remove(file.Name())
+	defer func() {
+		err = file.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = os.Remove(file.Name())
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
-	file.Write(headerPlaceholder)
-	file.Write(([]byte)("Daniel"))
-	defer file.Close()
+	_, err = file.Write(headerPlaceholder)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = file.Write(([]byte)("Daniel"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = coremedia.WriteWavHeader(500, file)
 	if assert.NoError(t, err) {
