@@ -18,8 +18,8 @@ So if you are just interested in the protocol or if you want to implement this i
 run `go run main.go --help` to see how it works
 
 Progress:
-1. ~~Make the `go run main.go dumpraw` work on the first execution (currently you have to run it twice and it will start recording on the second run)~~
-2. FIX: After running the dumpraw command and saving a video, you have to unplug the device to record another video currently
+1. ~~Make the `go run main.go record` work on the first execution (currently you have to run it twice and it will start recording on the second run)~~
+2. FIX: After running the record command and saving a video, you have to unplug the device to record another video currently
 3. Make a release :-D
 4. Generate GStreamer compatible x264 stream probably by wrapping the NaLus in RTP headers
 5. ~~Complete packet documentation~~
@@ -39,7 +39,7 @@ Extra Goals:
 
 2. What does not work
 
-This might be wrong, needs investigation--> `qvh dumpraw` won't work on MAC OS because the binary needs to be codesigned with `com.apple.ibridge.control`
+This might be wrong, needs investigation--> `qvh record` won't work on MAC OS because the binary needs to be codesigned with `com.apple.ibridge.control`
  apparently that is a protected Entitlement that I have no idea how to use or sign my binary with. 
 
 2. Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
