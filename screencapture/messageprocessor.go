@@ -167,14 +167,18 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.EAT:
 		mp.audioSamplesReceived++
+		eatPacket, err := packet.NewAsynEatPacketFromBytes(data)
+		if err != nil {
+			log.Warn("unknown eat")
+			return
+		}
+		err = mp.cmSampleBufConsumer.Consume(eatPacket.CMSampleBuf)
+		if err != nil {
+			log.Warn("failed consuming audio buf", err)
+			return
+		}
 		if mp.audioSamplesReceived%100 == 0 {
 			log.Debugf("RCV Audio Samples:%d", mp.audioSamplesReceived)
-			eatPacket, err := packet.NewAsynEatPacketFromBytes(data)
-			if err != nil {
-				log.Warn("unknown eat")
-				return
-			}
-			log.Debugf("last audiopacket:%s", eatPacket.String())
 		}
 	case packet.FEED:
 		feedPacket, err := packet.NewAsynFeedPacketFromBytes(data)
