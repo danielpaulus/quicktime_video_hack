@@ -146,13 +146,26 @@ func dumpraw(outFilePath string, outFilePathAudio string) {
 		log.Errorf("Could not open file '%s'", outFilePath)
 	}
 
-	writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file), bufio.NewWriter(audioFile))
-	defer file.Close()
+	writer := coremedia.NewAVFileWriter(bufio.NewWriter(file), bufio.NewWriter(audioFile))
+
 	defer func() {
 		stat, err := audioFile.Stat()
-		log.Fatal("Could not write wav header", err)
-		coremedia.WriteWavHeader(stat.Size(), audioFile)
-		audioFile.Close()
+		if err != nil {
+			log.Fatal("Could not get wav file stats", err)
+		}
+		err = coremedia.WriteWavHeader(int(stat.Size()), audioFile)
+		if err != nil {
+			log.Fatalf("Error writing wave header %s might be invalid. %s", outFilePathAudio, err.Error())
+		}
+		err = audioFile.Close()
+		if err != nil {
+			log.Fatalf("Error closing wave file. '%s' might be invalid. %s", outFilePathAudio, err.Error())
+		}
+		err = file.Close()
+		if err != nil {
+			log.Fatalf("Error closing h264 file '%s'. %s", outFilePath, err.Error())
+		}
+
 	}()
 	adapter := screencapture.UsbAdapter{}
 	stopSignal := make(chan interface{})
