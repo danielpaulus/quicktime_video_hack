@@ -17,7 +17,7 @@ func main() {
 Usage:
   qvh devices
   qvh activate
-  qvh dumpraw <outfile>
+  qvh dumpraw <outfile> <audiofile>
  
 Options:
   -h --help     Show this screen.
@@ -57,7 +57,12 @@ The commands work as following:
 			log.Error("Missing outfile parameter. Please specify a valid path like '/home/me/out.h264'")
 			return
 		}
-		dumpraw(outFilePath)
+		outFilePathAudio, err := arguments.String("<audiofile>")
+		if err != nil {
+			log.Error("Missing audiofile parameter. Please specify a valid path like '/home/me/out.raw'")
+			return
+		}
+		dumpraw(outFilePath, outFilePathAudio)
 	}
 }
 
@@ -118,7 +123,7 @@ func activate() {
 	log.Info(qtOutput)
 }
 
-func dumpraw(outFilePath string) {
+func dumpraw(outFilePath string, outFilePathAudio string) {
 	activate()
 	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
@@ -134,7 +139,13 @@ func dumpraw(outFilePath string) {
 		log.Debugf("Error creating file:%s", err)
 		log.Errorf("Could not open file '%s'", outFilePath)
 	}
-	writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file))
+	audioFile, err := os.Create(outFilePathAudio)
+	if err != nil {
+		log.Debugf("Error creating file:%s", err)
+		log.Errorf("Could not open file '%s'", outFilePath)
+	}
+
+	writer := coremedia.NewNaluFileWriter(bufio.NewWriter(file), bufio.NewWriter(audioFile))
 	adapter := screencapture.UsbAdapter{}
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)

@@ -10,17 +10,25 @@ var startCode = []byte{00, 00, 00, 01}
 //NaluFileWriter writes nalus into a file using 0x00000001 as a separator (h264 ANNEX B)
 //The file is playable with vlc
 type NaluFileWriter struct {
-	outFileWriter io.Writer
-	outFilePath   string
+	outFileWriter   io.Writer
+	audioFileWriter io.Writer
+	outFilePath     string
 }
 
 //NewNaluFileWriter binary writes nalus in annex b format to the given writer
-func NewNaluFileWriter(outFileWriter io.Writer) NaluFileWriter {
-	return NaluFileWriter{outFileWriter: outFileWriter}
+func NewNaluFileWriter(outFileWriter io.Writer, audioFileWriter io.Writer) NaluFileWriter {
+	return NaluFileWriter{outFileWriter: outFileWriter, audioFileWriter: audioFileWriter}
 }
 
 //Consume writes PPS and SPS as well as sample bufs into a annex b .h264 file
 func (nfw NaluFileWriter) Consume(buf CMSampleBuffer) error {
+	if buf.MediaType == MediaTypeSound {
+		return nfw.consumeAudio(buf)
+	}
+	return nfw.consumeVideo(buf)
+}
+
+func (nfw NaluFileWriter) consumeVideo(buf CMSampleBuffer) error {
 	if buf.HasFormatDescription {
 		err := nfw.writeNalu(buf.FormatDescription.PPS)
 		if err != nil {
@@ -53,6 +61,14 @@ func (nfw NaluFileWriter) writeNalu(naluBytes []byte) error {
 		return err
 	}
 	_, err = nfw.outFileWriter.Write(naluBytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (nfw NaluFileWriter) consumeAudio(buffer CMSampleBuffer) error {
+	_, err := nfw.audioFileWriter.Write(buffer.SampleData)
 	if err != nil {
 		return err
 	}

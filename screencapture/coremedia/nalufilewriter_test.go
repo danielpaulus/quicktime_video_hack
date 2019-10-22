@@ -17,7 +17,7 @@ var startCode = []byte{00, 00, 00, 01}
 func TestFileWriter(t *testing.T) {
 	buf := bytes.NewBuffer(make([]byte, 100))
 	buf.Reset()
-	nfw := coremedia.NewNaluFileWriter(buf)
+	nfw := coremedia.NewNaluFileWriter(buf, nil)
 	err := nfw.Consume(cmSampleBufWithAFewBytes())
 	assert.NoError(t, err)
 	assert.Equal(t, 6, buf.Len())
@@ -31,7 +31,7 @@ func TestFileWriter(t *testing.T) {
 	expectedBytes = append(expectedBytes, []byte{00, 00, 00, 01, 00, 00}...)
 	assert.Equal(t, expectedBytes, buf.Bytes())
 
-	nfw = coremedia.NewNaluFileWriter(failingWriter{})
+	nfw = coremedia.NewNaluFileWriter(failingWriter{}, nil)
 	err = nfw.Consume(cmSampleBufWithFdscAndAFewBytes())
 	assert.Error(t, err)
 	err = nfw.Consume(cmSampleBufWithAFewBytes())
