@@ -151,15 +151,7 @@ func activate() {
 }
 
 func record(h264FilePath string, wavFilePath string) {
-	activate()
-	cleanup := screencapture.Init()
-	deviceList, err := screencapture.FindIosDevices()
-	defer cleanup()
-	if err != nil {
-		log.Fatal("Error finding iOS Devices", err)
-	}
 	log.Infof("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
-	dev := deviceList[0]
 
 	h264File, err := os.Create(h264FilePath)
 	if err != nil {
@@ -193,12 +185,7 @@ func record(h264FilePath string, wavFilePath string) {
 		}
 
 	}()
-	adapter := screencapture.UsbAdapter{}
-	stopSignal := make(chan interface{})
-	waitForSigInt(stopSignal)
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
-
-	adapter.StartReading(dev, &mp, stopSignal)
+	startWithConsumer(writer)
 }
 
 func startWithConsumer(consumer screencapture.CmSampleBufConsumer) {
@@ -219,4 +206,3 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer) {
 
 	adapter.StartReading(dev, &mp, stopSignal)
 }
-
