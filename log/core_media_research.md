@@ -21,3 +21,6 @@ https://github.com/xamarin/xamarin-macios/tree/master/src/CoreMedia
 
 ### Core Media Headers
 https://github.com/phracker/MacOSX-SDKs/tree/master/MacOSX10.9.sdk/System/Library/Frameworks/CoreMedia.framework
+
+### what does packed mean
+https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html#//apple_ref/doc/uid/TP40001862-CH210-BCGJEBBI
