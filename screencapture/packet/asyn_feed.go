@@ -1,42 +1,29 @@
 package packet
 
 import (
+	"encoding/binary"
 	"fmt"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 )
 
-//AsynFeedPacket contains a CMSampleBuffer and there the actual video data
-type AsynFeedPacket struct {
+//AsynCmSampleBufPacket contains a CMSampleBuffer with audio or video data
+type AsynCmSampleBufPacket struct {
 	ClockRef    CFTypeID
 	CMSampleBuf coremedia.CMSampleBuffer
 }
 
-//AsynEatPacket contains a CMSampleBuffer with audio data
-type AsynEatPacket struct {
-	ClockRef    CFTypeID
-	CMSampleBuf coremedia.CMSampleBuffer
-}
-
-//NewAsynEatPacketFromBytes parses a new AsynEatPacket from bytes
-func NewAsynEatPacketFromBytes(data []byte) (AsynEatPacket, error) {
-	clockRef, sBuf, err := newAsynCmSampleBufferPacketFromBytes(data, EAT)
+//NewAsynCmSampleBufPacketFromBytes parses a new AsynCmSampleBufPacket from bytes
+func NewAsynCmSampleBufPacketFromBytes(data []byte) (AsynCmSampleBufPacket, error) {
+	clockRef, sBuf, err := newAsynCmSampleBufferPacketFromBytes(data)
 	if err != nil {
-		return AsynEatPacket{}, err
+		return AsynCmSampleBufPacket{}, err
 	}
-	return AsynEatPacket{ClockRef: clockRef, CMSampleBuf: sBuf}, nil
+	return AsynCmSampleBufPacket{ClockRef: clockRef, CMSampleBuf: sBuf}, nil
 }
 
-//NewAsynFeedPacketFromBytes parses a new AsynFeedPacket from bytes
-func NewAsynFeedPacketFromBytes(data []byte) (AsynFeedPacket, error) {
-	clockRef, sBuf, err := newAsynCmSampleBufferPacketFromBytes(data, FEED)
-	if err != nil {
-		return AsynFeedPacket{}, err
-	}
-	return AsynFeedPacket{ClockRef: clockRef, CMSampleBuf: sBuf}, nil
-}
-
-func newAsynCmSampleBufferPacketFromBytes(data []byte, magic uint32) (CFTypeID, coremedia.CMSampleBuffer, error) {
+func newAsynCmSampleBufferPacketFromBytes(data []byte) (CFTypeID, coremedia.CMSampleBuffer, error) {
+	magic := binary.LittleEndian.Uint32(data[12:])
 	_, clockRef, err := ParseAsynHeader(data, magic)
 	if err != nil {
 		return 0, coremedia.CMSampleBuffer{}, err
@@ -60,10 +47,6 @@ func newAsynCmSampleBufferPacketFromBytes(data []byte, magic uint32) (CFTypeID, 
 	return clockRef, cMSampleBuf, nil
 }
 
-func (sp AsynFeedPacket) String() string {
-	return fmt.Sprintf("ASYN_FEED{ClockRef:%x, sBuf:%s}", sp.ClockRef, sp.CMSampleBuf.String())
-}
-
-func (sp AsynEatPacket) String() string {
-	return fmt.Sprintf("ASYN_EAT!{ClockRef:%x, sBuf:%s}", sp.ClockRef, sp.CMSampleBuf.String())
+func (sp AsynCmSampleBufPacket) String() string {
+	return fmt.Sprintf("ASYN_SBUF{ClockRef:%x, sBuf:%s}", sp.ClockRef, sp.CMSampleBuf.String())
 }
