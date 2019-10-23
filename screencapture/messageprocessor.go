@@ -237,6 +237,8 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 	}
 }
 
+//CloseSession shuts down the streams on the device by sending HPA0 and HPD0
+//messages and waiting for RELS messages.
 func (mp *MessageProcessor) CloseSession() {
 	log.Info("Telling device to stop streaming..")
 	mp.usbWriter.WriteDataToUsb(packet.NewAsynHPA0(mp.deviceAudioClockRef))

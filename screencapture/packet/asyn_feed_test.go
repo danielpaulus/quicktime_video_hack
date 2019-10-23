@@ -17,8 +17,6 @@ func TestFeed(t *testing.T) {
 	feedPacket, err := packet.NewAsynFeedPacketFromBytes(dat[4:])
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint64(0x7ffb5cc32f60), feedPacket.ClockRef)
-		assert.Equal(t, packet.AsynPacketMagic, feedPacket.AsyncMagic)
-		assert.Equal(t, packet.FEED, feedPacket.MessageType)
 	}
 }
 
@@ -30,7 +28,5 @@ func TestEat(t *testing.T) {
 	feedPacket, err := packet.NewAsynEatPacketFromBytes(dat)
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint64(0x133959728), feedPacket.ClockRef)
-		assert.Equal(t, packet.AsynPacketMagic, feedPacket.AsyncMagic)
-		assert.Equal(t, packet.EAT, feedPacket.MessageType)
 	}
 }

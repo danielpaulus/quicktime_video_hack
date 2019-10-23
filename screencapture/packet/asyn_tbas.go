@@ -7,25 +7,19 @@ import (
 
 //AsynTbasPacket contains info about a new Timebase. I do not know what the other reference is used for.
 type AsynTbasPacket struct {
-	AsyncMagic   uint32
 	ClockRef     CFTypeID
-	MessageType  uint32
 	SomeOtherRef CFTypeID
 }
 
 //NewAsynTbasPacketFromBytes parses a AsynTbasPacket from bytes.
 func NewAsynTbasPacketFromBytes(data []byte) (AsynTbasPacket, error) {
 	var packet = AsynTbasPacket{}
-	packet.AsyncMagic = binary.LittleEndian.Uint32(data)
-	if packet.AsyncMagic != AsynPacketMagic {
-		return packet, fmt.Errorf("invalid asyn magic: %x", data)
+	remainingBytes, clockRef, err := ParseAsynHeader(data, TBAS)
+	if err != nil {
+		return packet, err
 	}
-	packet.ClockRef = binary.LittleEndian.Uint64(data[4:])
-	packet.MessageType = binary.LittleEndian.Uint32(data[12:])
-	if packet.MessageType != TBAS {
-		return packet, fmt.Errorf("invalid packet type in asyn tbas:%x", data)
-	}
-	packet.SomeOtherRef = binary.LittleEndian.Uint64(data[16:])
+	packet.ClockRef = clockRef
+	packet.SomeOtherRef = binary.LittleEndian.Uint64(remainingBytes)
 	return packet, nil
 }
 

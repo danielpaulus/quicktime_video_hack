@@ -1,7 +1,6 @@
 package packet
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
@@ -9,17 +8,13 @@ import (
 
 //AsynFeedPacket contains a CMSampleBuffer and there the actual video data
 type AsynFeedPacket struct {
-	AsyncMagic  uint32
 	ClockRef    CFTypeID
-	MessageType uint32
 	CMSampleBuf coremedia.CMSampleBuffer
 }
 
 //AsynEatPacket contains a CMSampleBuffer with audio data
 type AsynEatPacket struct {
-	AsyncMagic  uint32
 	ClockRef    CFTypeID
-	MessageType uint32
 	CMSampleBuf coremedia.CMSampleBuffer
 }
 
@@ -29,7 +24,7 @@ func NewAsynEatPacketFromBytes(data []byte) (AsynEatPacket, error) {
 	if err != nil {
 		return AsynEatPacket{}, err
 	}
-	return AsynEatPacket{AsyncMagic: AsynPacketMagic, ClockRef: clockRef, MessageType: EAT, CMSampleBuf: sBuf}, nil
+	return AsynEatPacket{ClockRef: clockRef, CMSampleBuf: sBuf}, nil
 }
 
 //NewAsynFeedPacketFromBytes parses a new AsynFeedPacket from bytes
@@ -38,22 +33,18 @@ func NewAsynFeedPacketFromBytes(data []byte) (AsynFeedPacket, error) {
 	if err != nil {
 		return AsynFeedPacket{}, err
 	}
-	return AsynFeedPacket{AsyncMagic: AsynPacketMagic, ClockRef: clockRef, MessageType: FEED, CMSampleBuf: sBuf}, nil
+	return AsynFeedPacket{ClockRef: clockRef, CMSampleBuf: sBuf}, nil
 }
 
 func newAsynCmSampleBufferPacketFromBytes(data []byte, magic uint32) (CFTypeID, coremedia.CMSampleBuffer, error) {
+	_, clockRef, err := ParseAsynHeader(data, magic)
+	if err != nil {
+		return 0, coremedia.CMSampleBuffer{}, err
+	}
+	clockRef = clockRef
 
-	asyncMagic := binary.LittleEndian.Uint32(data)
-	if asyncMagic != AsynPacketMagic {
-		return 0, coremedia.CMSampleBuffer{}, fmt.Errorf("invalid asyn magic: %x", data)
-	}
-	clockRef := binary.LittleEndian.Uint64(data[4:])
-	messageType := binary.LittleEndian.Uint32(data[12:])
-	if messageType != magic {
-		return 0, coremedia.CMSampleBuffer{}, fmt.Errorf("invalid packet type in asyn cmsamplebufferpacket:%x", data)
-	}
 	var cMSampleBuf coremedia.CMSampleBuffer
-	var err error
+
 	if magic == FEED {
 		cMSampleBuf, err = coremedia.NewCMSampleBufferFromBytesVideo(data[16:])
 		if err != nil {

@@ -17,8 +17,6 @@ func TestRels(t *testing.T) {
 	relsPacket, err := packet.NewAsynRelsPacketFromBytes(dat[4:])
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint64(0x7fba35608a00), relsPacket.ClockRef)
-		assert.Equal(t, packet.AsynPacketMagic, relsPacket.AsyncMagic)
-		assert.Equal(t, packet.RELS, relsPacket.MessageType)
 		assert.Equal(t, "ASYN_RELS{ClockRef:7fba35608a00}", relsPacket.String())
 	}
 }
