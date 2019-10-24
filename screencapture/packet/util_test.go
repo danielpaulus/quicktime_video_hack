@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAsyn(t *testing.T) {
+func TestParseAsynHeader(t *testing.T) {
 	data, expectedBytes, expectedClockRef := createAsynFeedPacket()
 
 	remainingBytes, clockRef, err := packet.ParseAsynHeader(data, packet.FEED)
