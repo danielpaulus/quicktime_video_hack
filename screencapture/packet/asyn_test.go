@@ -32,6 +32,16 @@ func TestAsynPacket(t *testing.T) {
 			expectedBytes: loadFromFile("asyn-hpa1"),
 			description:   "Expect Asyn HPA1 to be correctly serialized",
 		},
+		{
+			actualBytes:   packet.NewAsynHPA0(0x0000000102C5FC10),
+			expectedBytes: loadFromFile("asyn-hpa0"),
+			description:   "Expect Asyn HPA0 to be correctly serialized",
+		},
+		{
+			actualBytes:   packet.NewAsynHPD0(),
+			expectedBytes: loadFromFile("asyn-hpd0"),
+			description:   "Expect Asyn HPA0 to be correctly serialized",
+		},
 	}
 	for _, testCase := range cases {
 		assert.Equal(t, testCase.expectedBytes, testCase.actualBytes, testCase.description)
