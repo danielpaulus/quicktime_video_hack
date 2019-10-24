@@ -7,32 +7,24 @@ import (
 
 //SyncCwpaPacket contains all info from a CWPA packet sent by the device
 type SyncCwpaPacket struct {
-	SyncMagic      uint32
 	ClockRef       CFTypeID
-	MessageType    uint32
 	CorrelationID  uint64
 	DeviceClockRef CFTypeID
 }
 
 //NewSyncCwpaPacketFromBytes parses a SyncCwpaPacket from a []byte
 func NewSyncCwpaPacketFromBytes(data []byte) (SyncCwpaPacket, error) {
-	var packet = SyncCwpaPacket{}
-
-	packet.SyncMagic = binary.LittleEndian.Uint32(data)
-	if packet.SyncMagic != SyncPacketMagic {
-		return packet, fmt.Errorf("invalid SYNC CWPA Packet: %x", data)
+	remainingBytes, clockRef, correlationID, err := ParseSyncHeader(data, CWPA)
+	if err != nil {
+		return SyncCwpaPacket{}, err
 	}
-
+	packet := SyncCwpaPacket{ClockRef: clockRef, CorrelationID: correlationID}
 	packet.ClockRef = binary.LittleEndian.Uint64(data[4:])
 	if packet.ClockRef != EmptyCFType {
 		return packet, fmt.Errorf("CWPA packet should have empty CFTypeID for ClockRef but has:%x", packet.ClockRef)
 	}
-	packet.MessageType = binary.LittleEndian.Uint32(data[12:])
-	if packet.MessageType != CWPA {
-		return packet, fmt.Errorf("wrong message type for CWPA message: %x", packet.MessageType)
-	}
-	packet.CorrelationID = binary.LittleEndian.Uint64(data[16:])
-	packet.DeviceClockRef = binary.LittleEndian.Uint64(data[24:])
+
+	packet.DeviceClockRef = binary.LittleEndian.Uint64(remainingBytes)
 	return packet, nil
 }
 

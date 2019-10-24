@@ -1,12 +1,13 @@
 package packet_test
 
 import (
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
 	"testing"
+
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTime(t *testing.T) {
@@ -17,11 +18,12 @@ func TestTime(t *testing.T) {
 	timePacket, err := packet.NewSyncTimePacketFromBytes(dat[4:])
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint64(0x7fa67cc17980), timePacket.ClockRef)
-		assert.Equal(t, packet.SyncPacketMagic, timePacket.SyncMagic)
-		assert.Equal(t, packet.TIME, timePacket.MessageType)
 		assert.Equal(t, uint64(0x113223d50), timePacket.CorrelationID)
+		assert.Equal(t, "SYNC_TIME{ClockRef:7fa67cc17980, CorrelationID:113223d50}", timePacket.String())
 	}
 	testSerializationOfTimeReply(timePacket, t)
+	_, err = packet.NewSyncTimePacketFromBytes(dat)
+	assert.Error(t, err)
 }
 
 func testSerializationOfTimeReply(timePacket packet.SyncTimePacket, t *testing.T) {
