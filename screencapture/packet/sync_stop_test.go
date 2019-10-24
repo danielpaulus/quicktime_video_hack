@@ -17,12 +17,12 @@ func TestStop(t *testing.T) {
 	stop, err := packet.NewSyncStopPacketFromBytes(dat[4:])
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint64(0x7fba35425ff0), stop.ClockRef)
-		assert.Equal(t, packet.SyncPacketMagic, stop.SyncMagic)
-		assert.Equal(t, packet.STOP, stop.MessageType)
 		assert.Equal(t, uint64(0x102fd4910), stop.CorrelationID)
 		assert.Equal(t, "SYNC_STOP{ClockRef:7fba35425ff0, CorrelationID:102fd4910}", stop.String())
 	}
 	testSerializationOfStopReply(stop, t)
+	_, err = packet.NewSyncStopPacketFromBytes(dat)
+	assert.Error(t, err)
 
 }
 

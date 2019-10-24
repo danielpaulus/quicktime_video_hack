@@ -9,26 +9,17 @@ import (
 
 //SyncTimePacket contains the data from a decoded Time Packet sent by the device
 type SyncTimePacket struct {
-	SyncMagic     uint32
 	ClockRef      CFTypeID
-	MessageType   uint32
 	CorrelationID uint64
 }
 
 //NewSyncTimePacketFromBytes parses a SyncTimePacket from bytes
 func NewSyncTimePacketFromBytes(data []byte) (SyncTimePacket, error) {
-	packet := SyncTimePacket{}
-	packet.SyncMagic = binary.LittleEndian.Uint32(data)
-	if packet.SyncMagic != SyncPacketMagic {
-		return packet, fmt.Errorf("invalid SYNC Time Packet: %x", data)
+	_, clockRef, correlationID, err := ParseSyncHeader(data, TIME)
+	if err != nil {
+		return SyncTimePacket{}, err
 	}
-
-	packet.ClockRef = binary.LittleEndian.Uint64(data[4:])
-	packet.MessageType = binary.LittleEndian.Uint32(data[12:])
-	if packet.MessageType != TIME {
-		return packet, fmt.Errorf("wrong message type for Time message: %x", packet.MessageType)
-	}
-	packet.CorrelationID = binary.LittleEndian.Uint64(data[16:])
+	packet := SyncTimePacket{ClockRef: clockRef, CorrelationID: correlationID}
 	return packet, nil
 }
 

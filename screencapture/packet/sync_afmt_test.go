@@ -18,8 +18,6 @@ func TestAfmt(t *testing.T) {
 	afmtPacket, err := packet.NewSyncAfmtPacketFromBytes(dat[4:])
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint64(0x7fa66ce20cb0), afmtPacket.ClockRef)
-		assert.Equal(t, packet.SyncPacketMagic, afmtPacket.SyncMagic)
-		assert.Equal(t, packet.AFMT, afmtPacket.MessageType)
 		expectedAsbd := coremedia.DefaultAudioStreamBasicDescription()
 		expectedAsbd.FormatFlags = 0x4C
 		assert.Equal(t, expectedAsbd, afmtPacket.AudioStreamBasicDescription)
@@ -27,6 +25,9 @@ func TestAfmt(t *testing.T) {
 		assert.Equal(t, expectedString, afmtPacket.String())
 		testSerializationOfAfmtReply(afmtPacket, t)
 	}
+
+	_, err = packet.NewSyncAfmtPacketFromBytes(dat)
+	assert.Error(t, err)
 }
 
 func testSerializationOfAfmtReply(clok packet.SyncAfmtPacket, t *testing.T) {

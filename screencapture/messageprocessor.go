@@ -167,7 +167,7 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.EAT:
 		mp.audioSamplesReceived++
-		eatPacket, err := packet.NewAsynEatPacketFromBytes(data)
+		eatPacket, err := packet.NewAsynCmSampleBufPacketFromBytes(data)
 		if err != nil {
 			log.Warn("unknown eat")
 			return
@@ -181,7 +181,7 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 			log.Debugf("RCV Audio Samples:%d", mp.audioSamplesReceived)
 		}
 	case packet.FEED:
-		feedPacket, err := packet.NewAsynFeedPacketFromBytes(data)
+		feedPacket, err := packet.NewAsynCmSampleBufPacketFromBytes(data)
 		if err != nil {
 			//log.Errorf("Error parsing FEED packet: %x %s", data, err)
 			log.Warn("unknown feed")
@@ -237,6 +237,8 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 	}
 }
 
+//CloseSession shuts down the streams on the device by sending HPA0 and HPD0
+//messages and waiting for RELS messages.
 func (mp *MessageProcessor) CloseSession() {
 	log.Info("Telling device to stop streaming..")
 	mp.usbWriter.WriteDataToUsb(packet.NewAsynHPA0(mp.deviceAudioClockRef))
