@@ -92,7 +92,7 @@
 ## 0. General Information
 This document provides you with details about the screen sharing feature of QuickTime for iOS devices. 
 The information contained in this document can be used to re-implement that feature in the programming language of choice and use
-the feature on other operating systems than MAC OS X.
+the feature on other operating systems than MAC OS X. If you want to implement the feature, I recommend using my unit tests and test fixtures. I have prepared a bin dump with an example for every message type. This way you can easily make sure your codec does what it's supposed to.
 The repository also contains a reference implementation in Golang. 
 
 -- Note: All the information in this document is reverse engineered by the author, therefore it could be wrong or not entirely accurate

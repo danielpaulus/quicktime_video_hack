@@ -7,26 +7,17 @@ import (
 
 //SyncStopPacket requests us to stop our clock
 type SyncStopPacket struct {
-	SyncMagic     uint32
 	ClockRef      CFTypeID
-	MessageType   uint32
 	CorrelationID uint64
 }
 
 //NewSyncStopPacketFromBytes parses a SyncStopPacket from bytes
 func NewSyncStopPacketFromBytes(data []byte) (SyncStopPacket, error) {
-	packet := SyncStopPacket{}
-	packet.SyncMagic = binary.LittleEndian.Uint32(data)
-	if packet.SyncMagic != SyncPacketMagic {
-		return packet, fmt.Errorf("invalid SYNC STOP Packet: %x", data)
+	_, clockRef, correlationID, err := ParseSyncHeader(data, STOP)
+	if err != nil {
+		return SyncStopPacket{}, err
 	}
-
-	packet.ClockRef = binary.LittleEndian.Uint64(data[4:])
-	packet.MessageType = binary.LittleEndian.Uint32(data[12:])
-	if packet.MessageType != STOP {
-		return packet, fmt.Errorf("wrong message type for STOP message: %x", packet.MessageType)
-	}
-	packet.CorrelationID = binary.LittleEndian.Uint64(data[16:])
+	packet := SyncStopPacket{ClockRef: clockRef, CorrelationID: correlationID}
 	return packet, nil
 }
 

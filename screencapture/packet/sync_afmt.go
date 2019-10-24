@@ -3,15 +3,14 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 )
 
 // SyncAfmtPacket contains what I think is information about the audio format
 type SyncAfmtPacket struct {
-	SyncMagic                   uint32
 	ClockRef                    CFTypeID
-	MessageType                 uint32
 	CorrelationID               uint64
 	AudioStreamBasicDescription coremedia.AudioStreamBasicDescription
 }
@@ -23,20 +22,13 @@ func (sp SyncAfmtPacket) String() string {
 
 // NewSyncAfmtPacketFromBytes parses a new AsynFmtPacket from byte array
 func NewSyncAfmtPacketFromBytes(data []byte) (SyncAfmtPacket, error) {
-	var packet = SyncAfmtPacket{}
-	packet.SyncMagic = binary.LittleEndian.Uint32(data)
-	if packet.SyncMagic != SyncPacketMagic {
-		return packet, fmt.Errorf("invalid sync magic: %x", data)
+	remainingBytes, clockRef, correlationID, err := ParseSyncHeader(data, AFMT)
+	if err != nil {
+		return SyncAfmtPacket{}, err
 	}
-	packet.ClockRef = binary.LittleEndian.Uint64(data[4:])
-	packet.MessageType = binary.LittleEndian.Uint32(data[12:])
-	if packet.MessageType != AFMT {
-		return packet, fmt.Errorf("invalid packet type in sync afmt:%x", data)
-	}
-	packet.CorrelationID = binary.LittleEndian.Uint64(data[16:])
+	packet := SyncAfmtPacket{ClockRef: clockRef, CorrelationID: correlationID}
 
-	var err error
-	packet.AudioStreamBasicDescription, err = coremedia.NewAudioStreamBasicDescriptionFromBytes(data[24:])
+	packet.AudioStreamBasicDescription, err = coremedia.NewAudioStreamBasicDescriptionFromBytes(remainingBytes)
 	if err != nil {
 		return packet, fmt.Errorf("Error parsing AudioStreamBasicDescription data in asyn afmt: %s, ", err)
 	}

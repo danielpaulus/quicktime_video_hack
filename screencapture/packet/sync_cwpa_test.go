@@ -1,11 +1,12 @@
 package packet_test
 
 import (
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
 	"testing"
+
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCwpa(t *testing.T) {
@@ -16,10 +17,9 @@ func TestCwpa(t *testing.T) {
 	cwpa, err := packet.NewSyncCwpaPacketFromBytes(dat[4:])
 	if assert.NoError(t, err) {
 		assert.Equal(t, packet.EmptyCFType, cwpa.ClockRef)
-		assert.Equal(t, packet.SyncPacketMagic, cwpa.SyncMagic)
-		assert.Equal(t, packet.CWPA, cwpa.MessageType)
 		assert.Equal(t, uint64(0x1135a74e0), cwpa.DeviceClockRef)
 		assert.Equal(t, uint64(0x113573de0), cwpa.CorrelationID)
+		assert.Equal(t, "SYNC_CWPA{ClockRef:1, CorrelationID:113573de0, DeviceClockRef:1135a74e0}", cwpa.String())
 	}
 	_, err = packet.NewSyncCwpaPacketFromBytes(dat)
 	assert.Error(t, err)

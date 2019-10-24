@@ -8,26 +8,17 @@ import (
 
 //SyncSkewPacket requests us to reply with the current skew value
 type SyncSkewPacket struct {
-	SyncMagic     uint32
 	ClockRef      CFTypeID
-	MessageType   uint32
 	CorrelationID uint64
 }
 
 //NewSyncSkewPacketFromBytes parses a SyncSkewPacket from bytes
 func NewSyncSkewPacketFromBytes(data []byte) (SyncSkewPacket, error) {
-	packet := SyncSkewPacket{}
-	packet.SyncMagic = binary.LittleEndian.Uint32(data)
-	if packet.SyncMagic != SyncPacketMagic {
-		return packet, fmt.Errorf("invalid SYNC Skew Packet: %x", data)
+	_, clockRef, correlationID, err := ParseSyncHeader(data, SKEW)
+	if err != nil {
+		return SyncSkewPacket{}, err
 	}
-
-	packet.ClockRef = binary.LittleEndian.Uint64(data[4:])
-	packet.MessageType = binary.LittleEndian.Uint32(data[12:])
-	if packet.MessageType != SKEW {
-		return packet, fmt.Errorf("wrong message type for SKEW message: %x", packet.MessageType)
-	}
-	packet.CorrelationID = binary.LittleEndian.Uint64(data[16:])
+	packet := SyncSkewPacket{ClockRef: clockRef, CorrelationID: correlationID}
 	return packet, nil
 }
 

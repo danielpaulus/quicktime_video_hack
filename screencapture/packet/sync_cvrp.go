@@ -3,14 +3,13 @@ package packet
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 )
 
 //SyncCvrpPacket contains all info from a CVRP packet sent by the device
 type SyncCvrpPacket struct {
-	SyncMagic      uint32
 	ClockRef       CFTypeID
-	MessageType    uint32
 	CorrelationID  uint64
 	DeviceClockRef CFTypeID
 	Payload        coremedia.StringKeyDict
@@ -18,23 +17,19 @@ type SyncCvrpPacket struct {
 
 //NewSyncCvrpPacketFromBytes parses a SyncCvrpPacket from a []byte
 func NewSyncCvrpPacketFromBytes(data []byte) (SyncCvrpPacket, error) {
-	packet := SyncCvrpPacket{}
-	packet.SyncMagic = binary.LittleEndian.Uint32(data)
-	if packet.SyncMagic != SyncPacketMagic {
-		return packet, fmt.Errorf("invalid SYNC Cvrp Packet: %x", data)
+	remainingBytes, clockRef, correlationID, err := ParseSyncHeader(data, CVRP)
+	if err != nil {
+		return SyncCvrpPacket{}, err
 	}
-
+	packet := SyncCvrpPacket{ClockRef: clockRef, CorrelationID: correlationID}
 	packet.ClockRef = binary.LittleEndian.Uint64(data[4:])
 	if packet.ClockRef != EmptyCFType {
-		return packet, fmt.Errorf("Cvrp packet should have empty CFTypeID for ClockRef but has:%x", packet.ClockRef)
+		return packet, fmt.Errorf("CVRP packet should have empty CFTypeID for ClockRef but has:%x", packet.ClockRef)
 	}
-	packet.MessageType = binary.LittleEndian.Uint32(data[12:])
-	if packet.MessageType != CVRP {
-		return packet, fmt.Errorf("wrong message type for Cvrp message: %x", packet.MessageType)
-	}
-	packet.CorrelationID = binary.LittleEndian.Uint64(data[16:])
-	packet.DeviceClockRef = binary.LittleEndian.Uint64(data[24:])
-	payloadDict, err := coremedia.NewStringDictFromBytes(data[32:])
+
+	packet.DeviceClockRef = binary.LittleEndian.Uint64(remainingBytes)
+
+	payloadDict, err := coremedia.NewStringDictFromBytes(remainingBytes[8:])
 	if err != nil {
 		return packet, err
 	}
