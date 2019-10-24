@@ -5,6 +5,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,6 +21,7 @@ func TestFeed(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint64(0x7ffb5cc32f60), feedPacket.ClockRef)
 		assert.Equal(t, expectedString, feedPacket.String())
+		assert.Equal(t, coremedia.MediaTypeVideo, feedPacket.CMSampleBuf.MediaType)
 	}
 }
 
@@ -31,5 +33,6 @@ func TestEat(t *testing.T) {
 	feedPacket, err := packet.NewAsynCmSampleBufPacketFromBytes(dat)
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint64(0x133959728), feedPacket.ClockRef)
+		assert.Equal(t, coremedia.MediaTypeSound, feedPacket.CMSampleBuf.MediaType)
 	}
 }

@@ -28,7 +28,6 @@ func newAsynCmSampleBufferPacketFromBytes(data []byte) (CFTypeID, coremedia.CMSa
 	if err != nil {
 		return 0, coremedia.CMSampleBuffer{}, err
 	}
-	clockRef = clockRef
 
 	var cMSampleBuf coremedia.CMSampleBuffer
 
