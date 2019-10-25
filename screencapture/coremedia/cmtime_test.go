@@ -1,10 +1,34 @@
 package coremedia_test
 
 import (
+	"testing"
+
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
+
+func TestScaleConversion(t *testing.T) {
+	testCases := map[string]struct {
+		originalTime         coremedia.CMTime
+		destinationScaleTime coremedia.CMTime
+		expectedTime         float64
+	}{
+		"check zero valued CMTime works": {coremedia.CMTime{CMTimeValue: 0, CMTimeScale: coremedia.NanoSecondScale},
+			coremedia.CMTime{CMTimeValue: 1, CMTimeScale: 2 * coremedia.NanoSecondScale},
+			0},
+		"doubling scale": {coremedia.CMTime{CMTimeValue: 100, CMTimeScale: coremedia.NanoSecondScale},
+			coremedia.CMTime{CMTimeValue: 1, CMTimeScale: 2 * coremedia.NanoSecondScale},
+			float64(0xC8)},
+		"smaller scale": {coremedia.CMTime{CMTimeValue: 100, CMTimeScale: 1},
+			coremedia.CMTime{CMTimeValue: 1, CMTimeScale: 48000},
+			float64(0x493e00)},
+	}
+
+	for s, tc := range testCases {
+		actualTime := tc.originalTime.GetTimeForScale(tc.destinationScaleTime)
+		assert.Equal(t, tc.expectedTime, actualTime, s)
+	}
+}
 
 func TestSeconds(t *testing.T) {
 	time := createCmTime()
