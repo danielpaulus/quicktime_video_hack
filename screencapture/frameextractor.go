@@ -32,6 +32,9 @@ func (fe *LengthFieldBasedFrameExtractor) ExtractFrame(bytes []byte) ([]byte, bo
 		return fe.handleNewFrame(bytes)
 	}
 	if fe.readyForNextFrame && fe.frameBuffer.Len() != 0 {
+		if fe.frameBuffer.Len()<4{
+			log.Fatal("wtf:"+hex.Dump(fe.frameBuffer.Bytes()))
+		}
 		fe.nextFrameSize = int(binary.LittleEndian.Uint32(fe.frameBuffer.Next(4))) - 4
 		fe.readyForNextFrame = false
 		return fe.ExtractFrame(bytes)
@@ -50,6 +53,11 @@ func (fe *LengthFieldBasedFrameExtractor) ExtractFrame(bytes []byte) ([]byte, bo
 }
 
 func (fe *LengthFieldBasedFrameExtractor) handleNewFrame(bytes []byte) ([]byte, bool) {
+	//ZeroLengthPackages are sometimes sent on USB Connections. It is safe to ignore them.
+	if len(bytes) == 0 {
+		log.Debugf("skipping 0")
+		return nil, false
+	}
 	if len(bytes) < 4 {
 		log.Fatalf("Received less than four bytes, cannot read a valid frameLength field: %s", hex.Dump(bytes))
 	}
