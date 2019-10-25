@@ -18,7 +18,7 @@ So if you are just interested in the protocol or if you want to implement this i
 run `go run main.go --help` to see how it works
 
 Progress:
-1. Send correct replies for clock SKEW packets
+1. ~~Send correct replies for clock SKEW packets~~
 2. Fix small bug in lengthfield based decoder
 3. Stream device audio over rtp as well
 4. Make a release :-D
