@@ -29,6 +29,12 @@ type CMTime struct {
 	however, since epoch length may be unknown/variable. */
 }
 
+//GetTimeForScale calculates a float64 TimeValue by rescaling this CMTime to the CMTimeScale of the given CMTime
+func (time CMTime) GetTimeForScale(newScaleToUse CMTime) float64 {
+	scalingFactor := float64(newScaleToUse.CMTimeScale) / float64(time.CMTimeScale)
+	return (float64(time.CMTimeValue) * scalingFactor)
+}
+
 //Seconds returns CMTimeValue/CMTimeScale and 0 when all values are 0
 func (time CMTime) Seconds() uint64 {
 	//prevent division by 0

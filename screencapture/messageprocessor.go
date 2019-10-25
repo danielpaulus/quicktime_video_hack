@@ -13,19 +13,25 @@ import (
 //It receives readily split byte frames, parses them, responds to them and passes on
 //extracted CMSampleBuffers to a consumer
 type MessageProcessor struct {
-	connectionState      int
-	usbWriter            UsbWriter
-	stopSignal           chan interface{}
-	clock                coremedia.CMClock
-	localAudioClock      coremedia.CMClock
-	totalBytesReceived   int
-	needClockRef         packet.CFTypeID
-	needMessage          []byte
-	audioSamplesReceived int
-	cmSampleBufConsumer  CmSampleBufConsumer
-	clockBuilder         func(uint64) coremedia.CMClock
-	deviceAudioClockRef  packet.CFTypeID
-	releaseWaiter        chan interface{}
+	connectionState                          int
+	usbWriter                                UsbWriter
+	stopSignal                               chan interface{}
+	clock                                    coremedia.CMClock
+	localAudioClock                          coremedia.CMClock
+	totalBytesReceived                       int
+	needClockRef                             packet.CFTypeID
+	needMessage                              []byte
+	audioSamplesReceived                     int
+	videoSamplesReceived                     int
+	cmSampleBufConsumer                      CmSampleBufConsumer
+	clockBuilder                             func(uint64) coremedia.CMClock
+	deviceAudioClockRef                      packet.CFTypeID
+	releaseWaiter                            chan interface{}
+	firstAudioTimeTaken                      bool
+	startTimeDeviceAudioClock                coremedia.CMTime
+	startTimeLocalAudioClock                 coremedia.CMTime
+	lastEatFrameReceivedDeviceAudioClockTime coremedia.CMTime
+	lastEatFrameReceivedLocalAudioClockTime  coremedia.CMTime
 }
 
 //NewMessageProcessor creates a new MessageProcessor that will write answers to the given UsbWriter,
@@ -37,7 +43,7 @@ func NewMessageProcessor(usbWriter UsbWriter, stopSignal chan interface{}, consu
 
 //NewMessageProcessorWithClockBuilder lets you inject a clockBuilder for the sake of testability.
 func NewMessageProcessorWithClockBuilder(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer, clockBuilder func(uint64) coremedia.CMClock) MessageProcessor {
-	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer, clockBuilder: clockBuilder, releaseWaiter: make(chan interface{})}
+	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer, clockBuilder: clockBuilder, releaseWaiter: make(chan interface{}), firstAudioTimeTaken: false}
 	return mp
 }
 
@@ -149,7 +155,9 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 		if err != nil {
 			log.Error("Error parsing SYNC SKEW packet", err)
 		}
-		log.Debugf("Rcv and ignore:%s", skewPacket.String())
+		skewValue := coremedia.CalculateSkew(mp.startTimeLocalAudioClock, mp.lastEatFrameReceivedLocalAudioClockTime, mp.startTimeDeviceAudioClock, mp.lastEatFrameReceivedDeviceAudioClockTime)
+		log.Debugf("Rcv:%s Reply:%f", skewPacket.String(), skewValue)
+		mp.usbWriter.WriteDataToUsb(skewPacket.NewReply(skewValue))
 	case packet.STOP:
 		stopPacket, err := packet.NewSyncStopPacketFromBytes(data)
 		if err != nil {
@@ -172,6 +180,17 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 			log.Warn("unknown eat")
 			return
 		}
+		if !mp.firstAudioTimeTaken {
+			mp.startTimeDeviceAudioClock = eatPacket.CMSampleBuf.OutputPresentationTimestamp
+			mp.startTimeLocalAudioClock = mp.localAudioClock.GetTime()
+			mp.lastEatFrameReceivedDeviceAudioClockTime = eatPacket.CMSampleBuf.OutputPresentationTimestamp
+			mp.lastEatFrameReceivedLocalAudioClockTime = mp.startTimeLocalAudioClock
+			mp.firstAudioTimeTaken = true
+		} else {
+			mp.lastEatFrameReceivedDeviceAudioClockTime = eatPacket.CMSampleBuf.OutputPresentationTimestamp
+			mp.lastEatFrameReceivedLocalAudioClockTime = mp.localAudioClock.GetTime()
+		}
+
 		err = mp.cmSampleBufConsumer.Consume(eatPacket.CMSampleBuf)
 		if err != nil {
 			log.Warn("failed consuming audio buf", err)
@@ -183,16 +202,20 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 	case packet.FEED:
 		feedPacket, err := packet.NewAsynCmSampleBufPacketFromBytes(data)
 		if err != nil {
-			//log.Errorf("Error parsing FEED packet: %x %s", data, err)
-			log.Warn("unknown feed")
+			log.Errorf("Error parsing FEED packet: %x %s", data, err)
 			mp.usbWriter.WriteDataToUsb(mp.needMessage)
 			return
 		}
+		mp.videoSamplesReceived++
 		err = mp.cmSampleBufConsumer.Consume(feedPacket.CMSampleBuf)
 		if err != nil {
 			log.Fatal("Failed writing sample data to Consumer", err)
 		}
-		//log.Debugf("Rcv:%s", feedPacket.String())
+		if mp.videoSamplesReceived%500 == 0 {
+			log.Debugf("Rcv'd(%d) last:%s", mp.videoSamplesReceived, feedPacket.String())
+			mp.videoSamplesReceived = 0
+		}
+
 		mp.usbWriter.WriteDataToUsb(mp.needMessage)
 	case packet.SPRP:
 		sprpPacket, err := packet.NewAsynSprpPacketFromBytes(data)

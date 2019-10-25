@@ -16,7 +16,6 @@ func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
 	if err != nil {
 		log.Error("failed sending to usb", err)
 	}
-	//log.Debugf("bytes written:%d", n)
 }
 
 //StartReading claims the AV Quicktime USB Bulk endpoints and starts reading until a stopSignal is sent.

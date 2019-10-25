@@ -25,7 +25,7 @@ gst-launch-1.0 -v udpsrc port=4000 buffer-size=622080 caps = "application/x-rtp,
 and then run `go run main.go rtpstream localhost 4000`
 
 Progress:
-1. Send correct replies for clock SKEW packets
+1. ~~Send correct replies for clock SKEW packets~~
 2. Fix small bug in lengthfield based decoder
 3. Stream device audio over rtp as well
 4. Make a release :-D
