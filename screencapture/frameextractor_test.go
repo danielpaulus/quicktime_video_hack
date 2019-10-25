@@ -18,6 +18,13 @@ func TestCompletePacket(t *testing.T) {
 	frame1, frameReturned2 := fe.ExtractFrame(small)
 	assert.True(t, frameReturned2)
 	assert.Equal(t, small[4:], frame1)
+
+}
+
+func TestZeroLengthPacket(t *testing.T) {
+	fe := screencapture.NewLengthFieldBasedFrameExtractor()
+	_, frameReturned := fe.ExtractFrame(make([]byte, 0))
+	assert.False(t, frameReturned)
 }
 
 func TestIncompletePacket(t *testing.T) {

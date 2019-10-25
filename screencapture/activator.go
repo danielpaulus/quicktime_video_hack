@@ -32,11 +32,11 @@ func enableQTConfigSingleDevice(device IosDevice) error {
 	if err != nil {
 		return err
 	}
-	duration, _ := time.ParseDuration("500ms")
+
 	var i int
 	for {
 		log.Infof("Checking for active QT config for %s", udid)
-		time.Sleep(duration)
+		time.Sleep(500 * time.Millisecond)
 		err = ctx.Close()
 		if err != nil {
 			log.Warn("failed closing context", err)
@@ -64,8 +64,7 @@ func sendQTConfigControlRequest(device IosDevice) error {
 	val, err := device.usbDevice.Control(0x40, 0x52, 0x00, 0x02, response)
 
 	if err != nil {
-		log.Fatal("Failed sending control transfer for enabling hidden QT config", err)
-		return err
+		log.Warn("Failed sending control transfer for enabling hidden QT config. Seems like this happens sometimes but it still works usually.", err)
 	}
 	log.Debugf("Enabling QT config RC:%d", val)
 	return nil
