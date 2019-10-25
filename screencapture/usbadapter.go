@@ -12,11 +12,10 @@ type UsbAdapter struct {
 
 //WriteDataToUsb implements the UsbWriter interface and sends the byte array to the usb bulk endpoint.
 func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
-	n, err := usa.outEndpoint.Write(bytes)
+	_, err := usa.outEndpoint.Write(bytes)
 	if err != nil {
 		log.Error("failed sending to usb", err)
 	}
-	log.Debugf("bytes written:%d", n)
 }
 
 //StartReading claims the AV Quicktime USB Bulk endpoints and starts reading until a stopSignal is sent.

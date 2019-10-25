@@ -260,8 +260,13 @@ This packet requests from us to send a RPLY with the current CMTime for the Cloc
 
 #### 3.2.7. SKEW Packet
 ##### General Description
-(WIP) It seems like this packet requires us to reply with the difference of our local clock in 48khz ticks to the device clock, which
-we can get from the audio samples. 
+This packet tells the device about the clock skew of the audio clock (clockRef used in EAT! packets, which we sent as response to cwpa). As denoted in this [wikipedia](https://en.wikipedia.org/wiki/Clock_skew#On_a_network) article, clock skew means the difference in frequency of both clocks. In other words, both clocks supposedly 
+run at 48khz, and the device wants to know how many ticks per second our clock executed during the time the device clock had one tick. 
+So we have to respond with:
+- 48000 if the clocks were aligned
+- some value above 48000 if our clock was slower
+- and some value below 48000 if our clock was faster than the device clock
+If implemented correctly, we should see that the skew responses converge towards 48000 with small deviations sometimes `(48000+x where -1 < x <1)`
 
 ##### Request Format Description
 
