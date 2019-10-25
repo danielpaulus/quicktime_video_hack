@@ -15,21 +15,21 @@ If you want to contribute to code or documentation, please go ahead :-D
 I have written some documentation here [doc/technical_documentation.md](https://github.com/danielpaulus/quicktime_video_hack/blob/master/doc/technical_documentation.md)
 So if you are just interested in the protocol or if you want to implement this in a different programming language than golang, read the docs.
 ## 3. Usage& Current State of the Tool
-run `go run main.go --help` to see how it works
+run `qvh --help` to see how it works
+The `record` command lets you save iOS video and Audio into separate h264 and wave files. 
 
 Progress:
-1. ~~Send correct replies for clock SKEW packets~~
-2. Fix small bug in lengthfield based decoder
-3. Stream device audio over rtp as well
-4. Make a release :-D
-
+1. Stream device audio over rtp as well
+2. Release 0.1-beta
+3. BUG: After running the tool to grab AV data, you have to unplug the device to record another video currently
+4. Release 0.2
+5. Create MPEG file
 
 Extra Goals:
 
-0. ~~Also save the device audio stream (I am already decoding it and receiving it, just not doing anything with it for now)~~
 1. [Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)
 2. See if there is maybe a way to get it to work on mac
-3. BUG: After running the tool to grab AV data, you have to unplug the device to record another video currently
+
 
 ## 4. Additional Notes
 ### MAC OS X LIBUSB -- IMPORTANT
