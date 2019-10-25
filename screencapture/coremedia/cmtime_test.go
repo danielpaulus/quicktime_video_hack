@@ -27,7 +27,6 @@ func TestScaleConversion(t *testing.T) {
 	for s, tc := range testCases {
 		actualTime := tc.originalTime.GetTimeForScale(tc.destinationScaleTime)
 		assert.Equal(t, tc.expectedTime, actualTime, s)
-		//assert.Equal(t, tc.originalTime.Seconds(), tc.expectedTime.Seconds())
 	}
 }
 
