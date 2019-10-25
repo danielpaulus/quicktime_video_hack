@@ -15,8 +15,8 @@ If you want to contribute to code or documentation, please go ahead :-D
 I have written some documentation here [doc/technical_documentation.md](https://github.com/danielpaulus/quicktime_video_hack/blob/master/doc/technical_documentation.md)
 So if you are just interested in the protocol or if you want to implement this in a different programming language than golang, read the docs.
 ## 3. Usage& Current State of the Tool
-run `qvh --help` to see how it works
-The `record` command lets you save iOS video and Audio into separate h264 and wave files. 
+- run `qvh --help` to see how it works
+- The `record` command lets you save iOS video and Audio into separate h264 and wave files. 
 
 Progress:
 1. Stream device audio over rtp as well
