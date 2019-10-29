@@ -8,7 +8,8 @@ This is an Operating System indepedent implementation for Quicktime Screensharin
 This repository contains all the code you will need to grab and record video and audio from your iPhone or iPad 
 without needing one of these expensive MacOS X computers :-D
 It probably does something similar to what `QuickTime` and `com.apple.cmio.iOSScreenCaptureAssistant` are doing on MacOS.
-Currently you can use it to create a h264 file that is playable with VLC and watch a recording of your devices screen :-D
+Currently you can use it to create a h264 file and a wave file so you can watch and listen what was happening on your device. 
+I am finishing up and RTP implementation so you can live watch and hear your device. 
 If you want to contribute to code or documentation, please go ahead :-D
 
 ## 2. Technical Docs
