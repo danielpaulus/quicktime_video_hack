@@ -12,6 +12,9 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 )
 
+/*
+gst-launch-1.0 -v udpsrc port=4001 caps='application/x-rtp, media=(string)audio, clock-rate=(int)48000, encoding-name=(string)L16, encoding-params=(string)1, channels=(int)2, payload=(int)96' ! rtpjitterbuffer latency=1000 ! rtpL16depay ! audioconvert ! autoaudiosink sync=true
+*/
 func TestNewRtpAudio(t *testing.T) {
 	srv := NewRtpServer("localhost", 4000)
 	srv.StartServerSocket()
