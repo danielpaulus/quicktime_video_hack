@@ -3,25 +3,36 @@ package rtpsupport
 import (
 	"encoding/binary"
 	"fmt"
+	"net"
+	"os"
+
+	log "github.com/sirupsen/logrus"
+
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/pion/rtp"
 	"github.com/pion/rtp/codecs"
-	"log"
-	"net"
 )
+
 //https://developer.ridgerun.com/wiki/index.php?title=Streaming_RAW_Video_with_GStreamer#Build_udpsrc_for_IMX6
 type Rtpserver struct {
-	packetizer rtp.Packetizer
-	clientConn net.Conn
-	host       string
-	port       int
+	packetizer      rtp.Packetizer
+	audioPacketizer rtp.Packetizer
+	clientConn      net.Conn
+	audioRtpSocket  net.Conn
+	host            string
+	port            int
+	dumpfile        *os.File
 }
 
 func NewRtpServer(host string, port int) *Rtpserver {
+	file, _ := os.Create("/Users/danielpaulus/tmp/dump-be.bin")
 	//payload type https://docs.microsoft.com/en-us/openspecs/office_protocols/ms-rtp/3b8dc3c6-34b8-4827-9b38-3b00154f471c
 	payloader := codecs.H264Payloader{}
 	packetizer := rtp.NewPacketizer(60000, 0x60, 5, &payloader, rtp.NewRandomSequencer(), 90000)
-	server := Rtpserver{packetizer: packetizer, host: host, port: port}
+	audioPayloader := codecs.G711Payloader{}
+	server := Rtpserver{packetizer: packetizer, host: host, port: port, dumpfile: file,
+		audioPacketizer: rtp.NewPacketizer(8000, 0x96, 6, &audioPayloader, rtp.NewRandomSequencer(), 48000),
+	}
 
 	return &server
 }
@@ -29,13 +40,22 @@ func NewRtpServer(host string, port int) *Rtpserver {
 func (srv *Rtpserver) StartServerSocket() {
 	conn, err := net.Dial("udp", fmt.Sprintf("%s:%d", srv.host, srv.port))
 	if err != nil {
-		panic(err)
+		log.Warn("Failed connecting to video UDP socket")
 	}
 	srv.clientConn = conn
-	// Handle connections in a new goroutine.
+
+	audioConn, err := net.Dial("udp", fmt.Sprintf("%s:%d", srv.host, srv.port+1))
+	if err != nil {
+		panic(err)
+	}
+	srv.audioRtpSocket = audioConn
 }
 
 func (srv Rtpserver) Consume(buf coremedia.CMSampleBuffer) error {
+	if buf.MediaType == coremedia.MediaTypeSound {
+		return srv.sendAudioSample(buf)
+	}
+
 	if buf.HasFormatDescription {
 		err := srv.writeNalu(buf.FormatDescription.PPS, buf)
 		if err != nil {
@@ -48,6 +68,26 @@ func (srv Rtpserver) Consume(buf coremedia.CMSampleBuffer) error {
 	}
 	srv.writeNalus(buf)
 
+	return nil
+}
+
+func (srv Rtpserver) sendAudioSample(buf coremedia.CMSampleBuffer) error {
+	packets := srv.audioPacketizer.Packetize(buf.SampleData, uint32(buf.NumSamples))
+	for _, packet := range packets {
+		//packet.Timestamp = uint32(float64(buf.OutputPresentationTimestamp.CMTimeValue) * 0.00009)
+		packet.Timestamp = packet.Timestamp
+		println(packet.Timestamp)
+		packet.PayloadType = 96
+		//println(packet.Timestamp)
+		data, _ := packet.Marshal()
+
+		srv.dumpfile.Write(data)
+		_, err := srv.audioRtpSocket.Write(data)
+		if err != nil {
+			log.Warn("write failed", err)
+		}
+		//log.Printf("written:%d",n)
+	}
 	return nil
 }
 
@@ -72,8 +112,8 @@ func (srv Rtpserver) writeNalu(naluBytes []byte, buf coremedia.CMSampleBuffer) e
 
 		//println(packet.Timestamp)
 		data, _ := packet.Marshal()
-		_,err := srv.clientConn.Write(data)
-		if err!=nil{
+		_, err := srv.clientConn.Write(data)
+		if err != nil {
 			log.Fatal("write failed", err)
 		}
 		//log.Printf("written:%d",n)

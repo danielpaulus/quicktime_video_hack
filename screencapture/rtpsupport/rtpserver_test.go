@@ -1,16 +1,50 @@
 package rtpsupport
 
 import (
-	"bytes"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"encoding/binary"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 )
 
+func TestNewRtpAudio(t *testing.T) {
+	srv := NewRtpServer("localhost", 4000)
+	srv.StartServerSocket()
+	wavdata, err := ioutil.ReadFile("../../log/dump.wav")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	wavdata = wavdata[44:]
+	for len(wavdata) > 1024 {
+		samples := wavdata[:1024]
+		wavdata = wavdata[1024:]
+		beWav := make([]byte, 1024)
+		for i := 0; i < 256; i++ {
+
+			theint := binary.LittleEndian.Uint32(samples[i*4 : i*4+4])
+			binary.BigEndian.PutUint32(beWav[i*4:i*4+4], theint)
+		}
+
+		sbuf := coremedia.CMSampleBuffer{
+			SampleData: beWav,
+			NumSamples: 256,
+			MediaType:  coremedia.MediaTypeSound,
+		}
+
+		time.Sleep(time.Millisecond * 100)
+		srv.Consume(sbuf)
+
+	}
+	log.Fatal("bla")
+}
+
+/*
 func TestNewRtpServer(t *testing.T) {
 	srv := NewRtpServer("localhost", 4000)
 	var process *os.Process
@@ -38,13 +72,14 @@ func TestNewRtpServer(t *testing.T) {
 		}
 
 		srv.Consume(sbuf)
-		time.Sleep(time.Millisecond*10)
+		time.Sleep(time.Millisecond * 10)
 		timer.CMTimeValue += 16666666
 
 	}
 	time.Sleep(time.Second * 60)
 	process.Kill()
-}
+}*/
+
 func startGst() *os.Process {
 	cmd := exec.Command("gst-launch-1.0", "-v", "udpsrc", "port=5000", "caps=\"application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96\"", "!", "rtph264depay", "!",
 		"decodebin", "!", "videoconvert", "!", "autovideosink")
