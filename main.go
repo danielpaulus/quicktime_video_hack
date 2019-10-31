@@ -7,6 +7,7 @@ import (
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/gstadapter"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -19,7 +20,8 @@ Usage:
   qvh devices
   qvh activate
   qvh record <h264file> <wavfile>
- 
+  qvh gstreamer 
+
 Options:
   -h --help     Show this screen.
   --version     Show version.
@@ -32,6 +34,7 @@ The commands work as following:
 	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
 				Audio will be saved in a uncompressed wav file.
 				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
+	gstreamer   qvh start an AppSrc and push AV data to gstreamer.
   `
 	arguments, _ := docopt.ParseDoc(usage)
 	//TODO: add verbose switch to conf this
@@ -66,6 +69,16 @@ The commands work as following:
 		}
 		record(h264FilePath, waveFilePath)
 	}
+	gstreamerCommand, _ := arguments.Bool("gstreamer")
+	if gstreamerCommand {
+		startGStreamer()
+	}
+}
+
+func startGStreamer() {
+	log.Infof("Starting Gstreamer")
+	gStreamer := gstadapter.New()
+	startWithConsumer(gStreamer)
 }
 
 func waitForSigInt(stopSignalChannel chan interface{}) {
@@ -126,15 +139,7 @@ func activate() {
 }
 
 func record(h264FilePath string, wavFilePath string) {
-	activate()
-	cleanup := screencapture.Init()
-	deviceList, err := screencapture.FindIosDevices()
-	defer cleanup()
-	if err != nil {
-		log.Fatal("Error finding iOS Devices", err)
-	}
 	log.Infof("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
-	dev := deviceList[0]
 
 	h264File, err := os.Create(h264FilePath)
 	if err != nil {
@@ -168,11 +173,24 @@ func record(h264FilePath string, wavFilePath string) {
 		}
 
 	}()
+	startWithConsumer(writer)
+}
+
+func startWithConsumer(consumer screencapture.CmSampleBufConsumer) {
+	activate()
+	cleanup := screencapture.Init()
+	deviceList, err := screencapture.FindIosDevices()
+	defer cleanup()
+	if err != nil {
+		log.Fatal("Error finding iOS Devices", err)
+	}
+
+	dev := deviceList[0]
+
 	adapter := screencapture.UsbAdapter{}
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, writer)
+	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
 
 	adapter.StartReading(dev, &mp, stopSignal)
-	return
 }
