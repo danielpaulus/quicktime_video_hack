@@ -72,13 +72,20 @@ func (srv Rtpserver) Consume(buf coremedia.CMSampleBuffer) error {
 }
 
 func (srv Rtpserver) sendAudioSample(buf coremedia.CMSampleBuffer) error {
-	packets := srv.audioPacketizer.Packetize(buf.SampleData, uint32(buf.NumSamples))
+	beWav := make([]byte, len(buf.SampleData))
+	for i := 0; i < len(buf.SampleData)/4; i++ {
+
+		theint := binary.LittleEndian.Uint32(buf.SampleData[i*4 : i*4+4])
+		binary.BigEndian.PutUint32(beWav[i*4:i*4+4], theint)
+	}
+
+	packets := srv.audioPacketizer.Packetize(beWav, uint32(buf.NumSamples))
 	for _, packet := range packets {
 		//packet.Timestamp = uint32(float64(buf.OutputPresentationTimestamp.CMTimeValue) * 0.00009)
-		packet.Timestamp = packet.Timestamp
-		println(packet.Timestamp)
+		//packet.Timestamp = uint32(buf.OutputPresentationTimestamp.CMTimeValue)
+
 		packet.PayloadType = 96
-		//println(packet.Timestamp)
+
 		data, _ := packet.Marshal()
 
 		srv.dumpfile.Write(data)
@@ -114,7 +121,7 @@ func (srv Rtpserver) writeNalu(naluBytes []byte, buf coremedia.CMSampleBuffer) e
 		data, _ := packet.Marshal()
 		_, err := srv.clientConn.Write(data)
 		if err != nil {
-			log.Fatal("write failed", err)
+			log.Warn("write failed", err)
 		}
 		//log.Printf("written:%d",n)
 	}
