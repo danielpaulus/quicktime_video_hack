@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func main() {
+func mainz() {
 	usage := `Q.uickTime V.ideo H.ack or qvh client v0.01
 		If you do not specify a udid, the first device will be taken by default.
 
