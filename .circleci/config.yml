@@ -13,6 +13,7 @@ jobs:
       - checkout
       - run: sudo apt-get update
       - run: sudo apt-get install -y libusb-1.0-0-dev
+      - run: sudo apt-get install -y libglib2.0-dev
       # specify any bash command here prefixed with `run: `
       - run: go build main.go
       - run:
