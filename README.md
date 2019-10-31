@@ -17,14 +17,15 @@ I have written some documentation here [doc/technical_documentation.md](https://
 So if you are just interested in the protocol or if you want to implement this in a different programming language than golang, read the docs.
 ## 3. Usage& Current State of the Tool
 - run `qvh --help` to see how it works
-- The `record` command lets you save iOS video and Audio into separate h264 and wave files. 
+- The `record` command lets you save iOS video and Audio into separate h264 and wave files.
+- The `gstreamer` command will render the video in a nice window on your screen. For this to work you need to install gstreamer on you machine.
 
 Progress:
-1. Stream device audio over rtp as well
+1. Use Gstreamer to create a nice Window with Video and Audio
 2. Release 0.1-beta
-3. BUG: After running the tool to grab AV data, you have to unplug the device to record another video currently
-4. Release 0.2
-5. Create MPEG file
+3. Allow Creating MPEG files
+4. Release 0.2-beta
+5. BUG: After running the tool to grab AV data, you have to unplug the device to make it work again
 
 Extra Goals:
 
