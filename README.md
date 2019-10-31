@@ -8,7 +8,8 @@ This is an Operating System indepedent implementation for Quicktime Screensharin
 This repository contains all the code you will need to grab and record video and audio from your iPhone or iPad 
 without needing one of these expensive MacOS X computers :-D
 It probably does something similar to what `QuickTime` and `com.apple.cmio.iOSScreenCaptureAssistant` are doing on MacOS.
-Currently you can use it to create a h264 file that is playable with VLC and watch a recording of your devices screen :-D
+Currently you can use it to create a h264 file and a wave file so you can watch and listen what was happening on your device. 
+I am finishing up and RTP implementation so you can live watch and hear your device. 
 If you want to contribute to code or documentation, please go ahead :-D
 
 ## 2. Technical Docs
@@ -17,13 +18,6 @@ So if you are just interested in the protocol or if you want to implement this i
 ## 3. Usage& Current State of the Tool
 - run `qvh --help` to see how it works
 - The `record` command lets you save iOS video and Audio into separate h264 and wave files. 
-
-To run RTP you can use this gstreamer command 
-```
-gst-launch-1.0 -v udpsrc port=4000 buffer-size=622080 caps = "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96,framerate=(fraction)60/1" ! rtpjitterbuffer latency=100 ! rtph264depay  ! queue! decodebin ! queue ! videoconvert ! xvimagesink sync=false
-
-```
-and then run `go run main.go rtpstream localhost 4000`
 
 Progress:
 1. Stream device audio over rtp as well
