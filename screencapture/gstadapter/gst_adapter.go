@@ -13,6 +13,7 @@ import (
 //GstAdapter contains the AppSrc for accessing Gstreamer.
 //TODO: add support for audio
 //TODO: add support for shutting down gstreamer
+//TODO: maybe add some queues to gst for performance enhancements
 type GstAdapter struct {
 	appSrc *gst.AppSrc
 }
