@@ -7,12 +7,12 @@ import (
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/rtpsupport"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/gstadapter"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 )
 
-func mainz() {
+func main() {
 	usage := `Q.uickTime V.ideo H.ack or qvh client v0.01
 		If you do not specify a udid, the first device will be taken by default.
 
@@ -20,7 +20,7 @@ Usage:
   qvh devices
   qvh activate
   qvh record <h264file> <wavfile>
-  qvh rtpstream <host> <port>
+  qvh gstreamer 
 
 Options:
   -h --help     Show this screen.
@@ -34,9 +34,7 @@ The commands work as following:
 	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
 				Audio will be saved in a uncompressed wav file.
 				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
-	rtpstream   qvh will start an AV session on the specified device and start streaming UDP RTP packets to the specified
-				server. Make sure you start the RTP server before you start qvh as PPS and SPS are not frequently resend your stream
-				might not work otherwise.
+	gstreamer   qvh start an AppSrc and push AV data to gstreamer.
   `
 	arguments, _ := docopt.ParseDoc(usage)
 	//TODO: add verbose switch to conf this
@@ -71,26 +69,16 @@ The commands work as following:
 		}
 		record(h264FilePath, waveFilePath)
 	}
-	rtpCommand, _ := arguments.Bool("rtpstream")
-	if rtpCommand {
-		ip, err := arguments.String("<host>")
-		if err != nil {
-			log.Error("Missing host address")
-			return
-		}
-		port, err := arguments.Int("<port>")
-		if err != nil {
-			log.Error("Invalid or no port specified")
-		}
-		startRtpStream(ip, port)
+	gstreamerCommand, _ := arguments.Bool("gstreamer")
+	if gstreamerCommand {
+		startGStreamer()
 	}
 }
 
-func startRtpStream(host string, port int) {
-	log.Infof("Starting UDP RTP stream to %s:%d", host, port)
-	rtpSender := rtpsupport.NewRtpServer(host, port)
-	rtpSender.StartServerSocket()
-	startWithConsumer(rtpSender)
+func startGStreamer() {
+	log.Infof("Starting Gstreamer")
+	gStreamer := gstadapter.New()
+	startWithConsumer(gStreamer)
 }
 
 func waitForSigInt(stopSignalChannel chan interface{}) {
