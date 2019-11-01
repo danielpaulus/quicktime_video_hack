@@ -113,25 +113,33 @@ func writeWavDataSubChunkHeader(target *bytes.Buffer, dataLength int) error {
 //WriteWavHeader creates a wave file header using the given length and writes it at the BEGINNING of the wavFile.
 //Please make sure that the file has enough zero bytes before the audio data.
 func WriteWavHeader(length int, wavFile *os.File) error {
+	headerBytes, err := GetWavHeaderBytes(length)
+	if err != nil {
+		return err
+	}
+	_, err = wavFile.WriteAt(headerBytes, 0)
+	return err
+}
+
+func GetWavHeaderBytes(length int) ([]byte, error) {
 	buffer := bytes.NewBuffer(make([]byte, 100))
 	buffer.Reset()
 
 	riffHeader := newRiffHeader(length)
 	err := riffHeader.serialize(buffer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fmtSubChunk := newFmtSubChunk()
 	err = fmtSubChunk.serialize(buffer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = writeWavDataSubChunkHeader(buffer, length)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = wavFile.WriteAt(buffer.Bytes(), 0)
-	return err
+	return buffer.Bytes(), nil
 }

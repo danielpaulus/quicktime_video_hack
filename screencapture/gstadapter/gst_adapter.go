@@ -15,22 +15,78 @@ import (
 //TODO: add support for shutting down gstreamer
 //TODO: maybe add some queues to gst for performance enhancements
 type GstAdapter struct {
-	appSrc *gst.AppSrc
+	videoAppSrc      *gst.AppSrc
+	audioAppSrc      *gst.AppSrc
+	firstAudioSample bool
 }
 
 func New() *GstAdapter {
 	log.Info("Starting Gstreamer..")
+	pl := gst.NewPipeline("QT_Hack_Pipeline")
 
-	asrc, pl := setUpVideoPipeline()
+	//videoAppSrc := setUpVideoPipeline(pl)
+	audioAppSrc := setUpAudioPipeline(pl)
 
 	pl.SetState(gst.STATE_PLAYING)
 
 	log.Info("Gstreamer is running!")
-	gsta := GstAdapter{appSrc: asrc}
+	//gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc}
+	gsta := GstAdapter{audioAppSrc: audioAppSrc, firstAudioSample: true}
 	return &gsta
 }
 
-func setUpVideoPipeline() (*gst.AppSrc, *gst.Pipeline) {
+func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
+	asrc := gst.NewAppSrc("my-audio-src")
+	asrc.SetProperty("is-live", true)
+
+	filesink := gst.ElementFactoryMake("filesink", "filesink")
+	checkElem(filesink, "filesink")
+	filesink.SetProperty("location", "/home/ganjalf/tmp/audiodump.ogg")
+
+	queue1 := gst.ElementFactoryMake("queue", "queue1")
+	checkElem(queue1, "queue1")
+	/*
+		rawaudioparse := gst.ElementFactoryMake("rawaudioparse", "rawaudioparse_01")
+		checkElem(rawaudioparse, "rawaudioparse_01")
+		rawaudioparse.SetProperty("use-sink-caps", false)
+		rawaudioparse.SetProperty("format", "pcm")
+		rawaudioparse.SetProperty("pcm-format", "s16le")
+		rawaudioparse.SetProperty("sample-rate", 48000)
+		rawaudioparse.SetProperty("num-channels", 2)
+	*/
+	wavparse := gst.ElementFactoryMake("wavparse", "wavparse_01")
+	checkElem(wavparse, "wavparse")
+	wavparse.SetProperty("ignore-length", true)
+
+	audioconvert := gst.ElementFactoryMake("audioconvert", "audioconvert_01")
+	checkElem(audioconvert, "audioconvert_01")
+
+	audioresample := gst.ElementFactoryMake("audioresample", "audioresample_01")
+	checkElem(audioresample, "audioresample_01")
+
+	autoaudiosink := gst.ElementFactoryMake("autoaudiosink", "autoaudiosink_01")
+	checkElem(autoaudiosink, "autoaudiosink_01")
+
+	vorbisenc := gst.ElementFactoryMake("vorbisenc", "vorbisenc_01")
+	checkElem(vorbisenc, "vorbisenc_01")
+
+	oggmux := gst.ElementFactoryMake("oggmux", "oggmux_01")
+	checkElem(oggmux, "oggmux_01")
+	//vorbisenc ! oggmux ! filesink location=alsasrc.ogg
+
+	pl.Add(asrc.AsElement(), queue1, wavparse, audioconvert, vorbisenc, oggmux, filesink)
+	asrc.Link(queue1)
+	queue1.Link(wavparse)
+	wavparse.Link(audioconvert)
+	audioconvert.Link(vorbisenc)
+	vorbisenc.Link(oggmux)
+	oggmux.Link(filesink)
+	//audioresample.Link(autoaudiosink)
+
+	return asrc
+}
+
+func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	asrc := gst.NewAppSrc("my-video-src")
 	asrc.SetProperty("is-live", true)
 
@@ -46,14 +102,13 @@ func setUpVideoPipeline() (*gst.AppSrc, *gst.Pipeline) {
 	videoconvert := gst.ElementFactoryMake("videoconvert", "videoconvert_01")
 	checkElem(videoconvert, "videoconvert_01")
 
-	pl := gst.NewPipeline("QT_Hack_Pipeline")
 	pl.Add(asrc.AsElement(), h264parse, avdec_h264, videoconvert, sink)
 
 	asrc.Link(h264parse)
 	h264parse.Link(avdec_h264)
 	avdec_h264.Link(videoconvert)
 	videoconvert.Link(sink)
-	return asrc, pl
+	return asrc
 }
 
 func checkElem(e *gst.Element, name string) {
@@ -64,11 +119,15 @@ func checkElem(e *gst.Element, name string) {
 }
 
 //Consume will transfer AV data into a Gstreamer AppSrc
-func (gsta GstAdapter) Consume(buf coremedia.CMSampleBuffer) error {
+func (gsta *GstAdapter) Consume(buf coremedia.CMSampleBuffer) error {
 	if buf.MediaType == coremedia.MediaTypeSound {
+		if gsta.firstAudioSample {
+			gsta.firstAudioSample = false
+			gsta.sendWavHeader()
+		}
 		return gsta.sendAudioSample(buf)
 	}
-
+	return nil
 	if buf.HasFormatDescription {
 		err := gsta.writeNalu(prependMarker(buf.FormatDescription.PPS, uint32(len(buf.FormatDescription.PPS))), buf)
 		if err != nil {
@@ -84,7 +143,26 @@ func (gsta GstAdapter) Consume(buf coremedia.CMSampleBuffer) error {
 	return nil
 }
 
+func (gsta GstAdapter) sendWavHeader() {
+	wavData, _ := coremedia.GetWavHeaderBytes(100)
+	sampleLength := uint(len(wavData))
+	gstBuf := gst.NewBufferAllocate(sampleLength)
+	gstBuf.SetPTS(0)
+	gstBuf.SetDTS(0)
+	//TODO: create CGO function that provides offsets so we can delete prependMarker again
+	gstBuf.FillWithGoSlice(wavData)
+	gsta.audioAppSrc.PushBuffer(gstBuf)
+}
+
 func (gsta GstAdapter) sendAudioSample(buf coremedia.CMSampleBuffer) error {
+	sampleLength := uint(len(buf.SampleData))
+	gstBuf := gst.NewBufferAllocate(sampleLength)
+	gstBuf.SetPTS(buf.OutputPresentationTimestamp.CMTimeValue)
+	gstBuf.SetDTS(0)
+	//TODO: create CGO function that provides offsets so we can delete prependMarker again
+	gstBuf.FillWithGoSlice(buf.SampleData)
+	gsta.audioAppSrc.PushBuffer(gstBuf)
+
 	return nil
 }
 
@@ -111,7 +189,7 @@ func (srv GstAdapter) writeNalu(naluBytes []byte, buf coremedia.CMSampleBuffer) 
 	gstBuf.SetDTS(0)
 	//TODO: create CGO function that provides offsets so we can delete prependMarker again
 	gstBuf.FillWithGoSlice(naluBytes)
-	srv.appSrc.PushBuffer(gstBuf)
+	srv.videoAppSrc.PushBuffer(gstBuf)
 	return nil
 }
 
