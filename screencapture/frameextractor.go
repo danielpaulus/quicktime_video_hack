@@ -32,8 +32,8 @@ func (fe *LengthFieldBasedFrameExtractor) ExtractFrame(bytes []byte) ([]byte, bo
 		return fe.handleNewFrame(bytes)
 	}
 	if fe.readyForNextFrame && fe.frameBuffer.Len() != 0 {
-		if fe.frameBuffer.Len()<4{
-			log.Fatal("wtf:"+hex.Dump(fe.frameBuffer.Bytes()))
+		if fe.frameBuffer.Len() < 4 {
+			log.Fatal("wtf:" + hex.Dump(fe.frameBuffer.Bytes()))
 		}
 		fe.nextFrameSize = int(binary.LittleEndian.Uint32(fe.frameBuffer.Next(4))) - 4
 		fe.readyForNextFrame = false

@@ -20,6 +20,17 @@ type GstAdapter struct {
 
 func New() *GstAdapter {
 	log.Info("Starting Gstreamer..")
+
+	asrc, pl := setUpVideoPipeline()
+
+	pl.SetState(gst.STATE_PLAYING)
+
+	log.Info("Gstreamer is running!")
+	gsta := GstAdapter{appSrc: asrc}
+	return &gsta
+}
+
+func setUpVideoPipeline() (*gst.AppSrc, *gst.Pipeline) {
 	asrc := gst.NewAppSrc("my-video-src")
 	asrc.SetProperty("is-live", true)
 
@@ -42,12 +53,7 @@ func New() *GstAdapter {
 	h264parse.Link(avdec_h264)
 	avdec_h264.Link(videoconvert)
 	videoconvert.Link(sink)
-
-	pl.SetState(gst.STATE_PLAYING)
-
-	log.Info("Gstreamer is running!")
-	gsta := GstAdapter{appSrc: asrc}
-	return &gsta
+	return asrc, pl
 }
 
 func checkElem(e *gst.Element, name string) {
