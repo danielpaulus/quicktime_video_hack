@@ -66,6 +66,7 @@ func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
 
 	autoaudiosink := gst.ElementFactoryMake("autoaudiosink", "autoaudiosink_01")
 	checkElem(autoaudiosink, "autoaudiosink_01")
+	autoaudiosink.SetProperty("sync", false)
 
 	vorbisenc := gst.ElementFactoryMake("vorbisenc", "vorbisenc_01")
 	checkElem(vorbisenc, "vorbisenc_01")
@@ -74,13 +75,30 @@ func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	checkElem(oggmux, "oggmux_01")
 	//vorbisenc ! oggmux ! filesink location=alsasrc.ogg
 
-	pl.Add(asrc.AsElement(), queue1, wavparse, audioconvert, vorbisenc, oggmux, filesink)
+	//hack  oggdemux ! vorbisdec ! audioconvert
+
+	oggdemux := gst.ElementFactoryMake("oggdemux", "oggdemux")
+	checkElem(oggdemux, "oggdemux")
+
+	vorbisdec := gst.ElementFactoryMake("vorbisdec", "vorbisdec")
+	checkElem(vorbisdec, "vorbisdec")
+
+	audioconvert2 := gst.ElementFactoryMake("audioconvert", "audioconvert_02")
+	checkElem(audioconvert2, "audioconvert_02")
+
+	//endhack
+
+	pl.Add(asrc.AsElement(), queue1, wavparse, audioconvert, vorbisenc, oggmux, oggdemux, vorbisdec, audioconvert2, autoaudiosink)
 	asrc.Link(queue1)
 	queue1.Link(wavparse)
 	wavparse.Link(audioconvert)
+
 	audioconvert.Link(vorbisenc)
-	vorbisenc.Link(oggmux)
-	oggmux.Link(filesink)
+
+	vorbisenc.Link(vorbisdec)
+
+	vorbisdec.Link(audioconvert2)
+	audioconvert2.Link(autoaudiosink)
 	//audioresample.Link(autoaudiosink)
 
 	return asrc
