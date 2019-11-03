@@ -5,7 +5,9 @@
 
 ## 1. What is this?
 This is an Operating System indepedent implementation for Quicktime Screensharing for iOS devices :-)
-[See a demo on YouTube] (https://youtu.be/8v5f_ybSjHk)
+
+[See a demo on YouTube](https://youtu.be/8v5f_ybSjHk)
+
 This repository contains all the code you will need to grab and record video and audio from your iPhone or iPad 
 without needing one of these expensive MacOS X computers :-D
 It probably does something similar to what `QuickTime` and `com.apple.cmio.iOSScreenCaptureAssistant` are doing on MacOS.
