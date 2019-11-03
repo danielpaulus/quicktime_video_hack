@@ -24,14 +24,13 @@ func New() *GstAdapter {
 	log.Info("Starting Gstreamer..")
 	pl := gst.NewPipeline("QT_Hack_Pipeline")
 
-	//videoAppSrc := setUpVideoPipeline(pl)
+	videoAppSrc := setUpVideoPipeline(pl)
 	audioAppSrc := setUpAudioPipeline(pl)
 
 	pl.SetState(gst.STATE_PLAYING)
 
 	log.Info("Gstreamer is running!")
-	//gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc}
-	gsta := GstAdapter{audioAppSrc: audioAppSrc, firstAudioSample: true}
+	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
 	return &gsta
 }
 
@@ -108,8 +107,8 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	asrc := gst.NewAppSrc("my-video-src")
 	asrc.SetProperty("is-live", true)
 
-	sink := gst.ElementFactoryMake("xvimagesink", "xvimagesink_01")
-	checkElem(sink, "xvimagesink01")
+	queue1 := gst.ElementFactoryMake("queue", "queue_11")
+	checkElem(queue1, "queue_11")
 
 	h264parse := gst.ElementFactoryMake("h264parse", "h264parse_01")
 	checkElem(h264parse, "h264parse")
@@ -117,15 +116,27 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	avdec_h264 := gst.ElementFactoryMake("avdec_h264", "avdec_h264_01")
 	checkElem(avdec_h264, "avdec_h264_01")
 
+	queue2 := gst.ElementFactoryMake("queue", "queue_12")
+	checkElem(queue2, "queue_12")
+
 	videoconvert := gst.ElementFactoryMake("videoconvert", "videoconvert_01")
 	checkElem(videoconvert, "videoconvert_01")
 
-	pl.Add(asrc.AsElement(), h264parse, avdec_h264, videoconvert, sink)
+	queue3 := gst.ElementFactoryMake("queue", "queue_13")
+	checkElem(queue3, "queue_13")
 
-	asrc.Link(h264parse)
+	sink := gst.ElementFactoryMake("xvimagesink", "xvimagesink_01")
+	checkElem(sink, "xvimagesink01")
+
+	pl.Add(asrc.AsElement(), queue1, h264parse, avdec_h264, queue2, videoconvert, queue3, sink)
+
+	asrc.Link(queue1)
+	queue1.Link(h264parse)
 	h264parse.Link(avdec_h264)
-	avdec_h264.Link(videoconvert)
-	videoconvert.Link(sink)
+	avdec_h264.Link(queue2)
+	queue2.Link(videoconvert)
+	videoconvert.Link(queue3)
+	queue3.Link(sink)
 	return asrc
 }
 
@@ -145,7 +156,7 @@ func (gsta *GstAdapter) Consume(buf coremedia.CMSampleBuffer) error {
 		}
 		return gsta.sendAudioSample(buf)
 	}
-	return nil
+
 	if buf.HasFormatDescription {
 		err := gsta.writeNalu(prependMarker(buf.FormatDescription.PPS, uint32(len(buf.FormatDescription.PPS))), buf)
 		if err != nil {
