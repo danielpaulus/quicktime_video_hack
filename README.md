@@ -6,6 +6,7 @@
 ## 1. What is this?
 This is an Operating System indepedent implementation for Quicktime Screensharing for iOS devices :-)
 
+[Check out my presentation](https://danielpaulus.github.io/quicktime_video_hack_presentation)
 [See a demo on YouTube](https://youtu.be/8v5f_ybSjHk)
 
 This repository contains all the code you will need to grab and record video and audio from your iPhone or iPad 
