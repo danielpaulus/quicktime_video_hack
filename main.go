@@ -18,15 +18,14 @@ func main() {
 
 Usage:
   qvh devices
-  qvh activate
+  qvh activate [--udid=<udid>]
   qvh record <h264file> <wavfile>
   qvh gstreamer 
 
 Options:
-  -h --help     Show this screen.
-  --version     Show version.
-  -u=<udid>, --udid     UDID of the device.
-  -o=<filepath>, --output
+  -h --help			Show this screen.
+  --version			Show version.
+  --udid=<udid>		UDID of the device.
 
 The commands work as following:
 	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
@@ -41,7 +40,7 @@ The commands work as following:
 	log.SetLevel(log.DebugLevel)
 	udid, _ := arguments.String("--udid")
 	//TODO:add device selection here
-	log.Info(udid)
+	log.Info("udid" + udid)
 
 	devicesCommand, _ := arguments.Bool("devices")
 	if devicesCommand {
