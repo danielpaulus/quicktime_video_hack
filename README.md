@@ -26,8 +26,11 @@ So if you are just interested in the protocol or if you want to implement this i
 - The `gstreamer` command will render the video in a nice window on your screen. For this to work you need to install gstreamer on you machine.
 
 Progress:
+
 0. Fix it for MacOS X
+
 0a. Release 0.1-beta
+
 1. Use Gstreamer to create a nice Window with Video and Audio
 2. Release 0.2-beta
 3. Allow Creating MPEG files
