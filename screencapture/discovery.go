@@ -3,18 +3,33 @@ package screencapture
 import (
 	"errors"
 	"fmt"
+
+	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
-import "github.com/google/gousb"
 
 //IosDevice contains a gousb.Device pointer for a found device and some additional info like the device udid
 type IosDevice struct {
-	usbDevice         *gousb.Device
 	SerialNumber      string
 	ProductName       string
 	UsbMuxConfigIndex int
 	QTConfigIndex     int
+	VID               gousb.ID
+	PID               gousb.ID
+	UsbInfo           string
+}
+
+//ReOpen creates a new Ios device, opening it using VID and PID, using the given context
+func (d *IosDevice) ReOpen(ctx *gousb.Context) (IosDevice, error) {
+	dev, err := ctx.OpenDeviceWithVIDPID(d.VID, d.PID)
+	if err != nil {
+		return IosDevice{}, err
+	}
+	idev, err := mapToIosDevice([]*gousb.Device{dev})
+	if err != nil {
+		return IosDevice{}, err
+	}
+	return idev[0], nil
 }
 
 const (
@@ -24,33 +39,50 @@ const (
 	QuicktimeSubclass gousb.Class = 0x2A
 )
 
-// FindIosDevicesWithQTEnabled finds iOS devices connected on USB ports by looking for their
-// USBMux compatible Bulk Endpoints and QuickTime Video Stream compatible Bulk Endpoints
-func FindIosDevicesWithQTEnabled() ([]IosDevice, error) {
-	return findIosDevices(isValidIosDeviceWithActiveQTConfig)
-}
-
 // FindIosDevices finds iOS devices connected on USB ports by looking for their
 // USBMux compatible Bulk Endpoints
 func FindIosDevices() ([]IosDevice, error) {
-	return findIosDevices(isValidIosDevice)
+	ctx, cleanUp := createContext()
+	defer cleanUp()
+	return findIosDevices(ctx, isValidIosDevice)
 }
 
-var ctx *gousb.Context
-
-//Init initializes a new Context and returns a func to close it later.
-//Be sure to run it with defer
-func Init() func() {
-	ctx = gousb.NewContext()
-	return func() {
+func createContext() (*gousb.Context, func()) {
+	ctx := gousb.NewContext()
+	log.Debugf("Opened usbcontext:%v", ctx)
+	cleanUp := func() {
 		err := ctx.Close()
 		if err != nil {
-			log.Fatal("Failed while closing usb Context" + err.Error())
+			log.Fatalf("Error closing usb context: %v", ctx)
 		}
 	}
+	return ctx, cleanUp
 }
 
-func findIosDevices(validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]IosDevice, error) {
+// FindIosDevice finds a iOS device by udid or picks the first one if udid == ""
+func FindIosDevice(udid string) (IosDevice, error) {
+	ctx, cleanUp := createContext()
+	defer cleanUp()
+	list, err := findIosDevices(ctx, isValidIosDevice)
+	if err != nil {
+		return IosDevice{}, err
+	}
+	if len(list) == 0 {
+		return IosDevice{}, errors.New("could not find any iOS device on this host")
+	}
+	if udid == "" {
+		log.Debugf("no udid specified, using '%s'", list[0].SerialNumber)
+		return list[0], nil
+	}
+	for _, device := range list {
+		if udid == device.SerialNumber {
+			return device, nil
+		}
+	}
+	return IosDevice{}, fmt.Errorf("device with udid:'%s' not found", udid)
+}
+
+func findIosDevices(ctx *gousb.Context, validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]IosDevice, error) {
 	devices, err := ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
 		// this function is called for every device present.
 		// Returning true means the device should be opened.
@@ -67,23 +99,12 @@ func findIosDevices(validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]Ios
 	return iosDevices, nil
 }
 
-func findBySerialNumber(udid string) (*gousb.Device, error) {
-	devices, err := FindIosDevices()
-	if err != nil {
-		return nil, err
-	}
-	for _, d := range devices {
-		if d.SerialNumber == udid {
-			return d.usbDevice, nil
-		}
-	}
-	return nil, errors.New("not found")
-}
-
 func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 	iosDevices := make([]IosDevice, len(devices))
 	for i, d := range devices {
+		log.Debugf("Getting serial for: %s", d.String())
 		serial, err := d.SerialNumber()
+		log.Debug("Got serial" + serial)
 		if err != nil {
 			return nil, err
 		}
@@ -91,20 +112,23 @@ func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		muxConfigIndex, qtConfigIndex := findConfigurations(d.Desc)
-		iosDevice := IosDevice{d, serial, product, muxConfigIndex, qtConfigIndex}
+		iosDevice := IosDevice{serial, product, muxConfigIndex, qtConfigIndex, d.Desc.Vendor, d.Desc.Product, d.String()}
+		d.Close()
 		iosDevices[i] = iosDevice
+
 	}
 	return iosDevices, nil
 }
 
-//PrintDeviceDetails returns a pretty string for printing device details to the console.
-func PrintDeviceDetails(devices []IosDevice) string {
-	var sb strings.Builder
-	for _, d := range devices {
-		sb.WriteString(d.String())
+//PrintDeviceDetails returns a list of device details ready to be JSON converted.
+func PrintDeviceDetails(devices []IosDevice) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(devices))
+	for k, device := range devices {
+		result[k] = device.DetailsMap()
 	}
-	return sb.String()
+	return result
 }
 
 func isValidIosDevice(desc *gousb.DeviceDesc) bool {
@@ -162,17 +186,21 @@ func findInterfaceForSubclass(confDesc gousb.ConfigDesc, subClass gousb.Class) (
 	return false, -1
 }
 
-func (d *IosDevice) String() string {
-	return fmt.Sprintf("'%s'  %s serial: %s", d.ProductName, d.usbDevice.String(), d.SerialNumber)
+//IsActivated returns a boolean that is true when this device was enabled for screen mirroring and false otherwise.
+func (d *IosDevice) IsActivated() bool {
+	return d.QTConfigIndex != -1
 }
 
-//This enables the config needed for grabbing video of the device
-//it should open two additional bulk endpoints where video frames
-//will be received
-func (d *IosDevice) enableQuickTimeConfig() (*gousb.Config, error) {
-	config, err := d.usbDevice.Config(d.QTConfigIndex)
-	if err != nil {
-		return nil, err
+//DetailsMap contains all the info for a device in a map ready to be JSON encoded
+func (d *IosDevice) DetailsMap() map[string]interface{} {
+	return map[string]interface{}{
+		"deviceName":               d.ProductName,
+		"usb_device_info":          d.UsbInfo,
+		"udid":                     d.SerialNumber,
+		"screen_mirroring_enabled": d.IsActivated(),
 	}
-	return config, nil
+}
+
+func (d *IosDevice) String() string {
+	return fmt.Sprintf("'%s'  %s serial: %s, qt_mode:%t", d.ProductName, d.UsbInfo, d.SerialNumber, d.IsActivated())
 }

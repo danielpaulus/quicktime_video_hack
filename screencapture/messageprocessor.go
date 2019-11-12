@@ -13,12 +13,10 @@ import (
 //It receives readily split byte frames, parses them, responds to them and passes on
 //extracted CMSampleBuffers to a consumer
 type MessageProcessor struct {
-	connectionState                          int
 	usbWriter                                UsbWriter
 	stopSignal                               chan interface{}
 	clock                                    coremedia.CMClock
 	localAudioClock                          coremedia.CMClock
-	totalBytesReceived                       int
 	needClockRef                             packet.CFTypeID
 	needMessage                              []byte
 	audioSamplesReceived                     int

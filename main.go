@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 
@@ -12,36 +14,46 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const version = "v0.1-alpha"
+
 func main() {
-	usage := `Q.uickTime V.ideo H.ack or qvh client v0.01
-		If you do not specify a udid, the first device will be taken by default.
+	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
 
 Usage:
-  qvh devices
-  qvh activate
-  qvh record <h264file> <wavfile>
-  qvh gstreamer 
+  qvh devices [-v]
+  qvh activate [--udid=<udid>] [-v]
+  qvh record <h264file> <wavfile> [-v]
+  qvh gstreamer [-v]
+  qvh --version | version
+
 
 Options:
-  -h --help     Show this screen.
-  --version     Show version.
-  -u=<udid>, --udid     UDID of the device.
-  -o=<filepath>, --output
+  -h --help       Show this screen.
+  -v              Enable verbose mode (debug logging).
+  --version       Show version.
+  --udid=<udid>   UDID of the device. If not specified, the first found device will be used automatically.
 
 The commands work as following:
 	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
-	activate	only enables the video streaming config for the given device
+	activate	enables the video streaming config for the device specified by --udid
 	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
 				Audio will be saved in a uncompressed wav file.
 				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
-	gstreamer   qvh start an AppSrc and push AV data to gstreamer.
-  `
+	gstreamer   qvh will open a new window and push AV data to gstreamer.
+  `, version)
 	arguments, _ := docopt.ParseDoc(usage)
-	//TODO: add verbose switch to conf this
-	log.SetLevel(log.DebugLevel)
-	udid, _ := arguments.String("--udid")
-	//TODO:add device selection here
-	log.Info(udid)
+
+	verboseLoggingEnabled, _ := arguments.Bool("-v")
+	if verboseLoggingEnabled {
+		log.Info("Set Debug mode")
+		log.SetLevel(log.DebugLevel)
+	}
+	shouldPrintVersionNoDashes, _ := arguments.Bool("version")
+	shouldPrintVersion, _ := arguments.Bool("--version")
+	if shouldPrintVersionNoDashes || shouldPrintVersion {
+		printVersion()
+		return
+	}
 
 	devicesCommand, _ := arguments.Bool("devices")
 	if devicesCommand {
@@ -49,36 +61,46 @@ The commands work as following:
 		return
 	}
 
+	udid, _ := arguments.String("--udid")
+	log.Debugf("requested udid:'%s'", udid)
+
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
-		activate()
+		activate(udid)
 		return
 	}
 
-	rawStreamCommand, _ := arguments.Bool("record")
-	if rawStreamCommand {
+	recordCommand, _ := arguments.Bool("record")
+	if recordCommand {
 		h264FilePath, err := arguments.String("<h264file>")
 		if err != nil {
-			log.Error("Missing <h264file> parameter. Please specify a valid path like '/home/me/out.h264'")
+			printErrJSON(err, "Missing <h264file> parameter. Please specify a valid path like '/home/me/out.h264'")
 			return
 		}
 		waveFilePath, err := arguments.String("<wavfile>")
 		if err != nil {
-			log.Error("Missing <wavfile> parameter. Please specify a valid path like '/home/me/out.raw'")
+			printErrJSON(err, "Missing <wavfile> parameter. Please specify a valid path like '/home/me/out.raw'")
 			return
 		}
-		record(h264FilePath, waveFilePath)
+		record(h264FilePath, waveFilePath, udid)
 	}
 	gstreamerCommand, _ := arguments.Bool("gstreamer")
 	if gstreamerCommand {
-		startGStreamer()
+		startGStreamer(udid)
 	}
 }
 
-func startGStreamer() {
-	log.Infof("Starting Gstreamer")
+func printVersion() {
+	versionMap := map[string]interface{}{
+		"version": version,
+	}
+	printJSON(versionMap)
+}
+
+func startGStreamer(udid string) {
+	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer)
+	startWithConsumer(gStreamer, udid)
 }
 
 func waitForSigInt(stopSignalChannel chan interface{}) {
@@ -95,51 +117,37 @@ func waitForSigInt(stopSignalChannel chan interface{}) {
 
 // Just dump a list of what was discovered to the console
 func devices() {
-	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
-	defer cleanup()
-	log.Infof("(%d) iOS Devices with UsbMux Endpoint:", len(deviceList))
+	if err != nil {
+		printErrJSON(err, "Error finding iOS Devices")
+	}
+	log.Debugf("Found (%d) iOS Devices with UsbMux Endpoint", len(deviceList))
 
 	if err != nil {
-		log.Fatal("Error finding iOS Devices", err)
+		printErrJSON(err, "Error finding iOS Devices")
 	}
 	output := screencapture.PrintDeviceDetails(deviceList)
-	log.Info(output)
+
+	printJSON(map[string]interface{}{"devices": output})
 }
 
 // This command is for testing if we can enable the hidden Quicktime device config
-func activate() {
-	cleanup := screencapture.Init()
-	deviceList, err := screencapture.FindIosDevices()
-	defer cleanup()
-	if err != nil {
-		log.Fatal("Error finding iOS Devices", err)
-	}
+func activate(udid string) {
+	device, err := screencapture.FindIosDevice(udid)
 
-	log.Info("iOS Devices with UsbMux Endpoint:")
-
-	output := screencapture.PrintDeviceDetails(deviceList)
-	log.Info(output)
-
-	err = screencapture.EnableQTConfig(deviceList)
+	log.Debugf("Enabling device: %v", device)
+	device, err = screencapture.EnableQTConfig(device)
 	if err != nil {
 		log.Fatal("Error enabling QT config", err)
 	}
 
-	qtDevices, err := screencapture.FindIosDevicesWithQTEnabled()
-	if err != nil {
-		log.Fatal("Error finding QT Devices", err)
-	}
-	qtOutput := screencapture.PrintDeviceDetails(qtDevices)
-	if len(qtDevices) != len(deviceList) {
-		log.Warnf("Less qt devices (%d) than plain usbmux devices (%d)", len(qtDevices), len(deviceList))
-	}
-	log.Info("iOS Devices with QT Endpoint:")
-	log.Info(qtOutput)
+	printJSON(map[string]interface{}{
+		"device_activated": device.DetailsMap(),
+	})
 }
 
-func record(h264FilePath string, wavFilePath string) {
-	log.Infof("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
+func record(h264FilePath string, wavFilePath string, udid string) {
+	log.Debugf("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
 
 	h264File, err := os.Create(h264FilePath)
 	if err != nil {
@@ -173,14 +181,14 @@ func record(h264FilePath string, wavFilePath string) {
 		}
 
 	}()
-	startWithConsumer(writer)
+	startWithConsumer(writer, udid)
 }
 
-func startWithConsumer(consumer screencapture.CmSampleBufConsumer) {
-	activate()
-	cleanup := screencapture.Init()
+func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) {
+	activate(udid)
+
 	deviceList, err := screencapture.FindIosDevices()
-	defer cleanup()
+
 	if err != nil {
 		log.Fatal("Error finding iOS Devices", err)
 	}
@@ -193,4 +201,17 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer) {
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
 
 	adapter.StartReading(dev, &mp, stopSignal)
+}
+func printErrJSON(err error, msg string) {
+	printJSON(map[string]interface{}{
+		"originalError": err.Error(),
+		"message":       msg,
+	})
+}
+func printJSON(output map[string]interface{}) {
+	text, err := json.Marshal(output)
+	if err != nil {
+		log.Fatalf("Broken json serialization, error: %s", err)
+	}
+	println(string(text))
 }
