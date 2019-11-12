@@ -2,26 +2,17 @@ package screencapture
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 // EnableQTConfig enables the hidden QuickTime Device configuration that will expose two new bulk endpoints.
 // We will send a control transfer to the device via USB which will cause the device to disconnect and then
 // re-connect with a new device configuration. Usually the usbmuxd will automatically enable that new config
 // as it will detect it as the device's preferredConfig.
-func EnableQTConfig(devices []IosDevice) error {
-	for _, device := range devices {
-		err := enableQTConfigSingleDevice(device)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func enableQTConfigSingleDevice(device IosDevice) error {
+func EnableQTConfig(device IosDevice) error {
 	udid := device.SerialNumber
 	if isValidIosDeviceWithActiveQTConfig(device.usbDevice.Desc) {
 		log.Debugf("Skipping %s because it already has an active QT config", udid)
@@ -35,7 +26,7 @@ func enableQTConfigSingleDevice(device IosDevice) error {
 
 	var i int
 	for {
-		log.Infof("Checking for active QT config for %s", udid)
+		log.Debugf("Checking for active QT config for %s", udid)
 		time.Sleep(500 * time.Millisecond)
 		err = ctx.Close()
 		if err != nil {
@@ -55,7 +46,7 @@ func enableQTConfigSingleDevice(device IosDevice) error {
 		}
 		break
 	}
-	log.Infof("QTConfig for %s activated", udid)
+	log.Debugf("QTConfig for %s activated", udid)
 	return err
 }
 

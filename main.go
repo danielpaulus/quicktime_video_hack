@@ -139,14 +139,11 @@ func activate(udid string) {
 	device, err := screencapture.FindIosDevice(udid)
 	defer cleanup()
 	if err != nil {
-		printErrJSON(err, fmt.Sprintf("It seems like there is no valid iOS device attached to this host for udid:'%s'. Please attach a device.", udid))
+		printErrJSON(err, "device could not be found")
 		return
 	}
-
-	output := screencapture.PrintDeviceDetails(deviceList)
-	log.Info(output)
-
-	err = screencapture.EnableQTConfig(deviceList)
+	log.Debugf("Enabling device: %s", device)
+	err = screencapture.EnableQTConfig(device)
 	if err != nil {
 		log.Fatal("Error enabling QT config", err)
 	}
@@ -156,11 +153,9 @@ func activate(udid string) {
 		log.Fatal("Error finding QT Devices", err)
 	}
 	qtOutput := screencapture.PrintDeviceDetails(qtDevices)
-	if len(qtDevices) != len(deviceList) {
-		log.Warnf("Less qt devices (%d) than plain usbmux devices (%d)", len(qtDevices), len(deviceList))
-	}
-	log.Info("iOS Devices with QT Endpoint:")
-	log.Info(qtOutput)
+	printJSON(map[string]interface{}{
+		"activated_devices": qtOutput,
+	})
 }
 
 func record(h264FilePath string, wavFilePath string, udid string) {

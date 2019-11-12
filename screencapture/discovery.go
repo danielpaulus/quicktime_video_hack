@@ -36,6 +36,27 @@ func FindIosDevices() ([]IosDevice, error) {
 	return findIosDevices(isValidIosDevice)
 }
 
+// FindIosDevice finds a iOS device by udid or picks the first one if udid == ""
+func FindIosDevice(udid string) (IosDevice, error) {
+	list, err := findIosDevices(isValidIosDevice)
+	if err != nil {
+		return IosDevice{}, err
+	}
+	if len(list) == 0 {
+		return IosDevice{}, errors.New("could not find any iOS device on this host")
+	}
+	if udid == "" {
+		log.Debugf("no udid specified, using '%s'", list[0].SerialNumber)
+		return list[0], nil
+	}
+	for _, device := range list {
+		if udid == device.SerialNumber {
+			return device, nil
+		}
+	}
+	return IosDevice{}, fmt.Errorf("device with udid:'%s' not found", udid)
+}
+
 var ctx *gousb.Context
 
 //Init initializes a new Context and returns a func to close it later.
