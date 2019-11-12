@@ -188,9 +188,9 @@ func record(h264FilePath string, wavFilePath string, udid string) {
 
 func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) {
 	activate(udid)
-	cleanup := screencapture.Init()
+
 	deviceList, err := screencapture.FindIosDevices()
-	defer cleanup()
+
 	if err != nil {
 		log.Fatal("Error finding iOS Devices", err)
 	}

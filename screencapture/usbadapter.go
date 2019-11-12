@@ -51,15 +51,13 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 
 	val, err := usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
 	if err != nil {
-		log.Error("failed control", err)
-		return err
+		log.Warn("failed control", err)
 	}
 	log.Infof("Clear Feature RC: %d", val)
 
 	val1, err1 := usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
 	if err1 != nil {
-		log.Error("failed control", err1)
-		return err
+		log.Warn("failed control", err1)
 	}
 	log.Infof("Clear Feature RC: %d", val1)
 
@@ -125,7 +123,6 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	if err != nil {
 		log.Error("Error sending disable control request", err)
 	}
-
 	return nil
 }
 
