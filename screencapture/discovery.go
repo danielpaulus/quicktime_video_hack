@@ -68,7 +68,7 @@ func FindIosDevice(udid string) (IosDevice, error) {
 		return IosDevice{}, err
 	}
 	if len(list) == 0 {
-		return IosDevice{}, errors.New("could not find any iOS device on this host")
+		return IosDevice{}, errors.New("no iOS devices are connected to this host")
 	}
 	if udid == "" {
 		log.Debugf("no udid specified, using '%s'", list[0].SerialNumber)
