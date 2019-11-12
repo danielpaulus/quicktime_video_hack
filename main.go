@@ -55,15 +55,14 @@ The commands work as following:
 		return
 	}
 
-	udid, _ := arguments.String("--udid")
-
-	log.Debugf("requested udid:%s", udid)
-
 	devicesCommand, _ := arguments.Bool("devices")
 	if devicesCommand {
 		devices()
 		return
 	}
+
+	udid, _ := arguments.String("--udid")
+	log.Debugf("requested udid:'%s'", udid)
 
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
@@ -124,7 +123,7 @@ func devices() {
 		printErrJSON(err, "Error finding iOS Devices")
 	}
 	defer cleanup()
-	log.Debugf("(%d) iOS Devices with UsbMux Endpoint:", len(deviceList))
+	log.Debugf("Found (%d) iOS Devices with UsbMux Endpoint", len(deviceList))
 
 	if err != nil {
 		printErrJSON(err, "Error finding iOS Devices")
