@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -66,12 +67,12 @@ The commands work as following:
 
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
-		activate()
+		activate(udid)
 		return
 	}
 
-	rawStreamCommand, _ := arguments.Bool("record")
-	if rawStreamCommand {
+	recordCommand, _ := arguments.Bool("record")
+	if recordCommand {
 		h264FilePath, err := arguments.String("<h264file>")
 		if err != nil {
 			printErrJSON(err, "Missing <h264file> parameter. Please specify a valid path like '/home/me/out.h264'")
@@ -82,11 +83,11 @@ The commands work as following:
 			printErrJSON(err, "Missing <wavfile> parameter. Please specify a valid path like '/home/me/out.raw'")
 			return
 		}
-		record(h264FilePath, waveFilePath)
+		record(h264FilePath, waveFilePath, udid)
 	}
 	gstreamerCommand, _ := arguments.Bool("gstreamer")
 	if gstreamerCommand {
-		startGStreamer()
+		startGStreamer(udid)
 	}
 }
 
@@ -97,10 +98,10 @@ func printVersion() {
 	printJSON(versionMap)
 }
 
-func startGStreamer() {
+func startGStreamer(udid string) {
 	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer)
+	startWithConsumer(gStreamer, udid)
 }
 
 func waitForSigInt(stopSignalChannel chan interface{}) {
@@ -134,12 +135,16 @@ func devices() {
 }
 
 // This command is for testing if we can enable the hidden Quicktime device config
-func activate() {
+func activate(udid string) {
 	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
 	defer cleanup()
 	if err != nil {
 		log.Fatal("Error finding iOS Devices", err)
+	}
+	if len(deviceList) == 0 {
+		printErrJSON(errors.New("No iOS devices could be found."), "Please attach a device.")
+		return
 	}
 
 	output := screencapture.PrintDeviceDetails(deviceList)
@@ -162,7 +167,7 @@ func activate() {
 	log.Info(qtOutput)
 }
 
-func record(h264FilePath string, wavFilePath string) {
+func record(h264FilePath string, wavFilePath string, udid string) {
 	log.Infof("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
 
 	h264File, err := os.Create(h264FilePath)
@@ -197,11 +202,11 @@ func record(h264FilePath string, wavFilePath string) {
 		}
 
 	}()
-	startWithConsumer(writer)
+	startWithConsumer(writer, udid)
 }
 
-func startWithConsumer(consumer screencapture.CmSampleBufConsumer) {
-	activate()
+func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) {
+	activate(udid)
 	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
 	defer cleanup()
