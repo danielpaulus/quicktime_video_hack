@@ -69,14 +69,22 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}
 	log.Debugf("Got QT iface:%s", iface.String())
 
-	inEndpoint, err := iface.InEndpoint(grabInBulk(iface.Setting))
+	inboundBulkEndpointIndex, err := grabInBulk(iface.Setting)
+	if err != nil {
+		return err
+	}
+	inEndpoint, err := iface.InEndpoint(inboundBulkEndpointIndex)
 	if err != nil {
 		log.Error("couldnt get InEndpoint")
 		return err
 	}
 	log.Debugf("Inbound Bulk: %s", inEndpoint.String())
 
-	outEndpoint, err := iface.OutEndpoint(grabOutBulk(iface.Setting))
+	outboundBulkEndpointIndex, err := grabOutBulk(iface.Setting)
+	if err != nil {
+		return err
+	}
+	outEndpoint, err := iface.OutEndpoint(outboundBulkEndpointIndex)
 	if err != nil {
 		log.Error("couldnt get OutEndpoint")
 		return err
@@ -127,24 +135,22 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	return nil
 }
 
-func grabOutBulk(setting gousb.InterfaceSetting) int {
+func grabOutBulk(setting gousb.InterfaceSetting) (int, error) {
 	for _, v := range setting.Endpoints {
 		if v.Direction == gousb.EndpointDirectionOut {
-			return v.Number
+			return v.Number, nil
 		}
 	}
-	//TODO: error
-	return -1
+	return 0, errors.New("Outbound Bulkendpoint not found")
 }
 
-func grabInBulk(setting gousb.InterfaceSetting) int {
+func grabInBulk(setting gousb.InterfaceSetting) (int, error) {
 	for _, v := range setting.Endpoints {
 		if v.Direction == gousb.EndpointDirectionIn {
-			return v.Number
+			return v.Number, nil
 		}
 	}
-	//TODO: error
-	return -1
+	return 0, errors.New("Inbound Bulkendpoint not found")
 }
 
 func grabQuickTimeInterface(config *gousb.Config) (*gousb.Interface, error) {
