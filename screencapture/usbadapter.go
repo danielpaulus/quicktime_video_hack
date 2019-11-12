@@ -42,29 +42,25 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 		return errors.New("Could not retrieve config")
 	}
 
-	err = sendQTConfigControlRequest(usbDevice)
+	sendQTConfigControlRequest(usbDevice)
 
-	if err != nil {
-		log.Error("Error disabling config", err)
-	}
-
-	log.Infof("QT Config is active: %s", config.String())
+	log.Debugf("QT Config is active: %s", config.String())
 
 	val, err := usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
 	if err != nil {
-		log.Warn("failed control", err)
+		log.Debug("failed control", err)
 	}
-	log.Infof("Clear Feature RC: %d", val)
+	log.Debugf("Clear Feature RC: %d", val)
 
 	val, err = usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
 	if err != nil {
-		log.Warn("failed control", err)
+		log.Debug("failed control", err)
 	}
-	log.Infof("Clear Feature RC: %d", val)
+	log.Debugf("Clear Feature RC: %d", val)
 
 	iface, err := grabQuickTimeInterface(config)
 	if err != nil {
-		log.Error("Couldnt get Quicktime Interface")
+		log.Debug("could not get Quicktime Interface")
 		return err
 	}
 	log.Debugf("Got QT iface:%s", iface.String())
@@ -98,7 +94,7 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 		return err
 	}
 	log.Debug("Endpoint claimed")
-
+	log.Infof("Device '%s' USB connection ready", device.SerialNumber)
 	go func() {
 
 		frameExtractor := NewLengthFieldBasedFrameExtractor()
@@ -128,10 +124,8 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	log.Info("Closing usb interface")
 	iface.Close()
 
-	err = sendQTDisableConfigControlRequest(usbDevice)
-	if err != nil {
-		log.Error("Error sending disable control request", err)
-	}
+	sendQTDisableConfigControlRequest(usbDevice)
+
 	return nil
 }
 
