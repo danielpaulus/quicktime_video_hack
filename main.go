@@ -42,6 +42,7 @@ The commands work as following:
 	gstreamer   qvh will open a new window and push AV data to gstreamer.
   `, version)
 	arguments, _ := docopt.ParseDoc(usage)
+	log.SetFormatter(&log.JSONFormatter{})
 
 	verboseLoggingEnabled, _ := arguments.Bool("-v")
 	if verboseLoggingEnabled {
@@ -195,7 +196,10 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) 
 	waitForSigInt(stopSignal)
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
 
-	adapter.StartReading(device, &mp, stopSignal)
+	err = adapter.StartReading(device, &mp, stopSignal)
+	if err != nil {
+		printErrJSON(err, "failed connecting to usb")
+	}
 }
 
 func waitForSigInt(stopSignalChannel chan interface{}) {
