@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 
@@ -12,20 +14,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const version = "v0.1-alpha"
+
 func main() {
-	usage := `Q.uickTime V.ideo H.ack or qvh client v0.01
-		If you do not specify a udid, the first device will be taken by default.
+	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
 
 Usage:
   qvh devices
   qvh activate [--udid=<udid>]
   qvh record <h264file> <wavfile>
-  qvh gstreamer 
+  qvh gstreamer
+  qvh --version | version
+
 
 Options:
-  -h --help			Show this screen.
-  --version			Show version.
-  --udid=<udid>		UDID of the device.
+  -h --help       Show this screen.
+  -v --verbose    Enable verbose mode (debug logging).
+  --version       Show version.
+  --udid=<udid>   UDID of the device. If not specified, the first found device will be used automatically.
 
 The commands work as following:
 	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
@@ -34,13 +40,23 @@ The commands work as following:
 				Audio will be saved in a uncompressed wav file.
 				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
 	gstreamer   qvh start an AppSrc and push AV data to gstreamer.
-  `
+  `, version)
 	arguments, _ := docopt.ParseDoc(usage)
-	//TODO: add verbose switch to conf this
-	log.SetLevel(log.DebugLevel)
+
+	verboseLoggingEnabled, _ := arguments.Bool("-v")
+	if verboseLoggingEnabled {
+		log.SetLevel(log.DebugLevel)
+	}
+	shouldPrintVersionNoDashes, _ := arguments.Bool("version")
+	shouldPrintVersion, _ := arguments.Bool("--version")
+	if shouldPrintVersionNoDashes || shouldPrintVersion {
+		printVersion()
+		return
+	}
+
 	udid, _ := arguments.String("--udid")
-	//TODO:add device selection here
-	log.Info("udid" + udid)
+
+	log.Debugf("requested udid:%s", udid)
 
 	devicesCommand, _ := arguments.Bool("devices")
 	if devicesCommand {
@@ -72,6 +88,13 @@ The commands work as following:
 	if gstreamerCommand {
 		startGStreamer()
 	}
+}
+
+func printVersion() {
+	versionMap := map[string]string{
+		"version": version,
+	}
+	printJSON(versionMap)
 }
 
 func startGStreamer() {
@@ -192,4 +215,12 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer) {
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
 
 	adapter.StartReading(dev, &mp, stopSignal)
+}
+
+func printJSON(output map[string]string) {
+	text, err := json.Marshal(output)
+	if err != nil {
+		log.Fatalf("Broken json serialization, error: %s", err)
+	}
+	println(string(text))
 }
