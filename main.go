@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const version = "v0.1-alpha"
+const version = "v0.2-beta"
 
 func main() {
 	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
@@ -22,7 +22,7 @@ func main() {
 Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
-  qvh record <h264file> <wavfile> [-v]
+  qvh record <h264file> <wavfile> [-v] [--udid=<udid>]
   qvh gstreamer [-v]
   qvh --version | version
 
@@ -103,18 +103,6 @@ func startGStreamer(udid string) {
 	startWithConsumer(gStreamer, udid)
 }
 
-func waitForSigInt(stopSignalChannel chan interface{}) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		for sig := range c {
-			log.Debugf("Signal received: %s", sig)
-			var stopSignal interface{}
-			stopSignalChannel <- stopSignal
-		}
-	}()
-}
-
 // Just dump a list of what was discovered to the console
 func devices() {
 	deviceList, err := screencapture.FindIosDevices()
@@ -134,11 +122,16 @@ func devices() {
 // This command is for testing if we can enable the hidden Quicktime device config
 func activate(udid string) {
 	device, err := screencapture.FindIosDevice(udid)
+	if err != nil {
+		printErrJSON(err, "no device found to activate")
+		return
+	}
 
 	log.Debugf("Enabling device: %v", device)
 	device, err = screencapture.EnableQTConfig(device)
 	if err != nil {
-		log.Fatal("Error enabling QT config", err)
+		printErrJSON(err, "Error enabling QT config")
+		return
 	}
 
 	printJSON(map[string]interface{}{
@@ -185,27 +178,42 @@ func record(h264FilePath string, wavFilePath string, udid string) {
 }
 
 func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) {
-	activate(udid)
-
-	deviceList, err := screencapture.FindIosDevices()
-
+	device, err := screencapture.FindIosDevice(udid)
 	if err != nil {
-		log.Fatal("Error finding iOS Devices", err)
+		printErrJSON(err, "no device found to activate")
+		return
 	}
 
-	dev := deviceList[0]
+	device, err = screencapture.EnableQTConfig(device)
+	if err != nil {
+		printErrJSON(err, "Error enabling QT config")
+		return
+	}
 
 	adapter := screencapture.UsbAdapter{}
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
 
-	adapter.StartReading(dev, &mp, stopSignal)
+	adapter.StartReading(device, &mp, stopSignal)
 }
+
+func waitForSigInt(stopSignalChannel chan interface{}) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			log.Debugf("Signal received: %s", sig)
+			var stopSignal interface{}
+			stopSignalChannel <- stopSignal
+		}
+	}()
+}
+
 func printErrJSON(err error, msg string) {
 	printJSON(map[string]interface{}{
-		"originalError": err.Error(),
-		"message":       msg,
+		"original_error": err.Error(),
+		"error_message":  msg,
 	})
 }
 func printJSON(output map[string]interface{}) {

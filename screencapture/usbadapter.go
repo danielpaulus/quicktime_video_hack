@@ -42,11 +42,7 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 		return errors.New("Could not retrieve config")
 	}
 
-	err = sendQTConfigControlRequest(usbDevice)
-
-	if err != nil {
-		log.Error("Error disabling config", err)
-	}
+	sendQTConfigControlRequest(usbDevice)
 
 	log.Infof("QT Config is active: %s", config.String())
 
@@ -128,10 +124,8 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	log.Info("Closing usb interface")
 	iface.Close()
 
-	err = sendQTDisableConfigControlRequest(usbDevice)
-	if err != nil {
-		log.Error("Error sending disable control request", err)
-	}
+	sendQTDisableConfigControlRequest(usbDevice)
+
 	return nil
 }
 
