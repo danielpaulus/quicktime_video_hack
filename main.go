@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -137,13 +136,10 @@ func devices() {
 // This command is for testing if we can enable the hidden Quicktime device config
 func activate(udid string) {
 	cleanup := screencapture.Init()
-	deviceList, err := screencapture.FindIosDevices()
+	device, err := screencapture.FindIosDevice(udid)
 	defer cleanup()
 	if err != nil {
-		log.Fatal("Error finding iOS Devices", err)
-	}
-	if len(deviceList) == 0 {
-		printErrJSON(errors.New("No iOS devices could be found."), "Please attach a device.")
+		printErrJSON(err, fmt.Sprintf("It seems like there is no valid iOS device attached to this host for udid:'%s'. Please attach a device.", udid))
 		return
 	}
 
