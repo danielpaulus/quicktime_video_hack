@@ -35,11 +35,11 @@ Options:
 
 The commands work as following:
 	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
-	activate	only enables the video streaming config for the given device
+	activate	enables the video streaming config for the device specified by --udid
 	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
 				Audio will be saved in a uncompressed wav file.
 				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
-	gstreamer   qvh start an AppSrc and push AV data to gstreamer.
+	gstreamer   qvh will open a new window and push AV data to gstreamer.
   `, version)
 	arguments, _ := docopt.ParseDoc(usage)
 
