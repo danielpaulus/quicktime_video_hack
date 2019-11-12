@@ -14,12 +14,17 @@ import (
 // as it will detect it as the device's preferredConfig.
 func EnableQTConfig(device IosDevice) (IosDevice, error) {
 	udid := device.SerialNumber
-	if isValidIosDeviceWithActiveQTConfig(device.usbDevice.Desc) {
+	ctx = gousb.NewContext()
+	usbDevice, err := ctx.OpenDeviceWithVIDPID(device.VID, device.PID)
+	if err != nil {
+		return IosDevice{}, err
+	}
+	if isValidIosDeviceWithActiveQTConfig(usbDevice.Desc) {
 		log.Debugf("Skipping %s because it already has an active QT config", udid)
 		return device, nil
 	}
 
-	err := sendQTConfigControlRequest(device)
+	err = sendQTConfigControlRequest(usbDevice)
 	if err != nil {
 		return IosDevice{}, err
 	}
@@ -51,9 +56,9 @@ func EnableQTConfig(device IosDevice) (IosDevice, error) {
 	return device, err
 }
 
-func sendQTConfigControlRequest(device IosDevice) error {
+func sendQTConfigControlRequest(device *gousb.Device) error {
 	response := make([]byte, 0)
-	val, err := device.usbDevice.Control(0x40, 0x52, 0x00, 0x02, response)
+	val, err := device.Control(0x40, 0x52, 0x00, 0x02, response)
 
 	if err != nil {
 		log.Warn("Failed sending control transfer for enabling hidden QT config. Seems like this happens sometimes but it still works usually.", err)
@@ -62,9 +67,9 @@ func sendQTConfigControlRequest(device IosDevice) error {
 	return nil
 }
 
-func sendQTDisableConfigControlRequest(device IosDevice) error {
+func sendQTDisableConfigControlRequest(device *gousb.Device) error {
 	response := make([]byte, 0)
-	val, err := device.usbDevice.Control(0x40, 0x52, 0x00, 0x00, response)
+	val, err := device.Control(0x40, 0x52, 0x00, 0x00, response)
 
 	if err != nil {
 		log.Fatal("Failed sending control transfer for disabling hidden QT config", err)

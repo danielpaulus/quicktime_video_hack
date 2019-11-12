@@ -22,8 +22,8 @@ func main() {
 Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
-  qvh record <h264file> <wavfile>
-  qvh gstreamer
+  qvh record <h264file> <wavfile> [-v]
+  qvh gstreamer [-v]
   qvh --version | version
 
 
@@ -135,14 +135,9 @@ func devices() {
 
 // This command is for testing if we can enable the hidden Quicktime device config
 func activate(udid string) {
-	cleanup := screencapture.Init()
 	device, err := screencapture.FindIosDevice(udid)
-	defer cleanup()
-	if err != nil {
-		printErrJSON(err, "device could not be found")
-		return
-	}
-	log.Debugf("Enabling device: %s", device)
+
+	log.Debugf("Enabling device: %v", device)
 	device, err = screencapture.EnableQTConfig(device)
 	if err != nil {
 		log.Fatal("Error enabling QT config", err)
@@ -154,7 +149,7 @@ func activate(udid string) {
 }
 
 func record(h264FilePath string, wavFilePath string, udid string) {
-	log.Infof("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
+	log.Debugf("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
 
 	h264File, err := os.Create(h264FilePath)
 	if err != nil {

@@ -10,13 +10,13 @@ import (
 
 //IosDevice contains a gousb.Device pointer for a found device and some additional info like the device udid
 type IosDevice struct {
-	usbDevice         *gousb.Device
 	SerialNumber      string
 	ProductName       string
 	UsbMuxConfigIndex int
 	QTConfigIndex     int
 	VID               gousb.ID
 	PID               gousb.ID
+	UsbInfo           string
 }
 
 func (d *IosDevice) ReOpen() (IosDevice, error) {
@@ -52,6 +52,10 @@ func FindIosDevices() ([]IosDevice, error) {
 
 // FindIosDevice finds a iOS device by udid or picks the first one if udid == ""
 func FindIosDevice(udid string) (IosDevice, error) {
+	ctx = gousb.NewContext()
+	defer func() {
+		ctx.Close()
+	}()
 	list, err := findIosDevices(isValidIosDevice)
 	if err != nil {
 		return IosDevice{}, err
@@ -102,21 +106,6 @@ func findIosDevices(validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]Ios
 	return iosDevices, nil
 }
 
-func findBySerialNumber(udid string) (*gousb.Device, error) {
-	log.Debug("findBySerialNumber")
-	devices, err := FindIosDevices()
-	log.Debugf("found: %d devices", len(devices))
-	if err != nil {
-		return nil, err
-	}
-	for _, d := range devices {
-		if d.SerialNumber == udid {
-			return d.usbDevice, nil
-		}
-	}
-	return nil, errors.New("not found")
-}
-
 func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 	iosDevices := make([]IosDevice, len(devices))
 	for i, d := range devices {
@@ -133,7 +122,8 @@ func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 		}
 
 		muxConfigIndex, qtConfigIndex := findConfigurations(d.Desc)
-		iosDevice := IosDevice{d, serial, product, muxConfigIndex, qtConfigIndex, d.Desc.Vendor, d.Desc.Product}
+		iosDevice := IosDevice{serial, product, muxConfigIndex, qtConfigIndex, d.Desc.Vendor, d.Desc.Product, d.String()}
+		d.Close()
 		iosDevices[i] = iosDevice
 
 	}
@@ -213,23 +203,12 @@ func (d *IosDevice) IsActivated() bool {
 func (d *IosDevice) DetailsMap() map[string]interface{} {
 	return map[string]interface{}{
 		"deviceName":               d.ProductName,
-		"usb_device_info":          d.usbDevice.String(),
+		"usb_device_info":          d.UsbInfo,
 		"udid":                     d.SerialNumber,
 		"screen_mirroring_enabled": d.IsActivated(),
 	}
 }
 
 func (d *IosDevice) String() string {
-	return fmt.Sprintf("'%s'  %s serial: %s, qt_mode:%t", d.ProductName, d.usbDevice.String(), d.SerialNumber, d.IsActivated())
-}
-
-//This enables the config needed for grabbing video of the device
-//it should open two additional bulk endpoints where video frames
-//will be received
-func (d *IosDevice) enableQuickTimeConfig() (*gousb.Config, error) {
-	config, err := d.usbDevice.Config(d.QTConfigIndex)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
+	return fmt.Sprintf("'%s'  %s serial: %s, qt_mode:%t", d.ProductName, d.UsbInfo, d.SerialNumber, d.IsActivated())
 }
