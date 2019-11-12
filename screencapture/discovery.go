@@ -3,10 +3,10 @@ package screencapture
 import (
 	"errors"
 	"fmt"
+
+	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
-import "github.com/google/gousb"
 
 //IosDevice contains a gousb.Device pointer for a found device and some additional info like the device udid
 type IosDevice struct {
@@ -98,13 +98,13 @@ func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 	return iosDevices, nil
 }
 
-//PrintDeviceDetails returns a pretty string for printing device details to the console.
-func PrintDeviceDetails(devices []IosDevice) string {
-	var sb strings.Builder
-	for _, d := range devices {
-		sb.WriteString(d.String())
+//PrintDeviceDetails returns a list of device details ready to be JSON converted.
+func PrintDeviceDetails(devices []IosDevice) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(devices))
+	for k, device := range devices {
+		result[k] = device.DetailsMap()
 	}
-	return sb.String()
+	return result
 }
 
 func isValidIosDevice(desc *gousb.DeviceDesc) bool {
@@ -162,8 +162,23 @@ func findInterfaceForSubclass(confDesc gousb.ConfigDesc, subClass gousb.Class) (
 	return false, -1
 }
 
+//IsActivated returns a boolean that is true when this device was enabled for screen mirroring and false otherwise.
+func (d *IosDevice) IsActivated() bool {
+	return d.QTConfigIndex != -1
+}
+
+//DetailsMap contains all the info for a device in a map ready to be JSON encoded
+func (d *IosDevice) DetailsMap() map[string]interface{} {
+	return map[string]interface{}{
+		"deviceName":               d.ProductName,
+		"usb_device_info":          d.usbDevice.String(),
+		"udid":                     d.SerialNumber,
+		"screen_mirroring_enabled": d.IsActivated(),
+	}
+}
+
 func (d *IosDevice) String() string {
-	return fmt.Sprintf("'%s'  %s serial: %s", d.ProductName, d.usbDevice.String(), d.SerialNumber)
+	return fmt.Sprintf("'%s'  %s serial: %s, qt_mode:%b", d.ProductName, d.usbDevice.String(), d.SerialNumber, d.IsActivated())
 }
 
 //This enables the config needed for grabbing video of the device

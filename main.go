@@ -20,7 +20,7 @@ func main() {
 	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
 
 Usage:
-  qvh devices
+  qvh devices [-v]
   qvh activate [--udid=<udid>]
   qvh record <h264file> <wavfile>
   qvh gstreamer
@@ -29,7 +29,7 @@ Usage:
 
 Options:
   -h --help       Show this screen.
-  -v --verbose    Enable verbose mode (debug logging).
+  -v              Enable verbose mode (debug logging).
   --version       Show version.
   --udid=<udid>   UDID of the device. If not specified, the first found device will be used automatically.
 
@@ -45,6 +45,7 @@ The commands work as following:
 
 	verboseLoggingEnabled, _ := arguments.Bool("-v")
 	if verboseLoggingEnabled {
+		log.Info("Set Debug mode")
 		log.SetLevel(log.DebugLevel)
 	}
 	shouldPrintVersionNoDashes, _ := arguments.Bool("version")
@@ -74,12 +75,12 @@ The commands work as following:
 	if rawStreamCommand {
 		h264FilePath, err := arguments.String("<h264file>")
 		if err != nil {
-			log.Error("Missing <h264file> parameter. Please specify a valid path like '/home/me/out.h264'")
+			printErrJSON(err, "Missing <h264file> parameter. Please specify a valid path like '/home/me/out.h264'")
 			return
 		}
 		waveFilePath, err := arguments.String("<wavfile>")
 		if err != nil {
-			log.Error("Missing <wavfile> parameter. Please specify a valid path like '/home/me/out.raw'")
+			printErrJSON(err, "Missing <wavfile> parameter. Please specify a valid path like '/home/me/out.raw'")
 			return
 		}
 		record(h264FilePath, waveFilePath)
@@ -91,14 +92,14 @@ The commands work as following:
 }
 
 func printVersion() {
-	versionMap := map[string]string{
+	versionMap := map[string]interface{}{
 		"version": version,
 	}
 	printJSON(versionMap)
 }
 
 func startGStreamer() {
-	log.Infof("Starting Gstreamer")
+	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
 	startWithConsumer(gStreamer)
 }
@@ -119,14 +120,18 @@ func waitForSigInt(stopSignalChannel chan interface{}) {
 func devices() {
 	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
+	if err != nil {
+		printErrJSON(err, "Error finding iOS Devices")
+	}
 	defer cleanup()
-	log.Infof("(%d) iOS Devices with UsbMux Endpoint:", len(deviceList))
+	log.Debugf("(%d) iOS Devices with UsbMux Endpoint:", len(deviceList))
 
 	if err != nil {
-		log.Fatal("Error finding iOS Devices", err)
+		printErrJSON(err, "Error finding iOS Devices")
 	}
 	output := screencapture.PrintDeviceDetails(deviceList)
-	log.Info(output)
+
+	printJSON(map[string]interface{}{"devices": output})
 }
 
 // This command is for testing if we can enable the hidden Quicktime device config
@@ -137,8 +142,6 @@ func activate() {
 	if err != nil {
 		log.Fatal("Error finding iOS Devices", err)
 	}
-
-	log.Info("iOS Devices with UsbMux Endpoint:")
 
 	output := screencapture.PrintDeviceDetails(deviceList)
 	log.Info(output)
@@ -216,8 +219,13 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer) {
 
 	adapter.StartReading(dev, &mp, stopSignal)
 }
-
-func printJSON(output map[string]string) {
+func printErrJSON(err error, msg string) {
+	printJSON(map[string]interface{}{
+		"originalError": err.Error(),
+		"message":       msg,
+	})
+}
+func printJSON(output map[string]interface{}) {
 	text, err := json.Marshal(output)
 	if err != nil {
 		log.Fatalf("Broken json serialization, error: %s", err)
