@@ -46,13 +46,7 @@ Extra Goals:
 
 ## 4. Additional Notes
 ### MAC OS X LIBUSB -- IMPORTANT
-1. What works:
- You can enable the QuickTime config and discover QT capable devices with `qvh devices` and  `qvh activate` 
-
-2. What does not work
-Recording or streaming AV sessions won't work on MAC OS. I cannot claim the USB endpoint, do not know why currently. Maybe it is already claimed or I need to codesign my binary.  
-
-2. Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
+1. Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
    or a LibUsb version BELOW 1.0.20 or iOS devices won't be found on Mac OS X.
    [See Github Issue](https://github.com/libusb/libusb/issues/290)
 
