@@ -35,7 +35,8 @@ Progress:
 2. Release 0.2-beta
 3. Allow Creating MPEG files
 4. Release 0.3-beta
-5. BUG: After running the tool to grab AV data, you have to unplug the device to make it work again
+5. BUG- Linux Only: After running the tool to grab AV data, you have to unplug the device to make it work again
+6. BUG- MacOSX Only: After running the tool, you have to wait a while until it works again (or keep restarting the tool)
 
 Extra Goals:
 
