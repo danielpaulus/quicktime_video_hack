@@ -199,7 +199,7 @@ func (d *IosDevice) DetailsMap() map[string]interface{} {
 }
 
 func (d *IosDevice) String() string {
-	return fmt.Sprintf("'%s'  %s serial: %s, qt_mode:%b", d.ProductName, d.usbDevice.String(), d.SerialNumber, d.IsActivated())
+	return fmt.Sprintf("'%s'  %s serial: %s, qt_mode:%t", d.ProductName, d.usbDevice.String(), d.SerialNumber, d.IsActivated())
 }
 
 //This enables the config needed for grabbing video of the device
