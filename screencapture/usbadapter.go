@@ -23,8 +23,9 @@ func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
 //StartReading claims the AV Quicktime USB Bulk endpoints and starts reading until a stopSignal is sent.
 //Every received data is added to a frameextractor and when it is complete, sent to the UsbDataReceiver.
 func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, stopSignal chan interface{}) error {
-	ctx := gousb.NewContext()
-	defer func() { ctx.Close() }()
+	ctx, cleanUp := createContext()
+	defer cleanUp()
+
 	usbDevice, err := ctx.OpenDeviceWithVIDPID(device.VID, device.PID)
 	if err != nil {
 		return err
@@ -55,11 +56,11 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}
 	log.Infof("Clear Feature RC: %d", val)
 
-	val1, err1 := usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
-	if err1 != nil {
-		log.Warn("failed control", err1)
+	val, err = usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
+	if err != nil {
+		log.Warn("failed control", err)
 	}
-	log.Infof("Clear Feature RC: %d", val1)
+	log.Infof("Clear Feature RC: %d", val)
 
 	iface, err := grabQuickTimeInterface(config)
 	if err != nil {

@@ -19,6 +19,7 @@ type IosDevice struct {
 	UsbInfo           string
 }
 
+//ReOpen creates a new Ios device, opening it using VID and PID, using the given context
 func (d *IosDevice) ReOpen(ctx *gousb.Context) (IosDevice, error) {
 	dev, err := ctx.OpenDeviceWithVIDPID(d.VID, d.PID)
 	if err != nil {
@@ -41,17 +42,27 @@ const (
 // FindIosDevices finds iOS devices connected on USB ports by looking for their
 // USBMux compatible Bulk Endpoints
 func FindIosDevices() ([]IosDevice, error) {
-	ctx := gousb.NewContext()
-	defer func() { ctx.Close() }()
+	ctx, cleanUp := createContext()
+	defer cleanUp()
 	return findIosDevices(ctx, isValidIosDevice)
+}
+
+func createContext() (*gousb.Context, func()) {
+	ctx := gousb.NewContext()
+	log.Debugf("Opened usbcontext:%v", ctx)
+	cleanUp := func() {
+		err := ctx.Close()
+		if err != nil {
+			log.Fatalf("Error closing usb context: %v", ctx)
+		}
+	}
+	return ctx, cleanUp
 }
 
 // FindIosDevice finds a iOS device by udid or picks the first one if udid == ""
 func FindIosDevice(udid string) (IosDevice, error) {
-	ctx := gousb.NewContext()
-	defer func() {
-		ctx.Close()
-	}()
+	ctx, cleanUp := createContext()
+	defer cleanUp()
 	list, err := findIosDevices(ctx, isValidIosDevice)
 	if err != nil {
 		return IosDevice{}, err
