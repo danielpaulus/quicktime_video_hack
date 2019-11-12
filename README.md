@@ -27,7 +27,7 @@ So if you are just interested in the protocol or if you want to implement this i
 
 Progress:
 
-0. Fix it for MacOS X
+0. ~Fix it for MacOS X~
 
 0a. Release 0.1-beta
 
@@ -35,7 +35,8 @@ Progress:
 2. Release 0.2-beta
 3. Allow Creating MPEG files
 4. Release 0.3-beta
-5. BUG: After running the tool to grab AV data, you have to unplug the device to make it work again
+5. BUG- Linux Only: After running the tool to grab AV data, you have to unplug the device to make it work again
+6. BUG- MacOSX Only: After running the tool, you have to wait a while until it works again (or keep restarting the tool)
 
 Extra Goals:
 
@@ -45,13 +46,7 @@ Extra Goals:
 
 ## 4. Additional Notes
 ### MAC OS X LIBUSB -- IMPORTANT
-1. What works:
- You can enable the QuickTime config and discover QT capable devices with `qvh devices` and  `qvh activate` 
-
-2. What does not work
-Recording or streaming AV sessions won't work on MAC OS. I cannot claim the USB endpoint, do not know why currently. Maybe it is already claimed or I need to codesign my binary.  
-
-2. Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
+1. Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
    or a LibUsb version BELOW 1.0.20 or iOS devices won't be found on Mac OS X.
    [See Github Issue](https://github.com/libusb/libusb/issues/290)
 
