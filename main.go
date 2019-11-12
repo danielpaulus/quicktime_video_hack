@@ -117,12 +117,10 @@ func waitForSigInt(stopSignalChannel chan interface{}) {
 
 // Just dump a list of what was discovered to the console
 func devices() {
-	cleanup := screencapture.Init()
 	deviceList, err := screencapture.FindIosDevices()
 	if err != nil {
 		printErrJSON(err, "Error finding iOS Devices")
 	}
-	defer cleanup()
 	log.Debugf("Found (%d) iOS Devices with UsbMux Endpoint", len(deviceList))
 
 	if err != nil {

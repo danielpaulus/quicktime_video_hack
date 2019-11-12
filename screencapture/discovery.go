@@ -19,7 +19,7 @@ type IosDevice struct {
 	UsbInfo           string
 }
 
-func (d *IosDevice) ReOpen() (IosDevice, error) {
+func (d *IosDevice) ReOpen(ctx *gousb.Context) (IosDevice, error) {
 	dev, err := ctx.OpenDeviceWithVIDPID(d.VID, d.PID)
 	if err != nil {
 		return IosDevice{}, err
@@ -38,25 +38,21 @@ const (
 	QuicktimeSubclass gousb.Class = 0x2A
 )
 
-// FindIosDevicesWithQTEnabled finds iOS devices connected on USB ports by looking for their
-// USBMux compatible Bulk Endpoints and QuickTime Video Stream compatible Bulk Endpoints
-func FindIosDevicesWithQTEnabled() ([]IosDevice, error) {
-	return findIosDevices(isValidIosDeviceWithActiveQTConfig)
-}
-
 // FindIosDevices finds iOS devices connected on USB ports by looking for their
 // USBMux compatible Bulk Endpoints
 func FindIosDevices() ([]IosDevice, error) {
-	return findIosDevices(isValidIosDevice)
+	ctx := gousb.NewContext()
+	defer func() { ctx.Close() }()
+	return findIosDevices(ctx, isValidIosDevice)
 }
 
 // FindIosDevice finds a iOS device by udid or picks the first one if udid == ""
 func FindIosDevice(udid string) (IosDevice, error) {
-	ctx = gousb.NewContext()
+	ctx := gousb.NewContext()
 	defer func() {
 		ctx.Close()
 	}()
-	list, err := findIosDevices(isValidIosDevice)
+	list, err := findIosDevices(ctx, isValidIosDevice)
 	if err != nil {
 		return IosDevice{}, err
 	}
@@ -75,21 +71,7 @@ func FindIosDevice(udid string) (IosDevice, error) {
 	return IosDevice{}, fmt.Errorf("device with udid:'%s' not found", udid)
 }
 
-var ctx *gousb.Context
-
-//Init initializes a new Context and returns a func to close it later.
-//Be sure to run it with defer
-func Init() func() {
-	ctx = gousb.NewContext()
-	return func() {
-		err := ctx.Close()
-		if err != nil {
-			log.Fatal("Failed while closing usb Context" + err.Error())
-		}
-	}
-}
-
-func findIosDevices(validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]IosDevice, error) {
+func findIosDevices(ctx *gousb.Context, validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]IosDevice, error) {
 	devices, err := ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
 		// this function is called for every device present.
 		// Returning true means the device should be opened.
@@ -110,7 +92,6 @@ func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 	iosDevices := make([]IosDevice, len(devices))
 	for i, d := range devices {
 		log.Debugf("Getting serial for: %s", d.String())
-		log.Debugf("context:%v", ctx)
 		serial, err := d.SerialNumber()
 		log.Debug("Got serial" + serial)
 		if err != nil {

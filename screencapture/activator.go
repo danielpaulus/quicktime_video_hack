@@ -14,7 +14,7 @@ import (
 // as it will detect it as the device's preferredConfig.
 func EnableQTConfig(device IosDevice) (IosDevice, error) {
 	udid := device.SerialNumber
-	ctx = gousb.NewContext()
+	ctx := gousb.NewContext()
 	usbDevice, err := ctx.OpenDeviceWithVIDPID(device.VID, device.PID)
 	if err != nil {
 		return IosDevice{}, err
@@ -40,7 +40,7 @@ func EnableQTConfig(device IosDevice) (IosDevice, error) {
 		time.Sleep(500 * time.Millisecond)
 		log.Debug("Reopening Context")
 		ctx = gousb.NewContext()
-		device, err = device.ReOpen()
+		device, err = device.ReOpen(ctx)
 		if err != nil {
 			log.Debugf("device not found:%s", err)
 			continue
