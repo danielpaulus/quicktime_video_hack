@@ -21,7 +21,7 @@ func main() {
 
 Usage:
   qvh devices [-v]
-  qvh activate [--udid=<udid>]
+  qvh activate [--udid=<udid>] [-v]
   qvh record <h264file> <wavfile>
   qvh gstreamer
   qvh --version | version
@@ -143,18 +143,13 @@ func activate(udid string) {
 		return
 	}
 	log.Debugf("Enabling device: %s", device)
-	err = screencapture.EnableQTConfig(device)
+	device, err = screencapture.EnableQTConfig(device)
 	if err != nil {
 		log.Fatal("Error enabling QT config", err)
 	}
 
-	qtDevices, err := screencapture.FindIosDevicesWithQTEnabled()
-	if err != nil {
-		log.Fatal("Error finding QT Devices", err)
-	}
-	qtOutput := screencapture.PrintDeviceDetails(qtDevices)
 	printJSON(map[string]interface{}{
-		"activated_devices": qtOutput,
+		"device_activated": device.DetailsMap(),
 	})
 }
 

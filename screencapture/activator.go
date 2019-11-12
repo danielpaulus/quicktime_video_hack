@@ -12,42 +12,43 @@ import (
 // We will send a control transfer to the device via USB which will cause the device to disconnect and then
 // re-connect with a new device configuration. Usually the usbmuxd will automatically enable that new config
 // as it will detect it as the device's preferredConfig.
-func EnableQTConfig(device IosDevice) error {
+func EnableQTConfig(device IosDevice) (IosDevice, error) {
 	udid := device.SerialNumber
 	if isValidIosDeviceWithActiveQTConfig(device.usbDevice.Desc) {
 		log.Debugf("Skipping %s because it already has an active QT config", udid)
-		return nil
+		return device, nil
 	}
 
 	err := sendQTConfigControlRequest(device)
 	if err != nil {
-		return err
+		return IosDevice{}, err
 	}
 
 	var i int
 	for {
 		log.Debugf("Checking for active QT config for %s", udid)
-		time.Sleep(500 * time.Millisecond)
+
 		err = ctx.Close()
 		if err != nil {
 			log.Warn("failed closing context", err)
 		}
+		time.Sleep(500 * time.Millisecond)
 		log.Debug("Reopening Context")
 		ctx = gousb.NewContext()
-		device.usbDevice, err = findBySerialNumber(udid)
+		device, err = device.ReOpen()
 		if err != nil {
 			log.Debugf("device not found:%s", err)
 			continue
 		}
 		i++
 		if i > 10 {
-			log.Error("Failed activating config")
-			return fmt.Errorf("could not activate Quicktime Config for %s", udid)
+			log.Debug("Failed activating config")
+			return IosDevice{}, fmt.Errorf("could not activate Quicktime Config for %s", udid)
 		}
 		break
 	}
 	log.Debugf("QTConfig for %s activated", udid)
-	return err
+	return device, err
 }
 
 func sendQTConfigControlRequest(device IosDevice) error {

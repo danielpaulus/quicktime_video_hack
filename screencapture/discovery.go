@@ -15,6 +15,20 @@ type IosDevice struct {
 	ProductName       string
 	UsbMuxConfigIndex int
 	QTConfigIndex     int
+	VID               gousb.ID
+	PID               gousb.ID
+}
+
+func (d *IosDevice) ReOpen() (IosDevice, error) {
+	dev, err := ctx.OpenDeviceWithVIDPID(d.VID, d.PID)
+	if err != nil {
+		return IosDevice{}, err
+	}
+	idev, err := mapToIosDevice([]*gousb.Device{dev})
+	if err != nil {
+		return IosDevice{}, err
+	}
+	return idev[0], nil
 }
 
 const (
@@ -89,7 +103,9 @@ func findIosDevices(validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]Ios
 }
 
 func findBySerialNumber(udid string) (*gousb.Device, error) {
+	log.Debug("findBySerialNumber")
 	devices, err := FindIosDevices()
+	log.Debugf("found: %d devices", len(devices))
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +120,10 @@ func findBySerialNumber(udid string) (*gousb.Device, error) {
 func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 	iosDevices := make([]IosDevice, len(devices))
 	for i, d := range devices {
+		log.Debugf("Getting serial for: %s", d.String())
+		log.Debugf("context:%v", ctx)
 		serial, err := d.SerialNumber()
+		log.Debug("Got serial" + serial)
 		if err != nil {
 			return nil, err
 		}
@@ -112,9 +131,11 @@ func mapToIosDevice(devices []*gousb.Device) ([]IosDevice, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		muxConfigIndex, qtConfigIndex := findConfigurations(d.Desc)
-		iosDevice := IosDevice{d, serial, product, muxConfigIndex, qtConfigIndex}
+		iosDevice := IosDevice{d, serial, product, muxConfigIndex, qtConfigIndex, d.Desc.Vendor, d.Desc.Product}
 		iosDevices[i] = iosDevice
+
 	}
 	return iosDevices, nil
 }
