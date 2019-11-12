@@ -27,7 +27,7 @@ So if you are just interested in the protocol or if you want to implement this i
 
 Progress:
 
-0. Fix it for MacOS X
+0. ~Fix it for MacOS X~
 
 0a. Release 0.1-beta
 
