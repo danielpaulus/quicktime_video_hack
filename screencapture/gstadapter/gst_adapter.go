@@ -135,7 +135,7 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	h264parse := gst.ElementFactoryMake("h264parse", "h264parse_01")
 	checkElem(h264parse, "h264parse")
 
-	avdec_h264 := gst.ElementFactoryMake("vaapih264dec", "avdec_h264_01")
+	avdec_h264 := gst.ElementFactoryMake("vtdec", "avdec_h264_01")
 	checkElem(avdec_h264, "avdec_h264_01")
 
 	queue2 := gst.ElementFactoryMake("queue", "queue_12")
