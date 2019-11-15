@@ -7,6 +7,7 @@ import (
 
 	"github.com/danielpaulus/gst"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/lijo-jose/glib"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,17 +21,38 @@ type GstAdapter struct {
 	firstAudioSample bool
 }
 
+func Testvid() {
+	src := gst.ElementFactoryMake("videotestsrc", "VideoSrc")
+	checkElem(src, "videotestsrc")
+	vsink := "autovideosink"
+
+	sink := gst.ElementFactoryMake(vsink, "VideoSink")
+	checkElem(sink, vsink)
+
+	pl := gst.NewPipeline("MyPipeline")
+
+	pl.Add(src, sink)
+
+	src.Link(sink)
+	pl.SetState(gst.STATE_PLAYING)
+
+	glib.NewMainLoop(nil).Run()
+}
+
 func New() *GstAdapter {
 	log.Info("Starting Gstreamer..")
+	//Testvid()
 	pl := gst.NewPipeline("QT_Hack_Pipeline")
 
 	videoAppSrc := setUpVideoPipeline(pl)
 	audioAppSrc := setUpAudioPipeline(pl)
 
 	pl.SetState(gst.STATE_PLAYING)
-
+	go func() { glib.NewMainLoop(nil).Run() }()
+	//glib.NewMainLoop(nil).Run()
 	log.Info("Gstreamer is running!")
 	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
+	//gsta := GstAdapter{videoAppSrc: videoAppSrc, firstAudioSample: true}
 	return &gsta
 }
 
@@ -113,7 +135,7 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	h264parse := gst.ElementFactoryMake("h264parse", "h264parse_01")
 	checkElem(h264parse, "h264parse")
 
-	avdec_h264 := gst.ElementFactoryMake("avdec_h264", "avdec_h264_01")
+	avdec_h264 := gst.ElementFactoryMake("vaapih264dec", "avdec_h264_01")
 	checkElem(avdec_h264, "avdec_h264_01")
 
 	queue2 := gst.ElementFactoryMake("queue", "queue_12")
@@ -125,9 +147,18 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	queue3 := gst.ElementFactoryMake("queue", "queue_13")
 	checkElem(queue3, "queue_13")
 
-	sink := gst.ElementFactoryMake("xvimagesink", "xvimagesink_01")
-	checkElem(sink, "xvimagesink01")
+	/*
+		sink := gst.ElementFactoryMake("xvimagesink", "xvimagesink_01")
+		checkElem(sink, "xvimagesink01")
+	*/
+	sink := gst.ElementFactoryMake("autovideosink", "autovideosink_01")
+	//sink.SetProperty("sync", "false") does not do much
+	checkElem(sink, "autovideosink_01")
 
+	/*sink = gst.ElementFactoryMake("filesink", "filesink")
+	sink.SetProperty("location", "/Users/danielpaulus/tmp/out-daniel.dump")
+	checkElem(sink, "filesink")
+	*/
 	pl.Add(asrc.AsElement(), queue1, h264parse, avdec_h264, queue2, videoconvert, queue3, sink)
 
 	asrc.Link(queue1)
@@ -157,7 +188,11 @@ func (gsta *GstAdapter) Consume(buf coremedia.CMSampleBuffer) error {
 		return gsta.sendAudioSample(buf)
 	}
 
+	if buf.OutputPresentationTimestamp.CMTimeValue > 17446044073700192000 {
+		buf.OutputPresentationTimestamp.CMTimeValue = 0
+	}
 	if buf.HasFormatDescription {
+		buf.OutputPresentationTimestamp.CMTimeValue = 0
 		err := gsta.writeNalu(prependMarker(buf.FormatDescription.PPS, uint32(len(buf.FormatDescription.PPS))), buf)
 		if err != nil {
 			return err
@@ -214,6 +249,7 @@ func (nfw GstAdapter) writeNalus(bytes coremedia.CMSampleBuffer) error {
 func (srv GstAdapter) writeNalu(naluBytes []byte, buf coremedia.CMSampleBuffer) error {
 	naluLength := uint(len(naluBytes))
 	gstBuf := gst.NewBufferAllocate(naluLength)
+	//log.Infof("val:%d", buf.OutputPresentationTimestamp.CMTimeValue)
 	gstBuf.SetPTS(buf.OutputPresentationTimestamp.CMTimeValue)
 	gstBuf.SetDTS(0)
 	//TODO: create CGO function that provides offsets so we can delete prependMarker again
