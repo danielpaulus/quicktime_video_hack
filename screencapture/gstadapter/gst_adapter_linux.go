@@ -141,6 +141,7 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 
 	sink := gst.ElementFactoryMake("xvimagesink", "xvimagesink_01")
 	checkElem(sink, "xvimagesink01")
+	sink.SetProperty("sync", false)
 
 	pl.Add(asrc.AsElement(), queue1, h264parse, avdec_h264, queue2, videoconvert, queue3, sink)
 
