@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
-
+	"runtime"
 	"github.com/danielpaulus/gst"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/lijo-jose/glib"
@@ -48,7 +48,10 @@ func New() *GstAdapter {
 	audioAppSrc := setUpAudioPipeline(pl)
 
 	pl.SetState(gst.STATE_PLAYING)
-	go func() { glib.NewMainLoop(nil).Run() }()
+	go func() { 
+		//See: https://golang.org/pkg/runtime/#LockOSThread
+		runtime.LockOSThread()
+		glib.NewMainLoop(nil).Run() }()
 	//glib.NewMainLoop(nil).Run()
 	log.Info("Gstreamer is running!")
 	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
