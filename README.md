@@ -17,36 +17,47 @@ Currently you can use it to create a h264 file and a wave file so you can watch 
 I am finishing up and RTP implementation so you can live watch and hear your device. 
 If you want to contribute to code or documentation, please go ahead :-D
 
-## 2. Technical Docs
-I have written some documentation here [doc/technical_documentation.md](https://github.com/danielpaulus/quicktime_video_hack/blob/master/doc/technical_documentation.md)
-So if you are just interested in the protocol or if you want to implement this in a different programming language than golang, read the docs.
-## 3. Usage& Current State of the Tool
-- run `qvh --help` to see how it works
-- The `record` command lets you save iOS video and Audio into separate h264 and wave files.
-- The `gstreamer` command will render the video in a nice window on your screen. For this to work you need to install gstreamer on you machine.
+## 2. Installation
 
-Progress:
-
-0. ~Fix it for MacOS X~
-
-0a. Release 0.1-beta
-
-1. Use Gstreamer to create a nice Window with Video and Audio
-2. Release 0.2-beta
-3. Allow Creating MPEG files
-4. Release 0.3-beta
-5. BUG- Linux Only: After running the tool to grab AV data, you have to unplug the device to make it work again
-6. BUG- MacOSX Only: After running the tool, you have to wait a while until it works again (or keep restarting the tool)
-
-Extra Goals:
-
-1. ~~[Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)~~ Did not find a way to do it
-
-
-
-## 4. Additional Notes
 ### MAC OS X LIBUSB -- IMPORTANT
 1. Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
    or a LibUsb version BELOW 1.0.20 or iOS devices won't be found on Mac OS X.
    [See Github Issue](https://github.com/libusb/libusb/issues/290)
+
+
+## 3. Usage
+```
+Q.uickTime V.ideo H.ack (qvh) v0.2-beta
+
+Usage:
+  qvh devices [-v]
+  qvh activate [--udid=<udid>] [-v]
+  qvh record <h264file> <wavfile> [-v] [--udid=<udid>]
+  qvh gstreamer [-v]
+  qvh --version | version
+
+
+Options:
+  -h --help       Show this screen.
+  -v              Enable verbose mode (debug logging).
+  --version       Show version.
+  --udid=<udid>   UDID of the device. If not specified, the first found device will be used automatically.
+
+The commands work as following:
+	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
+	activate	enables the video streaming config for the device specified by --udid
+	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
+				Audio will be saved in a uncompressed wav file.
+				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
+	gstreamer   qvh will open a new window and push AV data to gstreamer.
+```
+
+## 3. Technical Docs
+I have written some documentation here [doc/technical_documentation.md](https://github.com/danielpaulus/quicktime_video_hack/blob/master/doc/technical_documentation.md)
+So if you are just interested in the protocol or if you want to implement this in a different programming language than golang, read the docs.
+
+I have given up on windows support  :-)
+~~[Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)~~ Did not find a way to do it
+
+
 
