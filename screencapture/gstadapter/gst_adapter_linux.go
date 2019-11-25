@@ -52,21 +52,9 @@ func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	asrc := gst.NewAppSrc("my-audio-src")
 	asrc.SetProperty("is-live", true)
 
-	filesink := gst.ElementFactoryMake("filesink", "filesink")
-	checkElem(filesink, "filesink")
-	filesink.SetProperty("location", "/home/ganjalf/tmp/audiodump.ogg")
-
 	queue1 := gst.ElementFactoryMake("queue", "queue1")
 	checkElem(queue1, "queue1")
-	/*
-		rawaudioparse := gst.ElementFactoryMake("rawaudioparse", "rawaudioparse_01")
-		checkElem(rawaudioparse, "rawaudioparse_01")
-		rawaudioparse.SetProperty("use-sink-caps", false)
-		rawaudioparse.SetProperty("format", "pcm")
-		rawaudioparse.SetProperty("pcm-format", "s16le")
-		rawaudioparse.SetProperty("sample-rate", 48000)
-		rawaudioparse.SetProperty("num-channels", 2)
-	*/
+
 	wavparse := gst.ElementFactoryMake("wavparse", "wavparse_01")
 	checkElem(wavparse, "wavparse")
 	wavparse.SetProperty("ignore-length", true)
@@ -74,21 +62,16 @@ func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	audioconvert := gst.ElementFactoryMake("audioconvert", "audioconvert_01")
 	checkElem(audioconvert, "audioconvert_01")
 
-	audioresample := gst.ElementFactoryMake("audioresample", "audioresample_01")
-	checkElem(audioresample, "audioresample_01")
-
-	autoaudiosink := gst.ElementFactoryMake("autoaudiosink", "autoaudiosink_01")
-	checkElem(autoaudiosink, "autoaudiosink_01")
-	autoaudiosink.SetProperty("sync", false)
+	/*hack: I do not know why, but audio on my linux box wont play when using a simple wavpars.
+	On MAC OS it works without any problems though. A hacky workaround to get audio playing that I came up with was
+	to encode audio into ogg/vorbis and directly decode it again.
+	*/
 
 	vorbisenc := gst.ElementFactoryMake("vorbisenc", "vorbisenc_01")
 	checkElem(vorbisenc, "vorbisenc_01")
 
 	oggmux := gst.ElementFactoryMake("oggmux", "oggmux_01")
 	checkElem(oggmux, "oggmux_01")
-	//vorbisenc ! oggmux ! filesink location=alsasrc.ogg
-
-	//hack  oggdemux ! vorbisdec ! audioconvert
 
 	oggdemux := gst.ElementFactoryMake("oggdemux", "oggdemux")
 	checkElem(oggdemux, "oggdemux")
@@ -101,18 +84,20 @@ func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
 
 	//endhack
 
+	autoaudiosink := gst.ElementFactoryMake("autoaudiosink", "autoaudiosink_01")
+	checkElem(autoaudiosink, "autoaudiosink_01")
+	autoaudiosink.SetProperty("sync", false)
+
 	pl.Add(asrc.AsElement(), queue1, wavparse, audioconvert, vorbisenc, oggmux, oggdemux, vorbisdec, audioconvert2, autoaudiosink)
 	asrc.Link(queue1)
 	queue1.Link(wavparse)
 	wavparse.Link(audioconvert)
 
 	audioconvert.Link(vorbisenc)
-
 	vorbisenc.Link(vorbisdec)
-
 	vorbisdec.Link(audioconvert2)
+
 	audioconvert2.Link(autoaudiosink)
-	//audioresample.Link(autoaudiosink)
 
 	return asrc
 }
@@ -141,7 +126,7 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 
 	sink := gst.ElementFactoryMake("xvimagesink", "xvimagesink_01")
 	checkElem(sink, "xvimagesink01")
-	sink.SetProperty("sync", false)
+	sink.SetProperty("sync", false) //see gst_adapter_macos comment
 
 	pl.Add(asrc.AsElement(), queue1, h264parse, avdec_h264, queue2, videoconvert, queue3, sink)
 
