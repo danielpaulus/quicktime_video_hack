@@ -13,11 +13,11 @@ This is an Operating System indepedent implementation for Quicktime Screensharin
 This repository contains all the code you will need to grab and record video and audio from your iPhone or iPad 
 without needing one of these expensive MacOS X computers :-D
 It probably does something similar to what `QuickTime` and `com.apple.cmio.iOSScreenCaptureAssistant` are doing on MacOS.
-Currently you can use it to create a h264 file and a wave file so you can watch and listen what was happening on your device. 
-I am finishing up and RTP implementation so you can live watch and hear your device. 
-If you want to contribute to code or documentation, please go ahead :-D
+Currently you can use it to dump a h264 file and a wave file or mirror your device in a desktop window. Transcoding it to anything else is very easy since I used Gstreamer to render the AV data. 
 
 ## 2. Installation
+
+Install Gstreamer and LibUSB
 
 ### MAC OS X LIBUSB -- IMPORTANT
 1. Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
