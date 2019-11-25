@@ -121,6 +121,7 @@ func WriteWavHeader(length int, wavFile *os.File) error {
 	return err
 }
 
+//GetWavHeaderBytes creates a byte slice containing a valid wav header using the supplied length.
 func GetWavHeaderBytes(length int) ([]byte, error) {
 	buffer := bytes.NewBuffer(make([]byte, 100))
 	buffer.Reset()
