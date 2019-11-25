@@ -66,6 +66,9 @@ func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
 
 	queue1 := gst.ElementFactoryMake("queue", "queue1")
 	checkElem(queue1, "queue1")
+
+	queue2 := gst.ElementFactoryMake("queue", "queue2")
+	checkElem(queue1, "queue2")
 	/*
 		rawaudioparse := gst.ElementFactoryMake("rawaudioparse", "rawaudioparse_01")
 		checkElem(rawaudioparse, "rawaudioparse_01")
@@ -109,17 +112,14 @@ func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
 
 	//endhack
 
-	pl.Add(asrc.AsElement(), queue1, wavparse, audioconvert, vorbisenc, oggmux, oggdemux, vorbisdec, audioconvert2, autoaudiosink)
+	pl.Add(asrc.AsElement(), queue1, wavparse, audioconvert, queue2, autoaudiosink)
 	asrc.Link(queue1)
 	queue1.Link(wavparse)
 	wavparse.Link(audioconvert)
 
-	audioconvert.Link(vorbisenc)
+	audioconvert.Link(queue2)
+	queue2.Link(autoaudiosink)
 
-	vorbisenc.Link(vorbisdec)
-
-	vorbisdec.Link(audioconvert2)
-	audioconvert2.Link(autoaudiosink)
 	//audioresample.Link(autoaudiosink)
 
 	return asrc
@@ -152,7 +152,7 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 		checkElem(sink, "xvimagesink01")
 	*/
 	sink := gst.ElementFactoryMake("autovideosink", "autovideosink_01")
-	//sink.SetProperty("sync", "false") does not do much
+	sink.SetProperty("sync", false) // does not do much
 	checkElem(sink, "autovideosink_01")
 
 	/*sink = gst.ElementFactoryMake("filesink", "filesink")
