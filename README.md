@@ -17,7 +17,8 @@ Currently you can use it to dump a h264 file and a wave file or mirror your devi
 
 ## 2. Installation
 
-1. Install Gstreamer and LibUSB with brew or apt depending on your platform.
+1. Install Gstreamer and LibUSB with brew or apt depending on your platform. 
+   Run `brew install libusb` and `brew install pkg-config` and `brew install gstreamer gst-plugins-bad gst-plugins-good gst-plugins-base gst-plugins-ugly`
 3. Download the latest release and run it
 
 ### MAC OS X LIBUSB -- IMPORTANT
