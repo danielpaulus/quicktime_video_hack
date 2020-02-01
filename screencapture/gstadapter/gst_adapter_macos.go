@@ -21,6 +21,9 @@ type GstAdapter struct {
 	firstAudioSample bool
 }
 
+const audioAppSrcTargetElementName = "audio_target"
+const videoAppSrcTargetElementName = "video_target"
+
 //New creates a new MAC OSX compatible gstreamer pipeline that will play device video and audio
 //in a nice little window :-D
 func New() *GstAdapter {
@@ -37,6 +40,44 @@ func New() *GstAdapter {
 	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
 
 	return &gsta
+}
+
+//NewWithCustomPipeline will parse the given pipelineString, connect the videoAppSrc to whatever element has the name "video_target" and the audioAppSrc to "audio_target"
+//see also: https://gstreamer.freedesktop.org/documentation/application-development/appendix/programs.html?gi-language=c
+func NewWithCustomPipeline(pipelineString string) (*GstAdapter, error) {
+	log.Info("Starting Gstreamer..")
+	log.WithFields(log.Fields{"custom_pipeline": pipelineString}).Debug("Starting Gstreamer with custom pipeline")
+	pipeline, err := gst.ParseLaunch(pipelineString)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid Pipeline, checkout --examples for help. Gstreamer parsing error was: %s", err)
+	}
+
+	audioAppSrcTargetElement := pipeline.AsBin().GetByName(audioAppSrcTargetElementName)
+	if audioAppSrcTargetElement == nil {
+		return nil, fmt.Errorf("The pipeline needs an element with a property 'name=%s' so I can link the audio source to it. run with --examples for details.", audioAppSrcTargetElementName)
+	}
+
+	videoAppSrcTargetElement := pipeline.AsBin().GetByName(videoAppSrcTargetElementName)
+	if videoAppSrcTargetElement == nil {
+		return nil, fmt.Errorf("The pipeline needs an element with a property 'name=%s' so I can link the video source to it. run with --examples for details.", videoAppSrcTargetElementName)
+	}
+
+	videoAppSrc := gst.NewAppSrc("my-video-src")
+	videoAppSrc.SetProperty("is-live", true)
+
+	audioAppSrc := gst.NewAppSrc("my-audio-src")
+	audioAppSrc.SetProperty("is-live", true)
+
+	audioAppSrc.Link(audioAppSrcTargetElement)
+	videoAppSrc.Link(videoAppSrcTargetElement)
+
+	pipeline.SetState(gst.STATE_PLAYING)
+	runGlibMainLoop()
+
+	log.Info("Gstreamer is running!")
+	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
+
+	return &gsta, nil
 }
 
 //runGlibMainLoop starts the glib Mainloop necessary for the video player to work on MAC OS X.
