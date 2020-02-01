@@ -23,7 +23,7 @@ Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
   qvh record <h264file> <wavfile> [-v] [--udid=<udid>]
-  qvh gstreamer [-v]
+  qvh gstreamer [--pipeline=<pipeline>] [--examples] [-v]
   qvh --version | version
 
 
@@ -36,10 +36,13 @@ Options:
 The commands work as following:
 	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
 	activate	enables the video streaming config for the device specified by --udid
-	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
-				Audio will be saved in a uncompressed wav file.
-				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
-	gstreamer   qvh will open a new window and push AV data to gstreamer.
+	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC. 
+	             Audio will be saved in a uncompressed wav file. Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
+
+	gstreamer   If no additional param is provided, qvh will open a new window and push AV data to gstreamer.
+				If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
+				If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
+				displaying audio and video in a window. 
   `, version)
 	arguments, _ := docopt.ParseDoc(usage)
 	log.SetFormatter(&log.JSONFormatter{})
@@ -87,7 +90,17 @@ The commands work as following:
 	}
 	gstreamerCommand, _ := arguments.Bool("gstreamer")
 	if gstreamerCommand {
-		startGStreamer(udid)
+		shouldPrintExamples, _ := arguments.Bool("--examples")
+		if shouldPrintExamples {
+			printExamples()
+			return
+		}
+		gstPipeline, _ := arguments.String("--pipeline")
+		if gstPipeline == "" {
+			startGStreamer(udid)
+			return
+		}
+		startGStreamerWithCustomPipeline(udid, gstPipeline)
 	}
 }
 
@@ -96,6 +109,20 @@ func printVersion() {
 		"version": version,
 	}
 	printJSON(versionMap)
+}
+
+func printExamples() {
+	print("gstreamer examples will be added here later")
+}
+
+func startGStreamerWithCustomPipeline(udid string, pipelineString string) {
+	log.Debug("Starting Gstreamer with custom pipeline")
+	gStreamer, err := gstadapter.NewWithCustomPipeline(pipelineString)
+	if err != nil {
+		printErrJSON(err, "Failed creating custom pipeline")
+		return
+	}
+	startWithConsumer(gStreamer, udid)
 }
 
 func startGStreamer(udid string) {
