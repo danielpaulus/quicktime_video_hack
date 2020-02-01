@@ -68,6 +68,9 @@ func NewWithCustomPipeline(pipelineString string) (*GstAdapter, error) {
 	audioAppSrc := gst.NewAppSrc("my-audio-src")
 	audioAppSrc.SetProperty("is-live", true)
 
+	pipeline.Add(videoAppSrc.AsElement())
+	pipeline.Add(audioAppSrc.AsElement())
+
 	audioAppSrc.Link(audioAppSrcTargetElement)
 	videoAppSrc.Link(videoAppSrcTargetElement)
 

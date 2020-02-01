@@ -112,6 +112,11 @@ func printVersion() {
 }
 
 func printExamples() {
+	/*
+			gst-launch-1.0 -e mp4mux name=mux ! filesink location=video.mp4 \
+		audiotestsrc ! queue name=audio_target ! audioconvert ! queue ! faac ! mux. \
+		videotestsrc ! queue name=video_target ! x264enc ! mux.
+	*/
 	print("gstreamer examples will be added here later")
 }
 
