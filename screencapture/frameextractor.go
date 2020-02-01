@@ -42,7 +42,8 @@ func (fe *LengthFieldBasedFrameExtractor) ExtractFrame(bytes []byte) ([]byte, bo
 			/*
 				{"level":"fatal","msg":"wtf:00000000  ac 10 00                                          |...|\n","time":"2019-11-18T12:12:11+01:00"}
 			*/
-			log.Fatal("wtf:" + hex.Dump(fe.frameBuffer.Bytes()))
+			log.Warn("received invalid message, dropping:" + hex.Dump(fe.frameBuffer.Bytes()))
+			return nil, false
 		}
 		fe.nextFrameSize = int(binary.LittleEndian.Uint32(fe.frameBuffer.Next(4))) - 4
 		fe.readyForNextFrame = false
