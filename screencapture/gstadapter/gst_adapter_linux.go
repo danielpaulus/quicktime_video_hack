@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/danielpaulus/gst"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
@@ -18,6 +19,7 @@ import (
 type GstAdapter struct {
 	videoAppSrc      *gst.AppSrc
 	audioAppSrc      *gst.AppSrc
+	pipeline         *gst.Pipeline
 	firstAudioSample bool
 }
 
