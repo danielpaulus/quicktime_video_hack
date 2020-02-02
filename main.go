@@ -112,12 +112,17 @@ func printVersion() {
 }
 
 func printExamples() {
-	/*
-			gst-launch-1.0 -e mp4mux name=mux ! filesink location=video.mp4 \
-		audiotestsrc ! queue name=audio_target ! audioconvert ! queue ! faac ! mux. \
-		videotestsrc ! queue name=video_target ! x264enc ! mux.
-	*/
-	print("gstreamer examples will be added here later")
+
+	examples := `Examples:
+	This pipeline will save the recording in video.mp4 with h264 and aac format. The default settings 
+	of this pipeline will create a compressed video that takes up way less space than raw h264.
+
+qvh gstreamer --pipeline "mp4mux name=mux ! filesink location=video.mp4 \
+queue name=audio_target ! wavparse ! audioconvert ! queue ! faac ! mux. \
+queue name=video_target ! h264parse ! vtdec ! videoconvert ! x264enc  tune=zerolatency !  mux."
+
+	`
+	print(examples)
 }
 
 func startGStreamerWithCustomPipeline(udid string, pipelineString string) {
@@ -226,9 +231,11 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) 
 	adapter := screencapture.UsbAdapter{}
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)
+
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
 
 	err = adapter.StartReading(device, &mp, stopSignal)
+	consumer.(*gstadapter.GstAdapter).Stop()
 	if err != nil {
 		printErrJSON(err, "failed connecting to usb")
 	}
