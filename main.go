@@ -118,12 +118,19 @@ func printExamples() {
 	of this pipeline will create a compressed video that takes up way less space than raw h264.
 	Note that you need to set "ignore-length" on the wavparse because we are streaming and do not know the length in advance.
 
-	Mac OSX: 
+	Write MP$ file Mac OSX: 
 	vtdec is the hardware accelerated decoder on the mac. 
 
 	qvh gstreamer --pipeline "mp4mux name=mux ! filesink location=video.mp4 \
 	queue name=audio_target ! wavparse ignore-length=true ! audioconvert ! faac ! aacparse ! mux. \
 	queue name=video_target ! h264parse ! vtdec ! videoconvert ! x264enc  tune=zerolatency !  mux."
+	
+	Write MP4 file Linux:
+    note that I am using software en and decoding, if you have intel VAAPI available, maybe use those. 
+
+	gstreamer --pipeline "mp4mux name=mux ! filesink location=video.mp4 \
+    queue name=audio_target ! wavparse ignore-length=true ! audioconvert ! avenc_aac ! aacparse ! mux. \
+    queue name=video_target ! h264parse ! avdec_h264 ! videoconvert ! x264enc tune=zerolatency ! mux."
 	`
 	fmt.Print(examples)
 }

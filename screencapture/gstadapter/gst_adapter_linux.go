@@ -100,8 +100,9 @@ func (gsta GstAdapter) Stop() {
 	}
 	//FIXME: This is an async operation, I probably should wait for some event here
 	//instead of sleeping :-)
-	time.Sleep(time.Second * 1)
-	gsta.pipeline.SetState(gst.STATE_PAUSED)
+	time.Sleep(time.Second * 10)
+	gsta.pipeline.SetState(gst.STATE_NULL)
+	time.Sleep(time.Second * 2)
 	log.Info("OK.")
 }
 
