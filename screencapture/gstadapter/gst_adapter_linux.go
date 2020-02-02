@@ -68,16 +68,39 @@ func NewWithCustomPipeline(pipelineString string) (*GstAdapter, error) {
 	audioAppSrc := gst.NewAppSrc("my-audio-src")
 	audioAppSrc.SetProperty("is-live", true)
 
+	pipeline.Add(videoAppSrc.AsElement())
+	pipeline.Add(audioAppSrc.AsElement())
+
 	audioAppSrc.Link(audioAppSrcTargetElement)
 	videoAppSrc.Link(videoAppSrcTargetElement)
 
 	pipeline.SetState(gst.STATE_PLAYING)
-	runGlibMainLoop()
+	//runGlibMainLoop()
 
 	log.Info("Gstreamer is running!")
-	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
+	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true, pipeline: pipeline}
 
 	return &gsta, nil
+}
+
+//Stop sends an EOS (end of stream) event downstream the gstreamer pipeline.
+//Some Elements need this to correctly finish. F.ex. writing mp4 video without
+//sending EOS will result in a broken mp4 file
+func (gsta GstAdapter) Stop() {
+	log.Info("Stopping Gstreamer..")
+	success := gsta.audioAppSrc.SendEvent(gst.Eos())
+	if !success {
+		log.Warn("Failed sending EOS signal for audio app source")
+	}
+	success = gsta.videoAppSrc.SendEvent(gst.Eos())
+	if !success {
+		log.Warn("Failed sending EOS signal for video app source")
+	}
+	//FIXME: This is an async operation, I probably should wait for some event here
+	//instead of sleeping :-)
+	time.Sleep(time.Second * 1)
+	gsta.pipeline.SetState(gst.STATE_PAUSED)
+	log.Info("OK.")
 }
 
 //runGlibMainLoop starts the glib Mainloop necessary for the video player to work on MAC OS X.
