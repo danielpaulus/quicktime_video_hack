@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"time"
 
 	"github.com/danielpaulus/gst"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
@@ -98,11 +97,20 @@ func (gsta GstAdapter) Stop() {
 	if !success {
 		log.Warn("Failed sending EOS signal for video app source")
 	}
-	//FIXME: This is an async operation, I probably should wait for some event here
-	//instead of sleeping :-)
-	time.Sleep(time.Second * 1)
-	gsta.pipeline.SetState(gst.STATE_PAUSED)
-	log.Info("OK.")
+
+	bus := gsta.pipeline.GetBus()
+	msg := bus.TimedPopFiltered(1000000000*1000*30, gst.MESSAGE_EOS|gst.MESSAGE_ERROR)
+	if msg == nil {
+		log.Warn("No EOS received, video files might be broken")
+		return
+	}
+	if msg.GetType() == gst.MESSAGE_ERROR {
+		log.Warn("Error received, video files might be broken")
+		return
+	}
+	log.Info("EOS received")
+	gsta.pipeline.SetState(gst.STATE_NULL)
+	log.Info("Gstreamer finished")
 }
 
 //runGlibMainLoop starts the glib Mainloop necessary for the video player to work on MAC OS X.
