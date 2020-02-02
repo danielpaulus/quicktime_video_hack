@@ -116,13 +116,13 @@ func printExamples() {
 	examples := `Examples:
 	This pipeline will save the recording in video.mp4 with h264 and aac format. The default settings 
 	of this pipeline will create a compressed video that takes up way less space than raw h264.
+	Note that you need to set "ignore-length" on the wavparse because we are streaming and do not know the length in advance.
 
-qvh gstreamer --pipeline "mp4mux name=mux ! filesink location=video.mp4 \
-queue name=audio_target ! wavparse ! audioconvert ! queue ! faac ! mux. \
-queue name=video_target ! h264parse ! vtdec ! videoconvert ! x264enc  tune=zerolatency !  mux."
-
+	qvh gstreamer --pipeline "qtmux name=mux ! filesink location=video.mp4 \
+	queue name=audio_target ! wavparse ignore-length=true ! audioconvert ! faac ! aacparse ! mux. \
+	queue name=video_target ! h264parse ! vtdec ! videoconvert ! x264enc  tune=zerolatency !  mux."
 	`
-	print(examples)
+	fmt.Print(examples)
 }
 
 func startGStreamerWithCustomPipeline(udid string, pipelineString string) {
