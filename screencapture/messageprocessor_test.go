@@ -23,6 +23,8 @@ func (u UsbTestDummy) Consume(buf coremedia.CMSampleBuffer) error {
 	return nil
 }
 
+func (u UsbTestDummy) Stop() {}
+
 func (u UsbTestDummy) WriteDataToUsb(data []byte) {
 	u.dataReceiver <- data
 }
