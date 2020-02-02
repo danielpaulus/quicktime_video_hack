@@ -99,7 +99,9 @@ func (gsta GstAdapter) Stop() {
 	}
 
 	bus := gsta.pipeline.GetBus()
-	msg := bus.TimedPopFiltered(1000000000*1000*30, gst.MESSAGE_EOS|gst.MESSAGE_ERROR)
+
+	//I hope those are 60 seconds
+	msg := bus.TimedPopFiltered(1000000000*1000*60, gst.MESSAGE_EOS|gst.MESSAGE_ERROR)
 	if msg == nil {
 		log.Warn("No EOS received, video files might be broken")
 		return

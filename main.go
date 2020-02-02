@@ -114,11 +114,13 @@ func printVersion() {
 func printExamples() {
 
 	examples := `Examples:
+	
+	Writing an MP4 file
 	This pipeline will save the recording in video.mp4 with h264 and aac format. The default settings 
 	of this pipeline will create a compressed video that takes up way less space than raw h264.
 	Note that you need to set "ignore-length" on the wavparse because we are streaming and do not know the length in advance.
 
-	Write MP$ file Mac OSX: 
+	Write MP4 file Mac OSX: 
 	vtdec is the hardware accelerated decoder on the mac. 
 
 	qvh gstreamer --pipeline "mp4mux name=mux ! filesink location=video.mp4 \
@@ -245,7 +247,7 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) 
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
 
 	err = adapter.StartReading(device, &mp, stopSignal)
-	consumer.(*gstadapter.GstAdapter).Stop()
+	consumer.Stop()
 	if err != nil {
 		printErrJSON(err, "failed connecting to usb")
 	}
