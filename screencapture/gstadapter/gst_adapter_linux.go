@@ -21,6 +21,9 @@ type GstAdapter struct {
 	firstAudioSample bool
 }
 
+const audioAppSrcTargetElementName = "audio_target"
+const videoAppSrcTargetElementName = "video_target"
+
 //New creates a new MAC OSX compatible gstreamer pipeline that will play device video and audio
 //in a nice little window :-D
 func New() *GstAdapter {
