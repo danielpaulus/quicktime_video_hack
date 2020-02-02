@@ -18,13 +18,8 @@ Currently you can use it to dump a h264 file and a wave file or mirror your devi
 ## 2. Installation
 
 1. Install Gstreamer and LibUSB with brew or apt depending on your platform. 
-   Run `brew install libusb` and `brew install pkg-config` and `brew install gstreamer gst-plugins-bad gst-plugins-good gst-plugins-base gst-plugins-ugly`
-3. Download the latest release and run it
-
-### MAC OS X LIBUSB -- IMPORTANT
-1. Make sure to use either this fork `https://github.com/GroundControl-Solutions/libusb`
-   or a LibUsb version BELOW 1.0.20 or iOS devices won't be found on Mac OS X.
-   [See Github Issue](https://github.com/libusb/libusb/issues/290)
+   On MacOS run `brew install libusb` and `brew install pkg-config` and `brew install gstreamer gst-plugins-bad gst-plugins-good gst-plugins-base gst-plugins-ugly`
+3. Download the latest release and run it or clone the repo and execute `go run main.go`
 
 
 ## 3. Usage
@@ -54,9 +49,10 @@ The commands work as following:
 	gstreamer   qvh will open a new window and push AV data to gstreamer.
 ```
 
-## 3. Technical Docs
+## 3. Technical Docs/ Roll your own implementation
 I have written some documentation here [doc/technical_documentation.md](https://github.com/danielpaulus/quicktime_video_hack/blob/master/doc/technical_documentation.md)
 So if you are just interested in the protocol or if you want to implement this in a different programming language than golang, read the docs.
+Also I have extracted binary dumps of all messages for writing unit tests and re-develop this in your preferred language in a test driven style.
 
 I have given up on windows support  :-)
 ~~[Port to Windows](https://github.com/danielpaulus/quicktime_video_hack/tree/windows/windows) (I don't know why, but still people use Windows nowadays)~~ Did not find a way to do it
