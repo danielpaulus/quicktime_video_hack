@@ -4,6 +4,8 @@ github.com/danielpaulus/gst v0.0.0-20191031102428-eb100cb83442 h1:AKA48ahee1DRBV
 github.com/danielpaulus/gst v0.0.0-20191031102428-eb100cb83442/go.mod h1:JbhjLST5AaUXpKQK65g9144BK8QHftbpuFoYuhDuONw=
 github.com/danielpaulus/gst v0.0.0-20191031112308-dfcba780ec66 h1:UDoHlePd6+rNFfJ/s2ASd2MTRE0W1sWzCeujJVTjVKU=
 github.com/danielpaulus/gst v0.0.0-20191031112308-dfcba780ec66/go.mod h1:JbhjLST5AaUXpKQK65g9144BK8QHftbpuFoYuhDuONw=
+github.com/danielpaulus/gst v0.0.0-20200201205042-e6d2974fceb8 h1:+XiTgRoo1bCA3paC4e/0WYWI7+J2O7hR/IYuSikANMw=
+github.com/danielpaulus/gst v0.0.0-20200201205042-e6d2974fceb8/go.mod h1:JbhjLST5AaUXpKQK65g9144BK8QHftbpuFoYuhDuONw=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -18,8 +18,12 @@ import (
 type GstAdapter struct {
 	videoAppSrc      *gst.AppSrc
 	audioAppSrc      *gst.AppSrc
+	pipeline         *gst.Pipeline
 	firstAudioSample bool
 }
+
+const audioAppSrcTargetElementName = "audio_target"
+const videoAppSrcTargetElementName = "video_target"
 
 //New creates a new MAC OSX compatible gstreamer pipeline that will play device video and audio
 //in a nice little window :-D
@@ -37,6 +41,78 @@ func New() *GstAdapter {
 	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
 
 	return &gsta
+}
+
+//NewWithCustomPipeline will parse the given pipelineString, connect the videoAppSrc to whatever element has the name "video_target" and the audioAppSrc to "audio_target"
+//see also: https://gstreamer.freedesktop.org/documentation/application-development/appendix/programs.html?gi-language=c
+func NewWithCustomPipeline(pipelineString string) (*GstAdapter, error) {
+	log.Info("Starting Gstreamer..")
+	log.WithFields(log.Fields{"custom_pipeline": pipelineString}).Debug("Starting Gstreamer with custom pipeline")
+	pipeline, err := gst.ParseLaunch(pipelineString)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid Pipeline, checkout --examples for help. Gstreamer parsing error was: %s", err)
+	}
+
+	audioAppSrcTargetElement := pipeline.AsBin().GetByName(audioAppSrcTargetElementName)
+	if audioAppSrcTargetElement == nil {
+		return nil, fmt.Errorf("The pipeline needs an element with a property 'name=%s' so I can link the audio source to it. run with --examples for details.", audioAppSrcTargetElementName)
+	}
+
+	videoAppSrcTargetElement := pipeline.AsBin().GetByName(videoAppSrcTargetElementName)
+	if videoAppSrcTargetElement == nil {
+		return nil, fmt.Errorf("The pipeline needs an element with a property 'name=%s' so I can link the video source to it. run with --examples for details.", videoAppSrcTargetElementName)
+	}
+
+	videoAppSrc := gst.NewAppSrc("my-video-src")
+	videoAppSrc.SetProperty("is-live", true)
+
+	audioAppSrc := gst.NewAppSrc("my-audio-src")
+	audioAppSrc.SetProperty("is-live", true)
+
+	pipeline.Add(videoAppSrc.AsElement())
+	pipeline.Add(audioAppSrc.AsElement())
+
+	audioAppSrc.Link(audioAppSrcTargetElement)
+	videoAppSrc.Link(videoAppSrcTargetElement)
+
+	pipeline.SetState(gst.STATE_PLAYING)
+	//runGlibMainLoop()
+
+	log.Info("Gstreamer is running!")
+	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true, pipeline: pipeline}
+
+	return &gsta, nil
+}
+
+//Stop sends an EOS (end of stream) event downstream the gstreamer pipeline.
+//Some Elements need this to correctly finish. F.ex. writing mp4 video without
+//sending EOS will result in a broken mp4 file
+func (gsta GstAdapter) Stop() {
+	log.Info("Stopping Gstreamer..")
+	success := gsta.audioAppSrc.SendEvent(gst.Eos())
+	if !success {
+		log.Warn("Failed sending EOS signal for audio app source")
+	}
+	success = gsta.videoAppSrc.SendEvent(gst.Eos())
+	if !success {
+		log.Warn("Failed sending EOS signal for video app source")
+	}
+
+	bus := gsta.pipeline.GetBus()
+
+	//I hope those are 60 seconds
+	msg := bus.TimedPopFiltered(1000000000*1000*60, gst.MESSAGE_EOS|gst.MESSAGE_ERROR)
+	if msg == nil {
+		log.Warn("No EOS received, video files might be broken")
+		return
+	}
+	if msg.GetType() == gst.MESSAGE_ERROR {
+		log.Warn("Error received, video files might be broken")
+		return
+	}
+	log.Info("EOS received")
+	gsta.pipeline.SetState(gst.STATE_NULL)
+	log.Info("Gstreamer finished")
 }
 
 //runGlibMainLoop starts the glib Mainloop necessary for the video player to work on MAC OS X.

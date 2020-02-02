@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const version = "v0.2-beta"
+const version = "v0.3-beta"
 
 func main() {
 	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
@@ -23,7 +23,7 @@ Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
   qvh record <h264file> <wavfile> [-v] [--udid=<udid>]
-  qvh gstreamer [-v]
+  qvh gstreamer [--pipeline=<pipeline>] [--examples] [-v]
   qvh --version | version
 
 
@@ -36,10 +36,13 @@ Options:
 The commands work as following:
 	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
 	activate	enables the video streaming config for the device specified by --udid
-	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
-				Audio will be saved in a uncompressed wav file.
-				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
-	gstreamer   qvh will open a new window and push AV data to gstreamer.
+	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC. 
+	             Audio will be saved in a uncompressed wav file. Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
+
+	gstreamer   If no additional param is provided, qvh will open a new window and push AV data to gstreamer.
+				If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
+				If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
+				displaying audio and video in a window. 
   `, version)
 	arguments, _ := docopt.ParseDoc(usage)
 	log.SetFormatter(&log.JSONFormatter{})
@@ -87,7 +90,17 @@ The commands work as following:
 	}
 	gstreamerCommand, _ := arguments.Bool("gstreamer")
 	if gstreamerCommand {
-		startGStreamer(udid)
+		shouldPrintExamples, _ := arguments.Bool("--examples")
+		if shouldPrintExamples {
+			printExamples()
+			return
+		}
+		gstPipeline, _ := arguments.String("--pipeline")
+		if gstPipeline == "" {
+			startGStreamer(udid)
+			return
+		}
+		startGStreamerWithCustomPipeline(udid, gstPipeline)
 	}
 }
 
@@ -96,6 +109,42 @@ func printVersion() {
 		"version": version,
 	}
 	printJSON(versionMap)
+}
+
+func printExamples() {
+
+	examples := `Examples:
+	
+	Writing an MP4 file
+	This pipeline will save the recording in video.mp4 with h264 and aac format. The default settings 
+	of this pipeline will create a compressed video that takes up way less space than raw h264.
+	Note that you need to set "ignore-length" on the wavparse because we are streaming and do not know the length in advance.
+
+	Write MP4 file Mac OSX: 
+	vtdec is the hardware accelerated decoder on the mac. 
+
+	qvh gstreamer --pipeline "mp4mux name=mux ! filesink location=video.mp4 \
+	queue name=audio_target ! wavparse ignore-length=true ! audioconvert ! faac ! aacparse ! mux. \
+	queue name=video_target ! h264parse ! vtdec ! videoconvert ! x264enc  tune=zerolatency !  mux."
+	
+	Write MP4 file Linux:
+    note that I am using software en and decoding, if you have intel VAAPI available, maybe use those. 
+
+	gstreamer --pipeline "mp4mux name=mux ! filesink location=video.mp4 \
+    queue name=audio_target ! wavparse ignore-length=true ! audioconvert ! avenc_aac ! aacparse ! mux. \
+    queue name=video_target ! h264parse ! avdec_h264 ! videoconvert ! x264enc tune=zerolatency ! mux."
+	`
+	fmt.Print(examples)
+}
+
+func startGStreamerWithCustomPipeline(udid string, pipelineString string) {
+	log.Debug("Starting Gstreamer with custom pipeline")
+	gStreamer, err := gstadapter.NewWithCustomPipeline(pipelineString)
+	if err != nil {
+		printErrJSON(err, "Failed creating custom pipeline")
+		return
+	}
+	startWithConsumer(gStreamer, udid)
 }
 
 func startGStreamer(udid string) {
@@ -194,9 +243,11 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) 
 	adapter := screencapture.UsbAdapter{}
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)
+
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
 
 	err = adapter.StartReading(device, &mp, stopSignal)
+	consumer.Stop()
 	if err != nil {
 		printErrJSON(err, "failed connecting to usb")
 	}

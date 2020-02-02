@@ -24,13 +24,13 @@ Currently you can use it to dump a h264 file and a wave file or mirror your devi
 
 ## 3. Usage
 ```
-Q.uickTime V.ideo H.ack (qvh) v0.2-beta
+Q.uickTime V.ideo H.ack (qvh) v0.3-beta
 
 Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
   qvh record <h264file> <wavfile> [-v] [--udid=<udid>]
-  qvh gstreamer [-v]
+  qvh gstreamer [--pipeline=<pipeline>] [--examples] [-v]
   qvh --version | version
 
 
@@ -41,12 +41,15 @@ Options:
   --udid=<udid>   UDID of the device. If not specified, the first found device will be used automatically.
 
 The commands work as following:
-	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
-	activate	enables the video streaming config for the device specified by --udid
-	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
-				Audio will be saved in a uncompressed wav file.
-				Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
-	gstreamer   qvh will open a new window and push AV data to gstreamer.
+        devices         lists iOS devices attached to this host and tells you if video streaming was activated for them
+        activate        enables the video streaming config for the device specified by --udid
+        record          will start video&audio recording. Video will be saved in a raw h264 file playable by VLC. 
+                     Audio will be saved in a uncompressed wav file. Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
+
+        gstreamer   If no additional param is provided, qvh will open a new window and push AV data to gstreamer.
+                                If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
+                                If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
+                                displaying audio and video in a window. 
 ```
 
 ## 3. Technical Docs/ Roll your own implementation

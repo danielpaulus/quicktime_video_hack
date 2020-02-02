@@ -30,6 +30,9 @@ func (avfw AVFileWriter) Consume(buf CMSampleBuffer) error {
 	return avfw.consumeVideo(buf)
 }
 
+//Nothing currently
+func (avfw AVFileWriter) Stop() {}
+
 func (avfw AVFileWriter) consumeVideo(buf CMSampleBuffer) error {
 	if buf.HasFormatDescription {
 		err := avfw.writeNalu(buf.FormatDescription.PPS)
