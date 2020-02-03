@@ -1,6 +1,7 @@
 package coremedia_test
 
 import (
+	"encoding/binary"
 	"io/ioutil"
 	"log"
 	"testing"
@@ -8,6 +9,35 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestFeedNoSdat(t *testing.T) {
+	dat, err := ioutil.ReadFile("../packet/fixtures/asyn-feed-ttas-only")
+	if err != nil {
+		log.Fatal(err)
+	}
+	sbufPacket, err := coremedia.NewCMSampleBufferFromBytesVideo(dat[20:])
+
+	if assert.NoError(t, err) {
+		assert.Equal(t, false, sbufPacket.HasFormatDescription)
+
+	}
+	print(sbufPacket.String())
+}
+
+func TestUnknownMagic(t *testing.T) {
+	dat, err := ioutil.ReadFile("../packet/fixtures/asyn-feed-ttas-only")
+	if err != nil {
+		log.Fatal(err)
+	}
+	binary.LittleEndian.PutUint32(dat[32:], 0x75756c6c)
+
+	_, err = coremedia.NewCMSampleBufferFromBytesVideo(dat[20:])
+
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "lluu")
+	}
+
+}
 
 func TestCMSampleBuffer(t *testing.T) {
 	dat, err := ioutil.ReadFile("../packet/fixtures/asyn-feed")

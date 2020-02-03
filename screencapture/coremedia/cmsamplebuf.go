@@ -2,6 +2,7 @@ package coremedia
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
@@ -42,6 +43,10 @@ type CMSampleTimingInfo struct {
 func (info CMSampleTimingInfo) String() string {
 	return fmt.Sprintf("{Duration:%s, PresentationTS:%s, DecodeTS:%s}",
 		info.Duration, info.PresentationTimeStamp, info.DecodeTimeStamp)
+}
+
+func (buffer CMSampleBuffer) HasSampleData() bool {
+	return buffer.SampleData != nil
 }
 
 //CMSampleBuffer represents the CoreMedia class used to exchange AV SampleData and contains meta information like timestamps or
@@ -98,75 +103,69 @@ func NewCMSampleBufferFromBytes(data []byte, mediaType uint32) (CMSampleBuffer, 
 	if length > len(data) {
 		return sbuffer, fmt.Errorf("less data (%d bytes) in buffer than expected (%d bytes)", len(data), length)
 	}
+	for len(remainingBytes) > 0 {
+		switch binary.LittleEndian.Uint32(remainingBytes[4:]) {
+		case opts:
+			cmtime, err := NewCMTimeFromBytes(remainingBytes[8:])
+			if err != nil {
+				return sbuffer, err
+			}
+			sbuffer.OutputPresentationTimestamp = cmtime
+			remainingBytes = remainingBytes[32:]
+		case stia:
+			sbuffer.SampleTimingInfoArray, remainingBytes, err = parseStia(remainingBytes)
+			if err != nil {
+				return sbuffer, err
+			}
+		case sdat:
+			length, remainingBytes, err = common.ParseLengthAndMagic(remainingBytes, sdat)
+			if err != nil {
+				return sbuffer, err
+			}
+			sbuffer.SampleData = remainingBytes[:length-8]
+			remainingBytes = remainingBytes[length-8:]
+		case nsmp:
 
-	_, remainingBytes, err = common.ParseLengthAndMagic(remainingBytes, opts)
-	if err != nil {
-		return sbuffer, err
-	}
-	cmtime, err := NewCMTimeFromBytes(remainingBytes)
-	if err != nil {
-		return sbuffer, err
-	}
-	sbuffer.OutputPresentationTimestamp = cmtime
-	sbuffer.SampleTimingInfoArray, remainingBytes, err = parseStia(remainingBytes[24:])
-	if err != nil {
-		return sbuffer, err
-	}
-
-	length, remainingBytes, err = common.ParseLengthAndMagic(remainingBytes, sdat)
-	if err != nil {
-		return sbuffer, err
-	}
-	sbuffer.SampleData = remainingBytes[:length-8]
-	length, remainingBytes, err = common.ParseLengthAndMagic(remainingBytes[length-8:], nsmp)
-	if err != nil {
-		return sbuffer, err
-	}
-	if length != 12 {
-		return sbuffer, fmt.Errorf("invalid length for nsmp %d, should be 12", length)
-	}
-	sbuffer.NumSamples = int(binary.LittleEndian.Uint32(remainingBytes))
-
-	sbuffer.SampleSizes, remainingBytes, err = parseSampleSizeArray(remainingBytes[4:])
-	if err != nil {
-		return sbuffer, err
-	}
-
-	//audio buffers usually end after samplesize
-	if len(remainingBytes) == 0 {
-		return sbuffer, nil
-	}
-	if binary.LittleEndian.Uint32(remainingBytes[4:]) == FormatDescriptorMagic {
-		sbuffer.HasFormatDescription = true
-		fdscLength := binary.LittleEndian.Uint32(remainingBytes)
-		sbuffer.FormatDescription, err = NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
-		if err != nil {
-			return sbuffer, err
+			length, remainingBytes, err = common.ParseLengthAndMagic(remainingBytes, nsmp)
+			if err != nil {
+				return sbuffer, err
+			}
+			if length != 12 {
+				return sbuffer, fmt.Errorf("invalid length for nsmp %d, should be 12", length)
+			}
+			sbuffer.NumSamples = int(binary.LittleEndian.Uint32(remainingBytes))
+			remainingBytes = remainingBytes[4:]
+		case ssiz:
+			sbuffer.SampleSizes, remainingBytes, err = parseSampleSizeArray(remainingBytes)
+			if err != nil {
+				return sbuffer, err
+			}
+		case FormatDescriptorMagic:
+			sbuffer.HasFormatDescription = true
+			fdscLength := binary.LittleEndian.Uint32(remainingBytes)
+			sbuffer.FormatDescription, err = NewFormatDescriptorFromBytes(remainingBytes[:fdscLength])
+			if err != nil {
+				return sbuffer, err
+			}
+			remainingBytes = remainingBytes[fdscLength:]
+		case satt:
+			attachmentsLength := binary.LittleEndian.Uint32(remainingBytes)
+			sbuffer.Attachments, err = NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
+			if err != nil {
+				return sbuffer, err
+			}
+			remainingBytes = remainingBytes[attachmentsLength:]
+		case sary:
+			saryLength := binary.LittleEndian.Uint32(remainingBytes)
+			sbuffer.Sary, err = NewIndexDictFromBytes(remainingBytes[8:saryLength])
+			remainingBytes = remainingBytes[saryLength:]
+		default:
+			unknownMagic := string(remainingBytes[4:8])
+			return sbuffer, fmt.Errorf("unknown magic type:%s (0x%x), cannot parse value %s", unknownMagic, remainingBytes[4:8], hex.Dump(remainingBytes))
 		}
-		remainingBytes = remainingBytes[fdscLength:]
-	}
-	//audio buffers usually end after samplesize
-	if len(remainingBytes) == 0 {
-		return sbuffer, nil
+
 	}
 
-	attachmentsLength := binary.LittleEndian.Uint32(remainingBytes)
-	sbuffer.Attachments, err = NewIndexDictFromBytesWithCustomMarker(remainingBytes[:attachmentsLength], satt)
-	if err != nil {
-		return sbuffer, err
-	}
-	remainingBytes = remainingBytes[attachmentsLength:]
-	saryLength := binary.LittleEndian.Uint32(remainingBytes)
-	if binary.LittleEndian.Uint32(remainingBytes[4:]) != sary {
-		return sbuffer, fmt.Errorf("wrong magic, expected sary got:%x", remainingBytes[4:8])
-	}
-	sbuffer.Sary, err = NewIndexDictFromBytes(remainingBytes[8:saryLength])
-	if err != nil {
-		return sbuffer, err
-	}
-	if len(remainingBytes[saryLength:]) != 0 {
-		return sbuffer, fmt.Errorf("CmSampleBuf should have been read completely but still contains bytes: %x", remainingBytes[saryLength:])
-	}
 	return sbuffer, nil
 }
 

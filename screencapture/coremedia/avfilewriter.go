@@ -44,6 +44,9 @@ func (avfw AVFileWriter) consumeVideo(buf CMSampleBuffer) error {
 			return err
 		}
 	}
+	if !buf.HasSampleData() {
+		return nil
+	}
 	return avfw.writeNalus(buf.SampleData)
 }
 
@@ -73,6 +76,9 @@ func (avfw AVFileWriter) writeNalu(naluBytes []byte) error {
 }
 
 func (avfw AVFileWriter) consumeAudio(buffer CMSampleBuffer) error {
+	if !buffer.HasSampleData() {
+		return nil
+	}
 	_, err := avfw.wavFileWriter.Write(buffer.SampleData)
 	if err != nil {
 		return err

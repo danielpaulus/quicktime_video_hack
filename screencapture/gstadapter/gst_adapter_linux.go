@@ -227,6 +227,9 @@ func checkElem(e *gst.Element, name string) {
 //Consume will transfer AV data into a Gstreamer AppSrc
 func (gsta *GstAdapter) Consume(buf coremedia.CMSampleBuffer) error {
 	if buf.MediaType == coremedia.MediaTypeSound {
+		if !buf.HasSampleData() {
+			return nil
+		}
 		if gsta.firstAudioSample {
 			gsta.firstAudioSample = false
 			gsta.sendWavHeader()
@@ -251,6 +254,9 @@ func (gsta *GstAdapter) Consume(buf coremedia.CMSampleBuffer) error {
 		if err != nil {
 			return err
 		}
+	}
+	if !buf.HasSampleData() {
+		return nil
 	}
 	gsta.writeNalus(buf)
 
