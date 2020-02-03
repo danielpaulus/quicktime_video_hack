@@ -45,6 +45,10 @@ func (info CMSampleTimingInfo) String() string {
 		info.Duration, info.PresentationTimeStamp, info.DecodeTimeStamp)
 }
 
+func (buffer CMSampleBuffer) HasSampleData() bool {
+	return buffer.SampleData != nil
+}
+
 //CMSampleBuffer represents the CoreMedia class used to exchange AV SampleData and contains meta information like timestamps or
 //optional FormatDescriptors
 type CMSampleBuffer struct {
