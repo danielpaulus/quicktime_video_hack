@@ -89,6 +89,10 @@ func NewWithCustomPipeline(pipelineString string) (*GstAdapter, error) {
 //sending EOS will result in a broken mp4 file
 func (gsta GstAdapter) Stop() {
 	log.Info("Stopping Gstreamer..")
+	if gsta.pipeline == nil {
+		log.Info("Pipeline already freed. Not sending EOS")
+		return
+	}
 	success := gsta.audioAppSrc.SendEvent(gst.Eos())
 	if !success {
 		log.Warn("Failed sending EOS signal for audio app source")
