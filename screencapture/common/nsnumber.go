@@ -45,6 +45,12 @@ func NewNSNumber(bytes []byte) (NSNumber, error) {
 		}
 		value := math.Float64frombits(binary.LittleEndian.Uint64(bytes[1:]))
 		return NSNumber{typeSpecifier: typeSpecifier, FloatValue: value}, nil
+	case 5:
+		if len(bytes) != 5 {
+			return NSNumber{}, fmt.Errorf("the NSNumber, type 5 should contain 4 bytes: %s", hex.Dump(bytes))
+		}
+		value := binary.LittleEndian.Uint32(bytes[1:])
+		return NSNumber{typeSpecifier: typeSpecifier, IntValue: value}, nil
 	case 4:
 		if len(bytes) != 9 {
 			return NSNumber{}, fmt.Errorf("the NSNumber, type 4 should contain 8 bytes: %s", hex.Dump(bytes))
