@@ -19,9 +19,39 @@ type IosDevice struct {
 	UsbInfo           string
 }
 
+//OpenDevice finds a gousb.Device by using the provided iosDevice.SerialNumber. It returns an open device handle.
+//Opening using VID and PID is not specific enough, as different iOS devices can have identical VID/PID combinations.
+func OpenDevice(ctx *gousb.Context, iosDevice IosDevice) (*gousb.Device, error) {
+	deviceList, err := ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
+		return true
+	})
+
+	if err != nil {
+		log.Warn("Error opening usb devices", err)
+	}
+	var usbDevice *gousb.Device = nil
+	for _, device := range deviceList {
+		sn, err := device.SerialNumber()
+		if err != nil {
+			log.Warn("Error retrieving Serialnumber", err)
+		}
+		if sn == iosDevice.SerialNumber {
+			usbDevice = device
+		} else {
+			device.Close()
+		}
+	}
+
+	if usbDevice == nil {
+		return nil, fmt.Errorf("Unable to find device:%+v", iosDevice)
+	}
+	return usbDevice, nil
+}
+
 //ReOpen creates a new Ios device, opening it using VID and PID, using the given context
-func (d *IosDevice) ReOpen(ctx *gousb.Context) (IosDevice, error) {
-	dev, err := ctx.OpenDeviceWithVIDPID(d.VID, d.PID)
+func (d IosDevice) ReOpen(ctx *gousb.Context) (IosDevice, error) {
+
+	dev, err := OpenDevice(ctx, d)
 	if err != nil {
 		return IosDevice{}, err
 	}
@@ -71,7 +101,7 @@ func FindIosDevice(udid string) (IosDevice, error) {
 		return IosDevice{}, errors.New("no iOS devices are connected to this host")
 	}
 	if udid == "" {
-		log.Debugf("no udid specified, using '%s'", list[0].SerialNumber)
+		log.Infof("no udid specified, using '%s'", list[0].SerialNumber)
 		return list[0], nil
 	}
 	for _, device := range list {

@@ -15,7 +15,7 @@ import (
 func EnableQTConfig(device IosDevice) (IosDevice, error) {
 	udid := device.SerialNumber
 	ctx := gousb.NewContext()
-	usbDevice, err := ctx.OpenDeviceWithVIDPID(device.VID, device.PID)
+	usbDevice, err := OpenDevice(ctx, device)
 	if err != nil {
 		return IosDevice{}, err
 	}
