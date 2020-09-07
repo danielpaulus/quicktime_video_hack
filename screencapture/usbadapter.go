@@ -26,7 +26,7 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	ctx, cleanUp := createContext()
 	defer cleanUp()
 
-	usbDevice, err := ctx.OpenDeviceWithVIDPID(device.VID, device.PID)
+	usbDevice, err := OpenDevice(ctx, device)
 	if err != nil {
 		return err
 	}
