@@ -98,6 +98,9 @@ func (gsta GstAdapter) Stop() {
 		log.Warn("Failed sending EOS signal for video app source")
 	}
 
+	if gsta.pipeline == nil {
+		return
+	}
 	bus := gsta.pipeline.GetBus()
 
 	//I hope those are 60 seconds
