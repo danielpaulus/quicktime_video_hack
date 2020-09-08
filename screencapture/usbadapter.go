@@ -132,7 +132,11 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	iface.Close()
 
 	sendQTDisableConfigControlRequest(usbDevice)
-	usbDevice.Config(4)
+	log.Debug("Resetting device config")
+	_, err = usbDevice.Config(device.UsbMuxConfigIndex)
+	if err != nil {
+		log.Warn(err)
+	}
 
 	return nil
 }
