@@ -2,6 +2,8 @@ package screencapture
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
@@ -35,32 +37,39 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}
 	confignum, _ := usbDevice.ActiveConfigNum()
 
-	log.Debugf("Config is active: %d", confignum)
+	//problem: wrong config is active
+	log.Debugf("Config is active: %d, QT config is: %d", confignum, device.QTConfigIndex)
 
-	config, err := usbDevice.Config(confignum)
+	config, err := usbDevice.Config(device.QTConfigIndex)
 	if err != nil {
 		return errors.New("Could not retrieve config")
 	}
 
-	sendQTConfigControlRequest(usbDevice)
+	//sendQTConfigControlRequest(usbDevice)
 
 	log.Debugf("QT Config is active: %s", config.String())
 
-	val, err := usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
-	if err != nil {
-		log.Debug("failed control", err)
-	}
-	log.Debugf("Clear Feature RC: %d", val)
+	/*
+		val, err := usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
+		if err != nil {
+			log.Debug("failed control", err)
+		}
+		log.Debugf("Clear Feature RC: %d", val)
 
-	val, err = usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
-	if err != nil {
-		log.Debug("failed control", err)
-	}
-	log.Debugf("Clear Feature RC: %d", val)
-
+		val, err = usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
+		if err != nil {
+			log.Debug("failed control", err)
+		}
+		log.Debugf("Clear Feature RC: %d", val)
+	*/
 	iface, err := grabQuickTimeInterface(config)
 	if err != nil {
+		usbDevice.Close()
+		cleanUp()
+		time.Sleep(time.Second * 3)
 		log.Debug("could not get Quicktime Interface")
+		return usa.StartReading(device, receiver, stopSignal)
+
 		return err
 	}
 	log.Debugf("Got QT iface:%s", iface.String())
@@ -94,7 +103,7 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 		return err
 	}
 	log.Debug("Endpoint claimed")
-	log.Infof("Device '%s' USB connection ready", device.SerialNumber)
+	log.Infof("Device '%s' USB connection ready, waiting for ping..", device.SerialNumber)
 	go func() {
 
 		frameExtractor := NewLengthFieldBasedFrameExtractor()
@@ -125,6 +134,7 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	iface.Close()
 
 	sendQTDisableConfigControlRequest(usbDevice)
+	usbDevice.Config(4)
 
 	return nil
 }
@@ -148,6 +158,11 @@ func grabInBulk(setting gousb.InterfaceSetting) (int, error) {
 }
 
 func grabQuickTimeInterface(config *gousb.Config) (*gousb.Interface, error) {
-	_, ifaceIndex := findInterfaceForSubclass(config.Desc, QuicktimeSubclass)
+	log.Debug("Looking for quicktime interface..")
+	found, ifaceIndex := findInterfaceForSubclass(config.Desc, QuicktimeSubclass)
+	if !found {
+		return nil, fmt.Errorf("did not find interface %v", config)
+	}
+	log.Debugf("Found Quicktimeinterface: %d", ifaceIndex)
 	return config.Interface(ifaceIndex, 0)
 }

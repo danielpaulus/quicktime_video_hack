@@ -205,12 +205,21 @@ func isMuxConfig(confDesc gousb.ConfigDesc) bool {
 }
 
 func findInterfaceForSubclass(confDesc gousb.ConfigDesc, subClass gousb.Class) (bool, int) {
-	for i := range confDesc.Interfaces {
+	for _, iface := range confDesc.Interfaces {
 		//usually the interfaces we care about have only one altsetting
-		isVendorClass := confDesc.Interfaces[i].AltSettings[0].Class == gousb.ClassVendorSpec
-		isCorrectSubClass := confDesc.Interfaces[i].AltSettings[0].SubClass == subClass
+
+		for _, alt := range iface.AltSettings {
+			isVendorClass := alt.Class == gousb.ClassVendorSpec
+			isCorrectSubClass := alt.SubClass == subClass
+			log.Debugf("found: %b", isCorrectSubClass && isVendorClass)
+
+		}
+		isVendorClass := iface.AltSettings[0].Class == gousb.ClassVendorSpec
+		isCorrectSubClass := iface.AltSettings[0].SubClass == subClass
+
+		log.Debugf("iface:%v altsettings:%d isvendor:%b isub:%b", iface, len(iface.AltSettings), isVendorClass, isCorrectSubClass)
 		if isVendorClass && isCorrectSubClass {
-			return true, confDesc.Interfaces[i].Number
+			return true, iface.Number
 		}
 	}
 	return false, -1
