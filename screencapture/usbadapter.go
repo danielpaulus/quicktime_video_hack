@@ -3,7 +3,6 @@ package screencapture
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
@@ -49,26 +48,25 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 
 	log.Debugf("QT Config is active: %s", config.String())
 
-	/*
-		val, err := usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
-		if err != nil {
-			log.Debug("failed control", err)
-		}
-		log.Debugf("Clear Feature RC: %d", val)
+	val, err := usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
+	if err != nil {
+		log.Debug("failed control", err)
+	}
+	log.Debugf("Clear Feature RC: %d", val)
 
-		val, err = usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
-		if err != nil {
-			log.Debug("failed control", err)
-		}
-		log.Debugf("Clear Feature RC: %d", val)
-	*/
+	val, err = usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
+	if err != nil {
+		log.Debug("failed control", err)
+	}
+	log.Debugf("Clear Feature RC: %d", val)
+
 	iface, err := grabQuickTimeInterface(config)
 	if err != nil {
-		usbDevice.Close()
-		cleanUp()
-		time.Sleep(time.Second * 3)
+		//usbDevice.Close()
+		//cleanUp()
+		//time.Sleep(time.Second * 3)
 		log.Debug("could not get Quicktime Interface")
-		return usa.StartReading(device, receiver, stopSignal)
+		//return usa.StartReading(device, receiver, stopSignal)
 
 		return err
 	}
