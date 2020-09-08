@@ -105,21 +105,20 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	log.Debug("Endpoint claimed")
 	log.Infof("Device '%s' USB connection ready, waiting for ping..", device.SerialNumber)
 	go func() {
-
 		for {
 			buffer := make([]byte, 4)
 
 			n, err := io.ReadFull(stream, buffer)
 			if err != nil {
-				log.Error("couldn't read length bytes", err, n)
+				log.Errorf("Failed reading 4bytes length with err:%s only received: %d", err, n)
 				return
 			}
-			length := binary.LittleEndian.Uint32(buffer)
-			dataBuffer := make([]byte, length-4)
+			length := binary.LittleEndian.Uint32(buffer) - 4
+			dataBuffer := make([]byte, length)
 
 			n, err = io.ReadFull(stream, dataBuffer)
 			if err != nil {
-				log.Error("couldn't read length bytes", err)
+				log.Errorf("Failed reading payload with err:%s only received: %d/%d bytes", err, n, length)
 				return
 			}
 			receiver.ReceiveData(dataBuffer)
