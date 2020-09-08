@@ -1,8 +1,10 @@
 package screencapture
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
@@ -104,19 +106,23 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	log.Infof("Device '%s' USB connection ready, waiting for ping..", device.SerialNumber)
 	go func() {
 
-		frameExtractor := NewLengthFieldBasedFrameExtractor()
 		for {
-			buffer := make([]byte, 65536)
+			buffer := make([]byte, 4)
 
-			n, err := stream.Read(buffer)
+			n, err := io.ReadFull(stream, buffer)
 			if err != nil {
-				log.Error("couldn't read bytes", err)
+				log.Error("couldn't read length bytes", err, n)
 				return
 			}
-			frame, isCompleteFrame := frameExtractor.ExtractFrame(buffer[:n])
-			if isCompleteFrame {
-				receiver.ReceiveData(frame)
+			length := binary.LittleEndian.Uint32(buffer)
+			dataBuffer := make([]byte, length-4)
+
+			n, err = io.ReadFull(stream, dataBuffer)
+			if err != nil {
+				log.Error("couldn't read length bytes", err)
+				return
 			}
+			receiver.ReceiveData(dataBuffer)
 		}
 	}()
 
