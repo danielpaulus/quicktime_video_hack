@@ -1,7 +1,10 @@
 package screencapture
 
 import (
+	"encoding/binary"
 	"errors"
+	"fmt"
+	"io"
 
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
@@ -35,14 +38,12 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}
 	confignum, _ := usbDevice.ActiveConfigNum()
 
-	log.Debugf("Config is active: %d", confignum)
+	log.Debugf("Config is active: %d, QT config is: %d", confignum, device.QTConfigIndex)
 
-	config, err := usbDevice.Config(confignum)
+	config, err := usbDevice.Config(device.QTConfigIndex)
 	if err != nil {
 		return errors.New("Could not retrieve config")
 	}
-
-	sendQTConfigControlRequest(usbDevice)
 
 	log.Debugf("QT Config is active: %s", config.String())
 
@@ -94,22 +95,27 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 		return err
 	}
 	log.Debug("Endpoint claimed")
-	log.Infof("Device '%s' USB connection ready", device.SerialNumber)
+	log.Infof("Device '%s' USB connection ready, waiting for ping..", device.SerialNumber)
 	go func() {
-
-		frameExtractor := NewLengthFieldBasedFrameExtractor()
 		for {
-			buffer := make([]byte, 65536)
+			buffer := make([]byte, 4)
 
-			n, err := stream.Read(buffer)
+			n, err := io.ReadFull(stream, buffer)
 			if err != nil {
-				log.Error("couldn't read bytes", err)
+				log.Errorf("Failed reading 4bytes length with err:%s only received: %d", err, n)
 				return
 			}
-			frame, isCompleteFrame := frameExtractor.ExtractFrame(buffer[:n])
-			if isCompleteFrame {
-				receiver.ReceiveData(frame)
+			//the 4 bytes header are included in the length, so we need to subtract them
+			//here to know how long the payload will be
+			length := binary.LittleEndian.Uint32(buffer) - 4
+			dataBuffer := make([]byte, length)
+
+			n, err = io.ReadFull(stream, dataBuffer)
+			if err != nil {
+				log.Errorf("Failed reading payload with err:%s only received: %d/%d bytes", err, n, length)
+				return
 			}
+			receiver.ReceiveData(dataBuffer)
 		}
 	}()
 
@@ -125,6 +131,11 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	iface.Close()
 
 	sendQTDisableConfigControlRequest(usbDevice)
+	log.Debug("Resetting device config")
+	_, err = usbDevice.Config(device.UsbMuxConfigIndex)
+	if err != nil {
+		log.Warn(err)
+	}
 
 	return nil
 }
@@ -148,6 +159,11 @@ func grabInBulk(setting gousb.InterfaceSetting) (int, error) {
 }
 
 func grabQuickTimeInterface(config *gousb.Config) (*gousb.Interface, error) {
-	_, ifaceIndex := findInterfaceForSubclass(config.Desc, QuicktimeSubclass)
+	log.Debug("Looking for quicktime interface..")
+	found, ifaceIndex := findInterfaceForSubclass(config.Desc, QuicktimeSubclass)
+	if !found {
+		return nil, fmt.Errorf("did not find interface %v", config)
+	}
+	log.Debugf("Found Quicktimeinterface: %d", ifaceIndex)
 	return config.Interface(ifaceIndex, 0)
 }
