@@ -77,8 +77,8 @@ func TestMessageProcessorRespondsCorrectlyToSyncMessages(t *testing.T) {
 		{
 			receivedData: cwpaRequest,
 			expectedReply: [][]byte{packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict()),
-				parsedCwpaRequest.NewReply(parsedCwpaRequest.DeviceClockRef + 1000),
 				packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict()),
+				parsedCwpaRequest.NewReply(parsedCwpaRequest.DeviceClockRef + 1000),
 				packet.NewAsynHpa1Packet(packet.CreateHpa1DeviceInfoDict(), parsedCwpaRequest.DeviceClockRef)},
 			description: "Expect correct reply for cwpa",
 		},

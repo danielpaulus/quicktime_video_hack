@@ -87,11 +87,11 @@ The commands work as following:
 			printErrJSON(err, "Missing <outfile> parameter. Please specify a valid path like '/home/me/out.h264'")
 			return
 		}
-		log.Info("Recording audio only to file: %s", outfile)
+		log.Infof("Recording audio only to file: %s", outfile)
 		mp3, _ := arguments.Bool("--mp3")
 		ogg, _ := arguments.Bool("--ogg")
 		wav, _ := arguments.Bool("--wav")
-		log.Debugf("recording audio only format mp3:%b ogg: %b wav:%b to file: %s", mp3, ogg, wav, outfile)
+		log.Debugf("recording audio only format mp3:%t ogg: %t wav:%t to file: %s", mp3, ogg, wav, outfile)
 		if wav {
 			recordAudioWav(outfile, udid)
 			return
