@@ -1,5 +1,5 @@
 FROM debian:latest
-RUN apt-get update && apt install -y git
+RUN apt-get update && apt install -y git wget
 RUN git clone https://github.com/danielpaulus/quicktime_video_hack
 RUN wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
 RUN tar -xvf go1.13.3.linux-amd64.tar.gz
