@@ -7,8 +7,8 @@ orbs:
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.13
-      
+      - image: circleci/golang:1.15
+
     steps:
       - checkout
       - run: sudo apt-get update
@@ -21,9 +21,9 @@ jobs:
           name: "Create a temp directory for artifacts"
           command: |
             mkdir -p /tmp/artifacts
-      - run: 
+      - run:
           command: |
             go test -v -coverprofile=coverage.txt -covermode=atomic ./...
-            mv coverage.txt /tmp/artifacts 
+            mv coverage.txt /tmp/artifacts
       - codecov/upload:
           file: /tmp/artifacts/coverage.txt

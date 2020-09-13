@@ -1,16 +1,15 @@
 module github.com/danielpaulus/quicktime_video_hack
 
-go 1.13
+go 1.15
 
 require (
-	github.com/danielpaulus/go-ios v0.0.0-20190926190740-cc977db05eea
 	github.com/danielpaulus/gst v0.0.0-20200201205042-e6d2974fceb8
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
-	github.com/google/gousb v0.0.0-20190812193832-18f4c1d8a750
+	github.com/google/gousb v2.1.0+incompatible
 	github.com/lijo-jose/glib v0.0.0-20191012030101-93ee72d7d646
-	github.com/lijo-jose/gst v0.0.0-20191012030143-e3a5557394c7
-	github.com/pion/rtp v1.1.4
-	github.com/pion/webrtc/v2 v2.1.11
-	github.com/sirupsen/logrus v1.4.2
-	github.com/stretchr/testify v1.4.0
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
+	github.com/sirupsen/logrus v1.6.0
+	github.com/stretchr/testify v1.6.1
+	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009 // indirect
+	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 )
