@@ -1,5 +1,3 @@
-// +build darwin
-
 package gstadapter
 
 import (
@@ -25,6 +23,9 @@ type GstAdapter struct {
 const audioAppSrcTargetElementName = "audio_target"
 const videoAppSrcTargetElementName = "video_target"
 
+const MP3 = "mp3"
+const OGG = "ogg"
+
 //New creates a new MAC OSX compatible gstreamer pipeline that will play device video and audio
 //in a nice little window :-D
 func New() *GstAdapter {
@@ -32,7 +33,8 @@ func New() *GstAdapter {
 	pl := gst.NewPipeline("QT_Hack_Pipeline")
 
 	videoAppSrc := setUpVideoPipeline(pl)
-	audioAppSrc := setUpAudioPipeline(pl)
+	audioAppSrc := setUpAudioPipelineBase(pl)
+	setupLivePlayAudio(pl)
 
 	pl.SetState(gst.STATE_PLAYING)
 	runGlibMainLoop()
@@ -41,6 +43,29 @@ func New() *GstAdapter {
 	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
 
 	return &gsta
+}
+
+func NewWithAudioPipeline(outfile string, audiotype string) (*GstAdapter, error) {
+	log.Info("Starting Gstreamer..")
+	pl := gst.NewPipeline("QT_Hack_Pipeline")
+
+	audioAppSrc := setUpAudioPipelineBase(pl)
+	switch audiotype {
+	case MP3:
+		setupMp3(pl, outfile)
+	case OGG:
+		setupVorbis(pl, outfile)
+	default:
+		log.Fatalf("Unrecognized Audio type:%s", audiotype)
+	}
+
+	pl.SetState(gst.STATE_PLAYING)
+	runGlibMainLoop()
+
+	log.Info("Gstreamer is running!")
+	gsta := GstAdapter{audioAppSrc: audioAppSrc, firstAudioSample: true}
+
+	return &gsta, nil
 }
 
 //NewWithCustomPipeline will parse the given pipelineString, connect the videoAppSrc to whatever element has the name "video_target" and the audioAppSrc to "audio_target"
@@ -89,13 +114,17 @@ func NewWithCustomPipeline(pipelineString string) (*GstAdapter, error) {
 //sending EOS will result in a broken mp4 file
 func (gsta GstAdapter) Stop() {
 	log.Info("Stopping Gstreamer..")
-	success := gsta.audioAppSrc.SendEvent(gst.Eos())
-	if !success {
-		log.Warn("Failed sending EOS signal for audio app source")
+	if gsta.audioAppSrc != nil {
+		success := gsta.audioAppSrc.SendEvent(gst.Eos())
+		if !success {
+			log.Warn("Failed sending EOS signal for audio app source")
+		}
 	}
-	success = gsta.videoAppSrc.SendEvent(gst.Eos())
-	if !success {
-		log.Warn("Failed sending EOS signal for video app source")
+	if gsta.videoAppSrc != nil {
+		success := gsta.videoAppSrc.SendEvent(gst.Eos())
+		if !success {
+			log.Warn("Failed sending EOS signal for video app source")
+		}
 	}
 
 	if gsta.pipeline == nil {
@@ -126,8 +155,7 @@ func runGlibMainLoop() {
 		glib.NewMainLoop(nil).Run()
 	}()
 }
-
-func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
+func setUpAudioPipelineBase(pl *gst.Pipeline) *gst.AppSrc {
 	asrc := gst.NewAppSrc("my-audio-src")
 	asrc.SetProperty("is-live", true)
 
@@ -144,59 +172,43 @@ func setUpAudioPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	audioconvert := gst.ElementFactoryMake("audioconvert", "audioconvert_01")
 	checkElem(audioconvert, "audioconvert_01")
 
-	autoaudiosink := gst.ElementFactoryMake("autoaudiosink", "autoaudiosink_01")
-	checkElem(autoaudiosink, "autoaudiosink_01")
-	autoaudiosink.SetProperty("sync", false)
-
-	pl.Add(asrc.AsElement(), queue1, wavparse, audioconvert, queue2, autoaudiosink)
+	pl.Add(asrc.AsElement(), queue1, wavparse, audioconvert, queue2)
 	asrc.Link(queue1)
 	queue1.Link(wavparse)
 	wavparse.Link(audioconvert)
 
 	audioconvert.Link(queue2)
-	queue2.Link(autoaudiosink)
 
 	return asrc
 }
+func setupVorbis(pl *gst.Pipeline, filepath string) {
+	//vorbisenc ! oggmux ! filesink location=alsasrc.ogg
+	vorbisEnc := gst.ElementFactoryMake("vorbisenc", "vorbisenc_01")
+	checkElem(vorbisEnc, "vorbisenc_01")
+	oggMux := gst.ElementFactoryMake("oggmux", "oggmux_01")
+	checkElem(oggMux, "oggmux_01")
 
-func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
-	asrc := gst.NewAppSrc("my-video-src")
-	asrc.SetProperty("is-live", true)
+	filesink := gst.ElementFactoryMake("filesink", "filesink_01")
+	filesink.SetProperty("location", filepath)
+	checkElem(filesink, "filesink_01")
 
-	queue1 := gst.ElementFactoryMake("queue", "queue_11")
-	checkElem(queue1, "queue_11")
+	pl.Add(vorbisEnc, oggMux, filesink)
 
-	h264parse := gst.ElementFactoryMake("h264parse", "h264parse_01")
-	checkElem(h264parse, "h264parse")
+	pl.GetByName("queue2").Link(vorbisEnc)
+	vorbisEnc.Link(oggMux)
+	oggMux.Link(filesink)
+}
+func setupMp3(pl *gst.Pipeline, filepath string) {
+	// lamemp3enc ! filesink location=sine.mp3
+	lameEnc := gst.ElementFactoryMake("lamemp3enc", "lamemp3enc_01")
+	checkElem(lameEnc, "lamemp3enc_01")
 
-	avdecH264 := gst.ElementFactoryMake("vtdec", "vtdec_01")
-	checkElem(avdecH264, "vtdec_01")
-
-	queue2 := gst.ElementFactoryMake("queue", "queue_12")
-	checkElem(queue2, "queue_12")
-
-	videoconvert := gst.ElementFactoryMake("videoconvert", "videoconvert_01")
-	checkElem(videoconvert, "videoconvert_01")
-
-	queue3 := gst.ElementFactoryMake("queue", "queue_13")
-	checkElem(queue3, "queue_13")
-
-	sink := gst.ElementFactoryMake("autovideosink", "autovideosink_01")
-	// setting this to true, creates extremely choppy video
-	// I probably messed up something regarding the time stamps
-	sink.SetProperty("sync", false)
-	checkElem(sink, "autovideosink_01")
-
-	pl.Add(asrc.AsElement(), queue1, h264parse, avdecH264, queue2, videoconvert, queue3, sink)
-
-	asrc.Link(queue1)
-	queue1.Link(h264parse)
-	h264parse.Link(avdecH264)
-	avdecH264.Link(queue2)
-	queue2.Link(videoconvert)
-	videoconvert.Link(queue3)
-	queue3.Link(sink)
-	return asrc
+	filesink := gst.ElementFactoryMake("filesink", "filesink_01")
+	filesink.SetProperty("location", filepath)
+	checkElem(filesink, "filesink_01")
+	pl.Add(lameEnc, filesink)
+	pl.GetByName("queue2").Link(lameEnc)
+	lameEnc.Link(filesink)
 }
 
 func checkElem(e *gst.Element, name string) {

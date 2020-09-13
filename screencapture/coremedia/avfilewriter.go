@@ -13,12 +13,17 @@ type AVFileWriter struct {
 	h264FileWriter io.Writer
 	wavFileWriter  io.Writer
 	outFilePath    string
+	audioOnly      bool
 }
 
 //NewAVFileWriter binary writes nalus in annex b format to the given writer and audio buffers into a wav file.
 //Note that you will have to call WriteWavHeader() on the audiofile when you are done to write a wav header and get a valid file.
 func NewAVFileWriter(h264FileWriter io.Writer, wavFileWriter io.Writer) AVFileWriter {
-	return AVFileWriter{h264FileWriter: h264FileWriter, wavFileWriter: wavFileWriter}
+	return AVFileWriter{h264FileWriter: h264FileWriter, wavFileWriter: wavFileWriter, audioOnly: false}
+}
+
+func NewAVFileWriterAudioOnly(wavFileWriter io.Writer) AVFileWriter {
+	return AVFileWriter{h264FileWriter: nil, wavFileWriter: wavFileWriter, audioOnly: true}
 }
 
 //Consume writes PPS and SPS as well as sample bufs into a annex b .h264 file and audio samples into a wav file
@@ -26,6 +31,9 @@ func NewAVFileWriter(h264FileWriter io.Writer, wavFileWriter io.Writer) AVFileWr
 func (avfw AVFileWriter) Consume(buf CMSampleBuffer) error {
 	if buf.MediaType == MediaTypeSound {
 		return avfw.consumeAudio(buf)
+	}
+	if avfw.audioOnly {
+		return nil
 	}
 	return avfw.consumeVideo(buf)
 }

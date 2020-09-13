@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const version = "v0.3-beta"
+const version = "v0.5-beta"
 
 func main() {
 	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
@@ -22,8 +22,9 @@ func main() {
 Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
-  qvh record <h264file> <wavfile> [-v] [--udid=<udid>]
-  qvh gstreamer [--pipeline=<pipeline>] [--examples] [-v]
+  qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
+  qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
+  qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
   qvh --version | version
 
 
@@ -35,14 +36,20 @@ Options:
 
 The commands work as following:
 	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
+	
 	activate	enables the video streaming config for the device specified by --udid
-	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC. 
-	             Audio will be saved in a uncompressed wav file. Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
 
-	gstreamer   If no additional param is provided, qvh will open a new window and push AV data to gstreamer.
-				If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
-				If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
-				displaying audio and video in a window. 
+	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC. 
+	            	Audio will be saved in a uncompressed wav file. Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
+
+	audio		Records only audio from the device. It does not change the status bar like the video recording mode does.
+			The recorded audio will be saved in <outfile> with the selected format. Currently (--mp3 | --ogg | --wav) are supported.
+			Adding more formats is trivial though so create an issue or a PR if you need something :-)
+
+	gstreamer	If no additional param is provided, qvh will open a new window and push AV data to gstreamer.
+			If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
+			If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
+			displaying audio and video in a window. 
   `, version)
 	arguments, _ := docopt.ParseDoc(usage)
 	log.SetFormatter(&log.JSONFormatter{})
@@ -73,7 +80,29 @@ The commands work as following:
 		activate(udid)
 		return
 	}
-
+	audioCommand, _ := arguments.Bool("audio")
+	if audioCommand {
+		outfile, err := arguments.String("<outfile>")
+		if err != nil {
+			printErrJSON(err, "Missing <outfile> parameter. Please specify a valid path like '/home/me/out.h264'")
+			return
+		}
+		log.Infof("Recording audio only to file: %s", outfile)
+		mp3, _ := arguments.Bool("--mp3")
+		ogg, _ := arguments.Bool("--ogg")
+		wav, _ := arguments.Bool("--wav")
+		log.Debugf("recording audio only format mp3:%t ogg: %t wav:%t to file: %s", mp3, ogg, wav, outfile)
+		if wav {
+			recordAudioWav(outfile, udid)
+			return
+		}
+		if ogg {
+			recordAudioGst(outfile, udid, gstadapter.OGG)
+			return
+		}
+		recordAudioGst(outfile, udid, gstadapter.MP3)
+		return
+	}
 	recordCommand, _ := arguments.Bool("record")
 	if recordCommand {
 		h264FilePath, err := arguments.String("<h264file>")
@@ -137,6 +166,43 @@ func printExamples() {
 	fmt.Print(examples)
 }
 
+func recordAudioGst(outfile string, udid string, audiotype string) {
+	log.Debug("Starting Gstreamer with audio pipeline")
+	gStreamer, err := gstadapter.NewWithAudioPipeline(outfile, audiotype)
+	if err != nil {
+		printErrJSON(err, "Failed creating custom pipeline")
+		return
+	}
+	startWithConsumer(gStreamer, udid, true)
+}
+
+func recordAudioWav(outfile string, udid string) {
+	log.Debug("Starting Gstreamer with audio pipeline")
+	wavFile, err := os.Create(outfile)
+	if err != nil {
+		log.Debugf("Error creating wav file:%s", err)
+		log.Errorf("Could not open wav file '%s'", outfile)
+	}
+	wavFileWriter := coremedia.NewAVFileWriterAudioOnly(wavFile)
+
+	defer func() {
+		stat, err := wavFile.Stat()
+		if err != nil {
+			log.Fatal("Could not get wav file stats", err)
+		}
+		err = coremedia.WriteWavHeader(int(stat.Size()), wavFile)
+		if err != nil {
+			log.Fatalf("Error writing wave header %s might be invalid. %s", outfile, err.Error())
+		}
+		err = wavFile.Close()
+		if err != nil {
+			log.Fatalf("Error closing wave file. '%s' might be invalid. %s", outfile, err.Error())
+		}
+
+	}()
+	startWithConsumer(wavFileWriter, udid, true)
+}
+
 func startGStreamerWithCustomPipeline(udid string, pipelineString string) {
 	log.Debug("Starting Gstreamer with custom pipeline")
 	gStreamer, err := gstadapter.NewWithCustomPipeline(pipelineString)
@@ -144,13 +210,13 @@ func startGStreamerWithCustomPipeline(udid string, pipelineString string) {
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, udid)
+	startWithConsumer(gStreamer, udid, false)
 }
 
 func startGStreamer(udid string) {
 	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer, udid)
+	startWithConsumer(gStreamer, udid, false)
 }
 
 // Just dump a list of what was discovered to the console
@@ -224,10 +290,10 @@ func record(h264FilePath string, wavFilePath string, udid string) {
 		}
 
 	}()
-	startWithConsumer(writer, udid)
+	startWithConsumer(writer, udid, false)
 }
 
-func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) {
+func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string, audioOnly bool) {
 	device, err := screencapture.FindIosDevice(udid)
 	if err != nil {
 		printErrJSON(err, "no device found to activate")
@@ -244,7 +310,7 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) 
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)
 
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
+	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, audioOnly)
 
 	err = adapter.StartReading(device, &mp, stopSignal)
 	consumer.Stop()
