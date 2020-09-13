@@ -18,10 +18,15 @@ It probably does something similar to what `QuickTime` and `com.apple.cmio.iOSSc
 Currently you can use it to dump a h264 file and a wave file or mirror your device in a desktop window. Transcoding it to anything else is very easy since I used Gstreamer to render the AV data. 
 
 ## 2. Installation
-
+### 2.1 Mac OSX
 1. Install Gstreamer and LibUSB with brew or apt depending on your platform. 
-   On MacOS run `brew install libusb` and `brew install pkg-config` and `brew install gstreamer gst-plugins-bad gst-plugins-good gst-plugins-base gst-plugins-ugly`
-3. Download the latest release and run it or clone the repo and execute `go run main.go`
+   On MacOS run `brew install libusb pkg-config gstreamer gst-plugins-bad gst-plugins-good gst-plugins-base gst-plugins-ugly`
+2. Download the latest release and run it or clone the repo and execute `go run main.go` (need to install golang of course)
+### 2.2 Linux
+1. Run with Docker: the Docker files are [here](https://github.com/danielpaulus/quicktime_video_hack/tree/master/docker). There is one for just building and one for running. 
+
+2. If you want to build/run locally then copy paste the dependencies from this [Dockerfile](https://github.com/danielpaulus/quicktime_video_hack/blob/master/docker/Dockerfile.debian) and install with apt.
+3. Git clone the repo and start hacking or download the latest release and run the binary :-D
 
 
 ## 3. Usage
