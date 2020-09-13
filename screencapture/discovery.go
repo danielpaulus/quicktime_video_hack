@@ -211,13 +211,13 @@ func findInterfaceForSubclass(confDesc gousb.ConfigDesc, subClass gousb.Class) (
 		for _, alt := range iface.AltSettings {
 			isVendorClass := alt.Class == gousb.ClassVendorSpec
 			isCorrectSubClass := alt.SubClass == subClass
-			log.Debugf("found: %b", isCorrectSubClass && isVendorClass)
+			log.Debugf("found: %t", isCorrectSubClass && isVendorClass)
 
 		}
 		isVendorClass := iface.AltSettings[0].Class == gousb.ClassVendorSpec
 		isCorrectSubClass := iface.AltSettings[0].SubClass == subClass
 
-		log.Debugf("iface:%v altsettings:%d isvendor:%b isub:%b", iface, len(iface.AltSettings), isVendorClass, isCorrectSubClass)
+		log.Debugf("iface:%v altsettings:%d isvendor:%t isub:%t", iface, len(iface.AltSettings), isVendorClass, isCorrectSubClass)
 		if isVendorClass && isCorrectSubClass {
 			return true, iface.Number
 		}
