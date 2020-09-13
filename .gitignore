@@ -1,5 +1,8 @@
 .vscode
 quicktime_video_hack
+*.wav
+*.ogg
+*.mp3
 # Binaries for programs and plugins
 main
 *.h264
