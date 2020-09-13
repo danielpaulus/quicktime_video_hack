@@ -26,13 +26,14 @@ Currently you can use it to dump a h264 file and a wave file or mirror your devi
 
 ## 3. Usage
 ```
-Q.uickTime V.ideo H.ack (qvh) v0.3-beta
+Q.uickTime V.ideo H.ack (qvh) v0.5-beta
 
 Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
-  qvh record <h264file> <wavfile> [-v] [--udid=<udid>]
-  qvh gstreamer [--pipeline=<pipeline>] [--examples] [-v]
+  qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
+  qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
+  qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
   qvh --version | version
 
 
@@ -43,15 +44,21 @@ Options:
   --udid=<udid>   UDID of the device. If not specified, the first found device will be used automatically.
 
 The commands work as following:
-        devices         lists iOS devices attached to this host and tells you if video streaming was activated for them
-        activate        enables the video streaming config for the device specified by --udid
-        record          will start video&audio recording. Video will be saved in a raw h264 file playable by VLC. 
-                     Audio will be saved in a uncompressed wav file. Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
+	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
 
-        gstreamer   If no additional param is provided, qvh will open a new window and push AV data to gstreamer.
-                                If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
-                                If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
-                                displaying audio and video in a window. 
+	activate	enables the video streaming config for the device specified by --udid
+
+	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC.
+	            	Audio will be saved in a uncompressed wav file. Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
+
+	audio		Records only audio from the device. It does not change the status bar like the video recording mode does.
+			The recorded audio will be saved in <outfile> with the selected format. Currently (--mp3 | --ogg | --wav) are supported.
+			Adding more formats is trivial though so create an issue or a PR if you need something :-)
+
+	gstreamer	If no additional param is provided, qvh will open a new window and push AV data to gstreamer.
+			If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
+			If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of
+			displaying audio and video in a window.
 ```
 
 ## 3. Technical Docs/ Roll your own implementation
