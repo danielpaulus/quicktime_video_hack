@@ -76,7 +76,29 @@ The commands work as following:
 		activate(udid)
 		return
 	}
-
+	audioCommand, _ := arguments.Bool("audio")
+	if audioCommand {
+		outfile, err := arguments.String("<outfile>")
+		if err != nil {
+			printErrJSON(err, "Missing <outfile> parameter. Please specify a valid path like '/home/me/out.h264'")
+			return
+		}
+		log.Info("Recording audio only to file: %s", outfile)
+		mp3, _ := arguments.Bool("--mp3")
+		ogg, _ := arguments.Bool("--ogg")
+		wav, _ := arguments.Bool("--wav")
+		log.Debugf("recording audio only format mp3:%b ogg: %b wav:%b to file: %s", mp3, ogg, wav, outfile)
+		if wav {
+			recordAudioWav(outfile, udid)
+			return
+		}
+		if ogg {
+			recordAudioGst(outfile, udid, gstadapter.OGG)
+			return
+		}
+		recordAudioGst(outfile, udid, gstadapter.MP3)
+		return
+	}
 	recordCommand, _ := arguments.Bool("record")
 	if recordCommand {
 		h264FilePath, err := arguments.String("<h264file>")
@@ -140,6 +162,43 @@ func printExamples() {
 	fmt.Print(examples)
 }
 
+func recordAudioGst(outfile string, udid string, audiotype string) {
+	log.Debug("Starting Gstreamer with audio pipeline")
+	gStreamer, err := gstadapter.NewWithAudioPipeline(outfile, audiotype)
+	if err != nil {
+		printErrJSON(err, "Failed creating custom pipeline")
+		return
+	}
+	startWithConsumer(gStreamer, udid, true)
+}
+
+func recordAudioWav(outfile string, udid string) {
+	log.Debug("Starting Gstreamer with audio pipeline")
+	wavFile, err := os.Create(outfile)
+	if err != nil {
+		log.Debugf("Error creating wav file:%s", err)
+		log.Errorf("Could not open wav file '%s'", outfile)
+	}
+	wavFileWriter := coremedia.NewAVFileWriterAudioOnly(wavFile)
+
+	defer func() {
+		stat, err := wavFile.Stat()
+		if err != nil {
+			log.Fatal("Could not get wav file stats", err)
+		}
+		err = coremedia.WriteWavHeader(int(stat.Size()), wavFile)
+		if err != nil {
+			log.Fatalf("Error writing wave header %s might be invalid. %s", outfile, err.Error())
+		}
+		err = wavFile.Close()
+		if err != nil {
+			log.Fatalf("Error closing wave file. '%s' might be invalid. %s", outfile, err.Error())
+		}
+
+	}()
+	startWithConsumer(wavFileWriter, udid, true)
+}
+
 func startGStreamerWithCustomPipeline(udid string, pipelineString string) {
 	log.Debug("Starting Gstreamer with custom pipeline")
 	gStreamer, err := gstadapter.NewWithCustomPipeline(pipelineString)
@@ -147,13 +206,13 @@ func startGStreamerWithCustomPipeline(udid string, pipelineString string) {
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, udid)
+	startWithConsumer(gStreamer, udid, false)
 }
 
 func startGStreamer(udid string) {
 	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer, udid)
+	startWithConsumer(gStreamer, udid, false)
 }
 
 // Just dump a list of what was discovered to the console
@@ -227,10 +286,10 @@ func record(h264FilePath string, wavFilePath string, udid string) {
 		}
 
 	}()
-	startWithConsumer(writer, udid)
+	startWithConsumer(writer, udid, false)
 }
 
-func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) {
+func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string, audioOnly bool) {
 	device, err := screencapture.FindIosDevice(udid)
 	if err != nil {
 		printErrJSON(err, "no device found to activate")
@@ -247,7 +306,7 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string) 
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)
 
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer)
+	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, audioOnly)
 
 	err = adapter.StartReading(device, &mp, stopSignal)
 	consumer.Stop()

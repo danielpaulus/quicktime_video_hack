@@ -30,18 +30,27 @@ type MessageProcessor struct {
 	startTimeLocalAudioClock                 coremedia.CMTime
 	lastEatFrameReceivedDeviceAudioClockTime coremedia.CMTime
 	lastEatFrameReceivedLocalAudioClockTime  coremedia.CMTime
+	audioOnly                                bool
 }
 
 //NewMessageProcessor creates a new MessageProcessor that will write answers to the given UsbWriter,
 // forward extracted CMSampleBuffers to the CMSampleBufConsumer and wait for the stopSignal.
-func NewMessageProcessor(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer) MessageProcessor {
+func NewMessageProcessor(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer, audioOnly bool) MessageProcessor {
 	clockBuilder := func(ID uint64) coremedia.CMClock { return coremedia.NewCMClockWithHostTime(ID) }
-	return NewMessageProcessorWithClockBuilder(usbWriter, stopSignal, consumer, clockBuilder)
+	return NewMessageProcessorWithClockBuilder(usbWriter, stopSignal, consumer, clockBuilder, audioOnly)
 }
 
 //NewMessageProcessorWithClockBuilder lets you inject a clockBuilder for the sake of testability.
-func NewMessageProcessorWithClockBuilder(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer, clockBuilder func(uint64) coremedia.CMClock) MessageProcessor {
-	var mp = MessageProcessor{usbWriter: usbWriter, stopSignal: stopSignal, cmSampleBufConsumer: consumer, clockBuilder: clockBuilder, releaseWaiter: make(chan interface{}), firstAudioTimeTaken: false}
+func NewMessageProcessorWithClockBuilder(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer, clockBuilder func(uint64) coremedia.CMClock, audioOnly bool) MessageProcessor {
+	var mp = MessageProcessor{
+		usbWriter:           usbWriter,
+		stopSignal:          stopSignal,
+		cmSampleBufConsumer: consumer,
+		clockBuilder:        clockBuilder,
+		releaseWaiter:       make(chan interface{}),
+		firstAudioTimeTaken: false,
+		audioOnly:           audioOnly,
+	}
 	return mp
 }
 
@@ -88,13 +97,15 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 
 		mp.localAudioClock = coremedia.NewCMClockWithHostTime(clockRef)
 		mp.deviceAudioClockRef = cwpaPacket.DeviceClockRef
-		deviceInfo := packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict())
-		log.Debug("Sending ASYN HPD1")
-		mp.usbWriter.WriteDataToUsb(deviceInfo)
+		if !mp.audioOnly {
+			deviceInfo := packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict())
+			log.Debug("Sending ASYN HPD1")
+			mp.usbWriter.WriteDataToUsb(deviceInfo)
+			log.Debug("Sending ASYN HPD1")
+			mp.usbWriter.WriteDataToUsb(deviceInfo)
+		}
 		log.Debugf("Send CWPA-RPLY {correlation:%x, clockRef:%x}", cwpaPacket.CorrelationID, clockRef)
 		mp.usbWriter.WriteDataToUsb(cwpaPacket.NewReply(clockRef))
-		log.Debug("Sending ASYN HPD1")
-		mp.usbWriter.WriteDataToUsb(deviceInfo)
 		deviceInfo1 := packet.NewAsynHpa1Packet(packet.CreateHpa1DeviceInfoDict(), cwpaPacket.DeviceClockRef)
 		log.Debug("Sending ASYN HPA1")
 		mp.usbWriter.WriteDataToUsb(deviceInfo1)
