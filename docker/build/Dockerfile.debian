@@ -1,7 +1,7 @@
 FROM debian:latest
 RUN apt-get update && apt install -y git wget libgstreamer-plugins-base1.0-dev libusb-1.0
-RUN wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
-RUN tar -xvf go1.13.3.linux-amd64.tar.gz
+RUN wget https://golang.org/dl/go1.15.2.linux-amd64.tar.gz
+RUN tar -xvf go1.15.2.linux-amd64.tar.gz
 RUN mv go /usr/local
 ENV GOROOT=/usr/local/go 
 ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH 
