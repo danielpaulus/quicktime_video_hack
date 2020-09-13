@@ -4,7 +4,7 @@ package gstadapter
 
 import "github.com/danielpaulus/gst"
 
-func setupLivePlayAudio(pl *gst.Pipeline) *gst.AppSrc {
+func setupLivePlayAudio(pl *gst.Pipeline) {
 
 	/*hack: I do not know why, but audio on my linux box wont play when using a simple wavpars.
 	On MAC OS it works without any problems though. A hacky workaround to get audio playing that I came up with was
@@ -34,13 +34,12 @@ func setupLivePlayAudio(pl *gst.Pipeline) *gst.AppSrc {
 
 	pl.Add(vorbisenc, oggmux, oggdemux, vorbisdec, audioconvert2, autoaudiosink)
 	pl.GetByName("queue2").Link(vorbisenc)
-	audioconvert.Link(vorbisenc)
+
 	vorbisenc.Link(vorbisdec)
 	vorbisdec.Link(audioconvert2)
 
 	audioconvert2.Link(autoaudiosink)
 
-	return asrc
 }
 
 func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
