@@ -5,6 +5,7 @@
 [![codecov](https://codecov.io/gh/danielpaulus/quicktime_video_hack/branch/master/graph/badge.svg)](https://codecov.io/gh/danielpaulus/quicktime_video_hack)
 [![Go Report](https://goreportcard.com/badge/github.com/danielpaulus/quicktime_video_hack)](https://goreportcard.com/report/github.com/danielpaulus/quicktime_video_hack)
 
+🎉🎉 New Release 0.5 is out, now with stable execution on Mac OS X, no more unplugging devices 🎉🎉🎉🎉🎉🎉
 ## 1. What is this?
 This is an Operating System indepedent implementation for Quicktime Screensharing for iOS devices :-)
 
@@ -12,10 +13,15 @@ This is an Operating System indepedent implementation for Quicktime Screensharin
 
 [See a demo on YouTube](https://youtu.be/8v5f_ybSjHk)
 
-This repository contains all the code you will need to grab and record video and audio from your iPhone or iPad 
-without needing one of these expensive MacOS X computers :-D
-It probably does something similar to what `QuickTime` and `com.apple.cmio.iOSScreenCaptureAssistant` are doing on MacOS.
-Currently you can use it to dump a h264 file and a wave file or mirror your device in a desktop window. Transcoding it to anything else is very easy since I used Gstreamer to render the AV data. 
+This repository contains all the code you will need to grab and record video and audio from one or more iPhone(s) or iPad(s)
+without needing one of these expensive MacOS X computers or the hard to use QuickTime Player :-D
+
+- You can record video and audio as raw h264 and wave audio in the Apple demonstration mode (Device shows 9:41am, full battery and no cellphone carrier in the status bar) 
+- Also you can just grab device audio as wave, ogg or mp3 without the Apple demonstration mode now 🎉
+- You can use custom Gstreamer Pipelines to transcode the AV data into whatever you like
+## 1.2 What's next?
+I will work on stabilizing Linux support next. On my current ubuntu box I need to disable the Camera mode, kill usbmuxd and restart the tool like 20 times before it works. It's really hard to get going. 
+Also, let me know if you have ideas what needs to be added. 
 
 ## 2. Installation
 ### 2.1 Mac OSX
@@ -67,6 +73,7 @@ The commands work as following:
 ```
 
 ## 3. Technical Docs/ Roll your own implementation
+QVH probably does something similar to what `QuickTime` and `com.apple.cmio.iOSScreenCaptureAssistant` are doing on MacOS.
 I have written some documentation here [doc/technical_documentation.md](https://github.com/danielpaulus/quicktime_video_hack/blob/master/doc/technical_documentation.md)
 So if you are just interested in the protocol or if you want to implement this in a different programming language than golang, read the docs.
 Also I have extracted binary dumps of all messages for writing unit tests and re-develop this in your preferred language in a test driven style.
