@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const version = "v0.3-beta"
+const version = "v0.5-beta"
 
 func main() {
 	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
