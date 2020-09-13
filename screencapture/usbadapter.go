@@ -38,15 +38,12 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}
 	confignum, _ := usbDevice.ActiveConfigNum()
 
-	//problem: wrong config is active
 	log.Debugf("Config is active: %d, QT config is: %d", confignum, device.QTConfigIndex)
 
 	config, err := usbDevice.Config(device.QTConfigIndex)
 	if err != nil {
 		return errors.New("Could not retrieve config")
 	}
-
-	//sendQTConfigControlRequest(usbDevice)
 
 	log.Debugf("QT Config is active: %s", config.String())
 
@@ -64,12 +61,7 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 
 	iface, err := grabQuickTimeInterface(config)
 	if err != nil {
-		//usbDevice.Close()
-		//cleanUp()
-		//time.Sleep(time.Second * 3)
 		log.Debug("could not get Quicktime Interface")
-		//return usa.StartReading(device, receiver, stopSignal)
-
 		return err
 	}
 	log.Debugf("Got QT iface:%s", iface.String())
