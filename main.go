@@ -25,6 +25,7 @@ Usage:
   qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
   qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
   qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
+  qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>] [-v]
   qvh --version | version
 
 
@@ -50,6 +51,10 @@ The commands work as following:
 			If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
 			If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
 			displaying audio and video in a window. 
+
+	diagnostics	The diagnostics mode is added for running longterm tests to debug and ensure stability. 
+			It will log several metrics and debug logs. Optionally specify a dump file with the --dump option that
+			will store raw bytes of all messages. Be aware though, that this file will grow quite large over time. 
   `, version)
 	arguments, _ := docopt.ParseDoc(usage)
 	log.SetFormatter(&log.JSONFormatter{})
@@ -103,6 +108,19 @@ The commands work as following:
 		recordAudioGst(outfile, udid, gstadapter.MP3)
 		return
 	}
+
+	diagnostics, _ := arguments.Bool("diagnostics")
+	if diagnostics {
+		outfile, err := arguments.String("<outfile>")
+		if err != nil {
+			printErrJSON(err, "Missing <outfile> parameter. Please specify a valid path like '/home/me/out.json'")
+			return
+		}
+		dump, _ := arguments.String("--dump")
+		runDiagnostics(outfile, dump != "", dump, udid)
+		return
+	}
+
 	recordCommand, _ := arguments.Bool("record")
 	if recordCommand {
 		h264FilePath, err := arguments.String("<h264file>")
@@ -174,6 +192,10 @@ func recordAudioGst(outfile string, udid string, audiotype string) {
 		return
 	}
 	startWithConsumer(gStreamer, udid, true)
+}
+
+func runDiagnostics(outfile string, dump bool, dumpFile string, udid string) {
+	log.Debugf("diagnostics mode: %s  dump:%t %s device:%s", outfile, dump, dumpFile, udid)
 }
 
 func recordAudioWav(outfile string, udid string) {
