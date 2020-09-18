@@ -3,12 +3,12 @@ package diagnostics
 import (
 	"fmt"
 	"io"
-	"log"
 	"runtime"
 	"sync"
 	"time"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	log "github.com/sirupsen/logrus"
 )
 
 type DiagnosticsConsumer struct {
@@ -18,10 +18,13 @@ type DiagnosticsConsumer struct {
 	audioBytesRcv   uint64
 	videoBytesRcv   uint64
 	mux             sync.Mutex
+	interval        time.Duration
+	stop            chan struct{}
+	stopDone        chan struct{}
 }
 
-func NewDiagnosticsConsumer(outfile io.Writer) *DiagnosticsConsumer {
-	d := &DiagnosticsConsumer{file: outfile}
+func NewDiagnosticsConsumer(outfile io.Writer, interval time.Duration) *DiagnosticsConsumer {
+	d := &DiagnosticsConsumer{file: outfile, interval: interval, stop: make(chan struct{}), stopDone: make(chan struct{})}
 	go fileWriter(d)
 	return d
 }
@@ -30,13 +33,20 @@ func fileWriter(d *DiagnosticsConsumer) {
 	d.file.Write([]byte("audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv, heapobjects, alloc"))
 
 	for {
-		time.Sleep(time.Second * 10)
-		audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv := readAndReset(d)
-		heapobjects, alloc := getMemStats()
-		csvLine := fmt.Sprintf("%d,%d,%d,%d,%d,%d", audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv, heapobjects, alloc)
-		_, err := d.file.Write([]byte(csvLine))
-		if err != nil {
-			log.Fatalf("Failed writing to metricsfile:%+v", err)
+
+		select {
+		case <-d.stop:
+			log.Info("Stopped")
+			close(d.stopDone)
+			return
+		case <-time.After(d.interval):
+			audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv := readAndReset(d)
+			heapobjects, alloc := getMemStats()
+			csvLine := fmt.Sprintf("%d,%d,%d,%d,%d,%d", audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv, heapobjects, alloc)
+			_, err := d.file.Write([]byte(csvLine))
+			if err != nil {
+				log.Fatalf("Failed writing to metricsfile:%+v", err)
+			}
 		}
 	}
 }
@@ -75,4 +85,9 @@ func (d *DiagnosticsConsumer) consumeVideo(buf coremedia.CMSampleBuffer) error {
 	d.videoSamplesRcv++
 	d.videoBytesRcv += uint64(len(buf.SampleData))
 	return nil
+}
+
+func (d *DiagnosticsConsumer) Stop() {
+	close(d.stop)
+	<-d.stopDone
 }

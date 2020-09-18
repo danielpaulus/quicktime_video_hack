@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
@@ -202,7 +203,7 @@ func runDiagnostics(outfile string, dump bool, dumpFile string, udid string) {
 		log.Errorf("Could not open file '%s'", outfile)
 	}
 	defer metricsFile.Close()
-	consumer := diagnostics.NewDiagnosticsConsumer(metricsFile)
+	consumer := diagnostics.NewDiagnosticsConsumer(metricsFile, time.Second*10)
 	startWithConsumer(consumer, udid, false)
 }
 
