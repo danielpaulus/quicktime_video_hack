@@ -2,8 +2,8 @@ package diagnostics
 
 import (
 	"fmt"
+	"io"
 	"log"
-	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -12,7 +12,7 @@ import (
 )
 
 type DiagnosticsConsumer struct {
-	file            *os.File
+	file            io.Writer
 	audioSamplesRcv uint64
 	videoSamplesRcv uint64
 	audioBytesRcv   uint64
@@ -20,7 +20,7 @@ type DiagnosticsConsumer struct {
 	mux             sync.Mutex
 }
 
-func NewDiagnosticsConsumer(outfile *os.File) *DiagnosticsConsumer {
+func NewDiagnosticsConsumer(outfile io.Writer) *DiagnosticsConsumer {
 	d := &DiagnosticsConsumer{file: outfile}
 	go fileWriter(d)
 	return d
