@@ -9,6 +9,7 @@ import (
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/diagnostics"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/gstadapter"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
@@ -196,6 +197,13 @@ func recordAudioGst(outfile string, udid string, audiotype string) {
 
 func runDiagnostics(outfile string, dump bool, dumpFile string, udid string) {
 	log.Debugf("diagnostics mode: %s  dump:%t %s device:%s", outfile, dump, dumpFile, udid)
+	metricsFile, err := os.Create(outfile)
+	if err != nil {
+		log.Errorf("Could not open file '%s'", outfile)
+	}
+	defer metricsFile.Close()
+	consumer := diagnostics.NewDiagnosticsConsumer(metricsFile)
+	startWithConsumer(consumer, udid, false)
 }
 
 func recordAudioWav(outfile string, udid string) {
