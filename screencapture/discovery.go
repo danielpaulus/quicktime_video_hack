@@ -3,6 +3,7 @@ package screencapture
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
@@ -249,6 +250,25 @@ func correct24CharacterSerial(usbSerial string) string {
 		return fmt.Sprintf("%s-%s", usbSerial[0:8], usbSerial[8:])
 	}
 	return usbSerial
+}
+
+//ValidateUdid checks if a given udid is 25 or 40 characters long.
+//25 character udids must be of format xxxxxxxx-xxxxxxxxxxxxxxxx.
+//Serialnumbers on the usb host contain no dashes. As a convenience ValidateUdid
+//returns the udid with the dash removed so it can be used
+//as a correct USB SerialNumber.
+func ValidateUdid(udid string) (string, error) {
+	udidLength := len(udid)
+	if !(udidLength == 25 || udidLength == 40) {
+		return udid, fmt.Errorf("Invalid length for udid:%s UDIDs must have 25 or 40 characters", udid)
+	}
+	if udidLength == 25 {
+		if strings.Index(udid, "-") != 8 {
+			return udid, fmt.Errorf("Invalid format for udid:%s 25 char UDIDs must contain a dash at position 8", udid)
+		}
+		return strings.Replace(udid, "-", "", 1), nil
+	}
+	return udid, nil
 }
 
 func (d *IosDevice) String() string {

@@ -73,7 +73,11 @@ The commands work as following:
 	}
 
 	udid, _ := arguments.String("--udid")
-	log.Debugf("requested udid:'%s'", udid)
+	udid, err := screencapture.ValidateUdid(udid)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Debugf("requested usb-serial:'%s'", udid)
 
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
