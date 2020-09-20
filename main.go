@@ -73,15 +73,15 @@ The commands work as following:
 	}
 
 	udid, _ := arguments.String("--udid")
-	udid, err := screencapture.ValidateUdid(udid)
+	usbSerial, err := screencapture.ValidateUdid(udid)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Debugf("requested usb-serial:'%s'", udid)
+	log.Debugf("requested usb-serial:'%s' from udid:%s", usbSerial, udid)
 
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
-		activate(udid)
+		activate(usbSerial)
 		return
 	}
 	audioCommand, _ := arguments.Bool("audio")
@@ -97,14 +97,14 @@ The commands work as following:
 		wav, _ := arguments.Bool("--wav")
 		log.Debugf("recording audio only format mp3:%t ogg: %t wav:%t to file: %s", mp3, ogg, wav, outfile)
 		if wav {
-			recordAudioWav(outfile, udid)
+			recordAudioWav(outfile, usbSerial)
 			return
 		}
 		if ogg {
-			recordAudioGst(outfile, udid, gstadapter.OGG)
+			recordAudioGst(outfile, usbSerial, gstadapter.OGG)
 			return
 		}
-		recordAudioGst(outfile, udid, gstadapter.MP3)
+		recordAudioGst(outfile, usbSerial, gstadapter.MP3)
 		return
 	}
 	recordCommand, _ := arguments.Bool("record")
@@ -119,7 +119,7 @@ The commands work as following:
 			printErrJSON(err, "Missing <wavfile> parameter. Please specify a valid path like '/home/me/out.raw'")
 			return
 		}
-		record(h264FilePath, waveFilePath, udid)
+		record(h264FilePath, waveFilePath, usbSerial)
 	}
 	gstreamerCommand, _ := arguments.Bool("gstreamer")
 	if gstreamerCommand {
@@ -130,10 +130,10 @@ The commands work as following:
 		}
 		gstPipeline, _ := arguments.String("--pipeline")
 		if gstPipeline == "" {
-			startGStreamer(udid)
+			startGStreamer(usbSerial)
 			return
 		}
-		startGStreamerWithCustomPipeline(udid, gstPipeline)
+		startGStreamerWithCustomPipeline(usbSerial, gstPipeline)
 	}
 }
 
@@ -170,17 +170,17 @@ func printExamples() {
 	fmt.Print(examples)
 }
 
-func recordAudioGst(outfile string, udid string, audiotype string) {
+func recordAudioGst(outfile string, usbSerial string, audiotype string) {
 	log.Debug("Starting Gstreamer with audio pipeline")
 	gStreamer, err := gstadapter.NewWithAudioPipeline(outfile, audiotype)
 	if err != nil {
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, udid, true)
+	startWithConsumer(gStreamer, usbSerial, true)
 }
 
-func recordAudioWav(outfile string, udid string) {
+func recordAudioWav(outfile string, usbSerial string) {
 	log.Debug("Starting Gstreamer with audio pipeline")
 	wavFile, err := os.Create(outfile)
 	if err != nil {
@@ -204,23 +204,23 @@ func recordAudioWav(outfile string, udid string) {
 		}
 
 	}()
-	startWithConsumer(wavFileWriter, udid, true)
+	startWithConsumer(wavFileWriter, usbSerial, true)
 }
 
-func startGStreamerWithCustomPipeline(udid string, pipelineString string) {
+func startGStreamerWithCustomPipeline(usbSerial string, pipelineString string) {
 	log.Debug("Starting Gstreamer with custom pipeline")
 	gStreamer, err := gstadapter.NewWithCustomPipeline(pipelineString)
 	if err != nil {
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, udid, false)
+	startWithConsumer(gStreamer, usbSerial, false)
 }
 
-func startGStreamer(udid string) {
+func startGStreamer(usbSerial string) {
 	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer, udid, false)
+	startWithConsumer(gStreamer, usbSerial, false)
 }
 
 // Just dump a list of what was discovered to the console
@@ -240,8 +240,8 @@ func devices() {
 }
 
 // This command is for testing if we can enable the hidden Quicktime device config
-func activate(udid string) {
-	device, err := screencapture.FindIosDevice(udid)
+func activate(usbSerial string) {
+	device, err := screencapture.FindIosDevice(usbSerial)
 	if err != nil {
 		printErrJSON(err, "no device found to activate")
 		return
@@ -259,7 +259,7 @@ func activate(udid string) {
 	})
 }
 
-func record(h264FilePath string, wavFilePath string, udid string) {
+func record(h264FilePath string, wavFilePath string, usbSerial string) {
 	log.Debugf("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
 
 	h264File, err := os.Create(h264FilePath)
@@ -294,11 +294,11 @@ func record(h264FilePath string, wavFilePath string, udid string) {
 		}
 
 	}()
-	startWithConsumer(writer, udid, false)
+	startWithConsumer(writer, usbSerial, false)
 }
 
-func startWithConsumer(consumer screencapture.CmSampleBufConsumer, udid string, audioOnly bool) {
-	device, err := screencapture.FindIosDevice(udid)
+func startWithConsumer(consumer screencapture.CmSampleBufConsumer, usbSerial string, audioOnly bool) {
+	device, err := screencapture.FindIosDevice(usbSerial)
 	if err != nil {
 		printErrJSON(err, "no device found to activate")
 		return

@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//IosDevice contains a gousb.Device pointer for a found device and some additional info like the device udid
+//IosDevice contains a gousb.Device pointer for a found device and some additional info like the device usbSerial
 type IosDevice struct {
 	SerialNumber      string
 	ProductName       string
@@ -90,8 +90,8 @@ func createContext() (*gousb.Context, func()) {
 	return ctx, cleanUp
 }
 
-// FindIosDevice finds a iOS device by udid or picks the first one if udid == ""
-func FindIosDevice(udid string) (IosDevice, error) {
+// FindIosDevice finds a iOS device by usbSerial or picks the first one if usbSerial == ""
+func FindIosDevice(usbSerial string) (IosDevice, error) {
 	ctx, cleanUp := createContext()
 	defer cleanUp()
 	list, err := findIosDevices(ctx, isValidIosDevice)
@@ -101,16 +101,16 @@ func FindIosDevice(udid string) (IosDevice, error) {
 	if len(list) == 0 {
 		return IosDevice{}, errors.New("no iOS devices are connected to this host")
 	}
-	if udid == "" {
-		log.Infof("no udid specified, using '%s'", list[0].SerialNumber)
+	if usbSerial == "" {
+		log.Infof("no usbSerial specified, using '%s'", list[0].SerialNumber)
 		return list[0], nil
 	}
 	for _, device := range list {
-		if udid == device.SerialNumber {
+		if usbSerial == device.SerialNumber {
 			return device, nil
 		}
 	}
-	return IosDevice{}, fmt.Errorf("device with udid:'%s' not found", udid)
+	return IosDevice{}, fmt.Errorf("device with usbSerial:'%s' not found", usbSerial)
 }
 
 func findIosDevices(ctx *gousb.Context, validDeviceChecker func(desc *gousb.DeviceDesc) bool) ([]IosDevice, error) {
@@ -241,7 +241,7 @@ func (d *IosDevice) DetailsMap() map[string]interface{} {
 	}
 }
 
-//Usually iosDevices have a 40 character USB serial which equals the UDID used in usbmuxd, Xcode etc.
+//Usually iosDevices have a 40 character USB serial which equals the usbSerial used in usbmuxd, Xcode etc.
 //There is an exception, some devices like the Xr and Xs have a 24 character USB serial. Usbmux, Xcode etc.
 //however insert a dash after the 8th character in this case. To be compatible with other MacOS X and iOS tools,
 //we insert the dash here as well.
