@@ -235,9 +235,20 @@ func (d *IosDevice) DetailsMap() map[string]interface{} {
 	return map[string]interface{}{
 		"deviceName":               d.ProductName,
 		"usb_device_info":          d.UsbInfo,
-		"udid":                     d.SerialNumber,
+		"udid":                     correct24CharacterSerial(d.SerialNumber),
 		"screen_mirroring_enabled": d.IsActivated(),
 	}
+}
+
+//Usually iosDevices have a 40 character USB serial which equals the UDID used in usbmuxd, Xcode etc.
+//There is an exception, some devices like the Xr and Xs have a 24 character USB serial. Usbmux, Xcode etc.
+//however insert a dash after the 8th character in this case. To be compatible with other MacOS X and iOS tools,
+//we insert the dash here as well.
+func correct24CharacterSerial(usbSerial string) string {
+	if len(usbSerial) == 24 {
+		return fmt.Sprintf("%s-%s", usbSerial[0:8], usbSerial[8:])
+	}
+	return usbSerial
 }
 
 func (d *IosDevice) String() string {
