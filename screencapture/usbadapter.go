@@ -2,9 +2,10 @@ package screencapture
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
+
+	"github.com/pkg/errors"
 
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
@@ -16,8 +17,8 @@ type UsbAdapter struct {
 }
 
 //WriteDataToUsb implements the UsbWriter interface and sends the byte array to the usb bulk endpoint.
-func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
-	_, err := usa.outEndpoint.Write(bytes)
+func (usbAdapter *UsbAdapter) WriteDataToUsb(bytes []byte) {
+	_, err := usbAdapter.outEndpoint.Write(bytes)
 	if err != nil {
 		log.Error("failed sending to usb", err)
 	}
@@ -25,7 +26,7 @@ func (usa UsbAdapter) WriteDataToUsb(bytes []byte) {
 
 //StartReading claims the AV Quicktime USB Bulk endpoints and starts reading until a stopSignal is sent.
 //Every received data is added to a frameextractor and when it is complete, sent to the UsbDataReceiver.
-func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, stopSignal chan interface{}) error {
+func (usbAdapter *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, stopSignal chan interface{}) error {
 	ctx, cleanUp := createContext()
 	defer cleanUp()
 
@@ -36,8 +37,8 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	if !device.IsActivated() {
 		return errors.New("device not activated for screen mirroring")
 	}
-	confignum, _ := usbDevice.ActiveConfigNum()
 
+	confignum, _ := usbDevice.ActiveConfigNum()
 	log.Debugf("Config is active: %d, QT config is: %d", confignum, device.QTConfigIndex)
 
 	config, err := usbDevice.Config(device.QTConfigIndex)
@@ -47,29 +48,28 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 
 	log.Debugf("QT Config is active: %s", config.String())
 
-	val, err := usbDevice.Control(0x02, 0x01, 0, 0x86, make([]byte, 0))
-	if err != nil {
-		log.Debug("failed control", err)
-	}
-	log.Debugf("Clear Feature RC: %d", val)
-
-	val, err = usbDevice.Control(0x02, 0x01, 0, 0x05, make([]byte, 0))
-	if err != nil {
-		log.Debug("failed control", err)
-	}
-	log.Debugf("Clear Feature RC: %d", val)
-
-	iface, err := grabQuickTimeInterface(config)
+	iface, err := findAndClaimQuickTimeInterface(config)
 	if err != nil {
 		log.Debug("could not get Quicktime Interface")
 		return err
 	}
 	log.Debugf("Got QT iface:%s", iface.String())
 
-	inboundBulkEndpointIndex, err := grabInBulk(iface.Setting)
+	inboundBulkEndpointIndex, inboundBulkEndpointAddress, err := findBulkEndpoint(iface.Setting, gousb.EndpointDirectionIn)
 	if err != nil {
 		return err
 	}
+
+	outboundBulkEndpointIndex, outboundBulkEndpointAddress, err := findBulkEndpoint(iface.Setting, gousb.EndpointDirectionOut)
+	if err != nil {
+		return err
+	}
+
+	err = clearFeature(usbDevice, inboundBulkEndpointAddress, outboundBulkEndpointAddress)
+	if err != nil {
+		return err
+	}
+
 	inEndpoint, err := iface.InEndpoint(inboundBulkEndpointIndex)
 	if err != nil {
 		log.Error("couldnt get InEndpoint")
@@ -77,17 +77,13 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	}
 	log.Debugf("Inbound Bulk: %s", inEndpoint.String())
 
-	outboundBulkEndpointIndex, err := grabOutBulk(iface.Setting)
-	if err != nil {
-		return err
-	}
 	outEndpoint, err := iface.OutEndpoint(outboundBulkEndpointIndex)
 	if err != nil {
 		log.Error("couldnt get OutEndpoint")
 		return err
 	}
 	log.Debugf("Outbound Bulk: %s", outEndpoint.String())
-	usa.outEndpoint = outEndpoint
+	usbAdapter.outEndpoint = outEndpoint
 
 	stream, err := inEndpoint.NewStream(4096, 5)
 	if err != nil {
@@ -97,22 +93,23 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	log.Debug("Endpoint claimed")
 	log.Infof("Device '%s' USB connection ready, waiting for ping..", device.SerialNumber)
 	go func() {
+		lengthBuffer := make([]byte, 4)
 		for {
-			buffer := make([]byte, 4)
 
-			n, err := io.ReadFull(stream, buffer)
+			n, err := io.ReadFull(stream, lengthBuffer)
 			if err != nil {
 				log.Errorf("Failed reading 4bytes length with err:%s only received: %d", err, n)
 				return
 			}
 			//the 4 bytes header are included in the length, so we need to subtract them
 			//here to know how long the payload will be
-			length := binary.LittleEndian.Uint32(buffer) - 4
+			length := binary.LittleEndian.Uint32(lengthBuffer) - 4
 			dataBuffer := make([]byte, length)
 
 			n, err = io.ReadFull(stream, dataBuffer)
 			if err != nil {
 				log.Errorf("Failed reading payload with err:%s only received: %d/%d bytes", err, n, length)
+				close(stopSignal)
 				return
 			}
 			receiver.ReceiveData(dataBuffer)
@@ -140,25 +137,29 @@ func (usa *UsbAdapter) StartReading(device IosDevice, receiver UsbDataReceiver, 
 	return nil
 }
 
-func grabOutBulk(setting gousb.InterfaceSetting) (int, error) {
-	for _, v := range setting.Endpoints {
-		if v.Direction == gousb.EndpointDirectionOut {
-			return v.Number, nil
-		}
+func clearFeature(usbDevice *gousb.Device, inboundBulkEndpointAddress gousb.EndpointAddress, outboundBulkEndpointAddress gousb.EndpointAddress) error {
+	val, err := usbDevice.Control(0x02, 0x01, 0, uint16(inboundBulkEndpointAddress), make([]byte, 0))
+	if err != nil {
+		return errors.Wrap(err, "clear feature failed")
 	}
-	return 0, errors.New("Outbound Bulkendpoint not found")
+	log.Debugf("Clear Feature RC: %d", val)
+
+	val, err = usbDevice.Control(0x02, 0x01, 0, uint16(outboundBulkEndpointAddress), make([]byte, 0))
+	log.Debugf("Clear Feature RC: %d", val)
+	return errors.Wrap(err, "clear feature failed")
 }
 
-func grabInBulk(setting gousb.InterfaceSetting) (int, error) {
+func findBulkEndpoint(setting gousb.InterfaceSetting, direction gousb.EndpointDirection) (int, gousb.EndpointAddress, error) {
 	for _, v := range setting.Endpoints {
-		if v.Direction == gousb.EndpointDirectionIn {
-			return v.Number, nil
+		if v.Direction == direction {
+			return v.Number, v.Address, nil
+
 		}
 	}
-	return 0, errors.New("Inbound Bulkendpoint not found")
+	return 0, 0, errors.New("Inbound Bulkendpoint not found")
 }
 
-func grabQuickTimeInterface(config *gousb.Config) (*gousb.Interface, error) {
+func findAndClaimQuickTimeInterface(config *gousb.Config) (*gousb.Interface, error) {
 	log.Debug("Looking for quicktime interface..")
 	found, ifaceIndex := findInterfaceForSubclass(config.Desc, QuicktimeSubclass)
 	if !found {

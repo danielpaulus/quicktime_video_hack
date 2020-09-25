@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math"
 )
 
@@ -90,6 +91,7 @@ func (n NSNumber) ToBytes() []byte {
 		return result
 	default:
 		//shouldn't happen
+		log.Fatalf("Unknown NSNumber type: %d", n.typeSpecifier)
 		return nil
 	}
 }
