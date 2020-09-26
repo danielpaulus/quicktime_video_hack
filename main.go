@@ -116,8 +116,11 @@ The commands work as following:
 
 	diagnostics, _ := arguments.Bool("diagnostics")
 	if diagnostics {
-		logfile, err := os.OpenFile(fmt.Sprintf("logfile-%d.log", time.Now().Unix()), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		log.SetLevel(log.DebugLevel)
+		logfileName := fmt.Sprintf("logfile-%d.log", time.Now().Unix())
+		logfile, err := os.OpenFile(logfileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err == nil {
+			println("logging to", logfileName, " execute: 'tail -f ", logfileName, "' for logs. Press CTRL+C to stop recording.")
 			log.SetOutput(logfile)
 		} else {
 			log.Info("Failed to log to file, using default stderr")

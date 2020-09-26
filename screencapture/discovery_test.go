@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const iphoneXrXsStyleSerial = "xxxxxxxxxxxxxxxxxxxxxxxx"
+const iphoneXrXsStyleSerial = "xxxxxxxxxxxxxxxxxxxxxxxx\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 const iphoneXrXsStyleUdid = "xxxxxxxx-xxxxxxxxxxxxxxxx"
 const regularSerial = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
@@ -24,8 +24,8 @@ func TestSerialConvertedToCorrectUdid(t *testing.T) {
 func TestValidateUdid(t *testing.T) {
 	serial, err := screencapture.ValidateUdid(iphoneXrXsStyleUdid)
 	assert.NoError(t, err)
+	assert.Equal(t, 40, len(serial))
 	assert.Equal(t, iphoneXrXsStyleSerial, serial)
-
 	serial, err = screencapture.ValidateUdid(regularSerial)
 	assert.NoError(t, err)
 	assert.Equal(t, regularSerial, serial)

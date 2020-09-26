@@ -246,6 +246,8 @@ func correct24CharacterSerial(usbSerial string) string {
 	return usbSerial
 }
 
+const sixteenTimesZero = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+
 //ValidateUdid checks if a given udid is 25 or 40 characters long.
 //25 character udids must be of format xxxxxxxx-xxxxxxxxxxxxxxxx.
 //Serialnumbers on the usb host contain no dashes. As a convenience ValidateUdid
@@ -260,7 +262,9 @@ func ValidateUdid(udid string) (string, error) {
 		if strings.Index(udid, "-") != 8 {
 			return udid, fmt.Errorf("Invalid format for udid:%s 25 char UDIDs must contain a dash at position 8", udid)
 		}
-		return strings.Replace(udid, "-", "", 1), nil
+		removedDash := strings.Replace(udid, "-", "", 1)
+
+		return removedDash + sixteenTimesZero, nil
 	}
 	return udid, nil
 }
