@@ -5,10 +5,11 @@
 [![codecov](https://codecov.io/gh/danielpaulus/quicktime_video_hack/branch/master/graph/badge.svg)](https://codecov.io/gh/danielpaulus/quicktime_video_hack)
 [![Go Report](https://goreportcard.com/badge/github.com/danielpaulus/quicktime_video_hack)](https://goreportcard.com/report/github.com/danielpaulus/quicktime_video_hack)
 
-🎉🎉 New Release 0.5 is out, now with stable execution on Mac OS X, no more unplugging devices 🎉🎉🎉🎉🎉🎉
+Release 0.6
 
-Qvh without Gstreamer is stable. I ran it for 16 hours straight on parallel devices and it worked flawlessly.
-Before a 1.0 Release I need to see if Gstreamer is stable enough.
+- qvh without Gstreamer is finally stable. I ran it for 16 hours straight on parallel devices and it worked flawlessly.
+- before a 1.0 Release I need to see if Gstreamer is stable enough and maybe fix or switch to ffmpeg
+- Linux support is still a bit broken
 
 ## 1. What is this?
 
@@ -93,8 +94,6 @@ The commands work as following:
 ```
 
 ## 4. Technical Docs/ Roll your own implementation
-
-Qvh without Gstreamer is stable. I ran it for 16 hours straight on parallel devices and it worked flawlessly.
 
 QVH probably does something similar to what `QuickTime` and `com.apple.cmio.iOSScreenCaptureAssistant` are doing on MacOS.
 I have written some documentation here [doc/technical_documentation.md](https://github.com/danielpaulus/quicktime_video_hack/blob/master/doc/technical_documentation.md)
