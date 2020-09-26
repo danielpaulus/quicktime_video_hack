@@ -11,8 +11,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//CSVHeader contains the header for the metrics file
+const CSVHeader = "audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv, heapobjects, alloc\n"
+
+//DiagnosticsConsumer periodically logs samples received, bytes received and memory stats to a csv file.
 type DiagnosticsConsumer struct {
-	file            io.Writer
+	outFileWriter   io.Writer
 	audioSamplesRcv uint64
 	videoSamplesRcv uint64
 	audioBytesRcv   uint64
@@ -23,14 +27,15 @@ type DiagnosticsConsumer struct {
 	stopDone        chan struct{}
 }
 
+//NewDiagnosticsConsumer creates a new DiagnosticsConsumer
 func NewDiagnosticsConsumer(outfile io.Writer, interval time.Duration) *DiagnosticsConsumer {
-	d := &DiagnosticsConsumer{file: outfile, interval: interval, stop: make(chan struct{}), stopDone: make(chan struct{})}
+	d := &DiagnosticsConsumer{outFileWriter: outfile, interval: interval, stop: make(chan struct{}), stopDone: make(chan struct{})}
 	go fileWriter(d)
 	return d
 }
 
 func fileWriter(d *DiagnosticsConsumer) {
-	d.file.Write([]byte("audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv, heapobjects, alloc"))
+	d.outFileWriter.Write([]byte(CSVHeader))
 
 	for {
 
@@ -42,8 +47,8 @@ func fileWriter(d *DiagnosticsConsumer) {
 		case <-time.After(d.interval):
 			audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv := readAndReset(d)
 			heapobjects, alloc := getMemStats()
-			csvLine := fmt.Sprintf("%d,%d,%d,%d,%d,%d", audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv, heapobjects, alloc)
-			_, err := d.file.Write([]byte(csvLine))
+			csvLine := fmt.Sprintf("%d,%d,%d,%d,%d,%d\n", audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv, heapobjects, alloc)
+			_, err := d.outFileWriter.Write([]byte(csvLine))
 			if err != nil {
 				log.Fatalf("Failed writing to metricsfile:%+v", err)
 			}
@@ -65,6 +70,7 @@ func readAndReset(d *DiagnosticsConsumer) (uint64, uint64, uint64, uint64) {
 	return audioSamplesRcv, audioBytesRcv, videoSamplesRcv, videoBytesRcv
 }
 
+//Consume logs stats
 func (d *DiagnosticsConsumer) Consume(buf coremedia.CMSampleBuffer) error {
 	d.mux.Lock()
 	defer d.mux.Unlock()
@@ -87,6 +93,7 @@ func (d *DiagnosticsConsumer) consumeVideo(buf coremedia.CMSampleBuffer) error {
 	return nil
 }
 
+//Stop writing to the csv file
 func (d *DiagnosticsConsumer) Stop() {
 	close(d.stop)
 	<-d.stopDone
