@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/diagnostics"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/gstadapter"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 )
 
-const version = "v0.5-beta"
+const version = "v0.6-beta"
 
 func main() {
 	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
@@ -25,6 +27,7 @@ Usage:
   qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
   qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
   qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
+  qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>]
   qvh --version | version
 
 
@@ -50,6 +53,10 @@ The commands work as following:
 			If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
 			If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
 			displaying audio and video in a window. 
+
+	diagnostics	The diagnostics mode is added for running longterm tests to debug and ensure stability. 
+			It will log several metrics and debug logs. Optionally specify a dump file with the --dump option that
+			will store raw bytes of all messages. Be aware though, that this file will grow quite large over time. 
   `, version)
 	arguments, _ := docopt.ParseDoc(usage)
 	log.SetFormatter(&log.JSONFormatter{})
@@ -106,6 +113,29 @@ The commands work as following:
 		recordAudioGst(outfile, device, gstadapter.MP3)
 		return
 	}
+
+	diagnostics, _ := arguments.Bool("diagnostics")
+	if diagnostics {
+		log.SetLevel(log.DebugLevel)
+		logfileName := fmt.Sprintf("logfile-%d.log", time.Now().Unix())
+		logfile, err := os.OpenFile(logfileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err == nil {
+			println("logging to", logfileName, " execute: 'tail -f ", logfileName, "' for logs. Press CTRL+C to stop recording.")
+			log.SetOutput(logfile)
+		} else {
+			log.Info("Failed to log to file, using default stderr")
+		}
+
+		outfile, err := arguments.String("<outfile>")
+		if err != nil {
+			printErrJSON(err, "Missing <outfile> parameter. Please specify a valid path like '/home/me/out.json'")
+			return
+		}
+		dump, _ := arguments.String("--dump")
+		runDiagnostics(outfile, dump != "", dump, device)
+		return
+	}
+
 	recordCommand, _ := arguments.Bool("record")
 	if recordCommand {
 		h264FilePath, err := arguments.String("<h264file>")
@@ -192,6 +222,21 @@ func recordAudioGst(outfile string, device screencapture.IosDevice, audiotype st
 		return
 	}
 	startWithConsumer(gStreamer, device, true)
+}
+
+func runDiagnostics(outfile string, dump bool, dumpFile string, device screencapture.IosDevice) {
+	log.Debugf("diagnostics mode: %s  dump:%t %s device:%s", outfile, dump, dumpFile, device.SerialNumber)
+	metricsFile, err := os.Create(outfile)
+	if err != nil {
+		log.Errorf("Could not open file '%s'", outfile)
+	}
+	defer metricsFile.Close()
+	consumer := diagnostics.NewDiagnosticsConsumer(metricsFile, time.Second*10)
+	if dump {
+		startWithConsumerDump(consumer, device, dumpFile)
+		return
+	}
+	startWithConsumer(consumer, device, false)
 }
 
 func recordAudioWav(outfile string, device screencapture.IosDevice) {
@@ -319,6 +364,38 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer, device screen
 	waitForSigInt(stopSignal)
 
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, audioOnly)
+
+	err = adapter.StartReading(device, &mp, stopSignal)
+	consumer.Stop()
+	if err != nil {
+		printErrJSON(err, "failed connecting to usb")
+	}
+}
+
+func startWithConsumerDump(consumer screencapture.CmSampleBufConsumer, device screencapture.IosDevice, dumpPath string) {
+	var err error
+	device, err = screencapture.EnableQTConfig(device)
+	if err != nil {
+		printErrJSON(err, "Error enabling QT config")
+		return
+	}
+
+	inboundMessagesFile, err := os.Create("inbound-" + dumpPath)
+	if err != nil {
+		log.Fatalf("Could not open file: %v", err)
+	}
+	defer inboundMessagesFile.Close()
+	outboundMessagesFile, err := os.Create("outbound-" + dumpPath)
+	if err != nil {
+		log.Fatalf("Could not open file: %v", err)
+	}
+	defer outboundMessagesFile.Close()
+	log.Debug("Start dumping all binary transfer")
+	adapter := screencapture.UsbAdapter{Dump: true, DumpInWriter: inboundMessagesFile, DumpOutWriter: outboundMessagesFile}
+	stopSignal := make(chan interface{})
+	waitForSigInt(stopSignal)
+
+	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, false)
 
 	err = adapter.StartReading(device, &mp, stopSignal)
 	consumer.Stop()

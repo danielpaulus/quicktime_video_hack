@@ -5,6 +5,7 @@ quicktime_video_hack
 *.mp3
 # Binaries for programs and plugins
 main
+*.csv
 *.h264
 out.wav
 *.exe
