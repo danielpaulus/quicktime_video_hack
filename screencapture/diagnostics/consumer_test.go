@@ -11,6 +11,7 @@ import (
 )
 
 func TestConsumer(t *testing.T) {
+	//buffered channel because Stop will block otherwise
 	waiter := WriteWaiter{make(chan []byte, 100)}
 
 	d := diagnostics.NewDiagnosticsConsumer(waiter, 0)
