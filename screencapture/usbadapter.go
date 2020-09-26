@@ -28,7 +28,7 @@ func (usbAdapter *UsbAdapter) WriteDataToUsb(bytes []byte) {
 	if usbAdapter.Dump {
 		_, err := usbAdapter.DumpOutWriter.Write(bytes)
 		if err != nil {
-			log.Fatal("Failed dumping data:%v", err)
+			log.Fatalf("Failed dumping data:%v", err)
 		}
 	}
 }
@@ -124,7 +124,7 @@ func (usbAdapter *UsbAdapter) StartReading(device IosDevice, receiver UsbDataRec
 			if usbAdapter.Dump {
 				_, err := usbAdapter.DumpInWriter.Write(dataBuffer)
 				if err != nil {
-					log.Fatal("Failed dumping data:%v", err)
+					log.Fatalf("Failed dumping data:%v", err)
 				}
 			}
 			receiver.ReceiveData(dataBuffer)
