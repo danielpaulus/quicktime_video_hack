@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/diagnostics"
@@ -14,7 +13,7 @@ import (
 func TestConsumer(t *testing.T) {
 	waiter := WriteWaiter{make(chan []byte, 100)}
 
-	d := diagnostics.NewDiagnosticsConsumer(waiter, time.Microsecond)
+	d := diagnostics.NewDiagnosticsConsumer(waiter, 0)
 	header := <-waiter.written
 	assert.Equal(t, diagnostics.CSVHeader, string(header))
 	audioBytes := 35
@@ -23,9 +22,16 @@ func TestConsumer(t *testing.T) {
 	videobuf := coremedia.CMSampleBuffer{MediaType: coremedia.MediaTypeVideo, SampleData: make([]byte, videoBytes)}
 	d.Consume(audiobuf)
 	d.Consume(videobuf)
-	data := <-waiter.written
+	var result []string
+	for {
+		data := <-waiter.written
+		result = strings.Split(string(data), ",")
+		if result[0] == "1" {
+			break
+		}
+	}
 	d.Stop()
-	result := strings.Split(string(data), ",")
+
 	assert.Equal(t, result[0], "1")
 	assert.Equal(t, result[1], strconv.Itoa(audioBytes))
 	assert.Equal(t, result[2], "1")
