@@ -16,7 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const version = "v0.5-beta"
+const version = "v0.6-beta"
 
 func main() {
 	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
@@ -27,7 +27,7 @@ Usage:
   qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
   qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
   qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
-  qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>] [-v]
+  qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>]
   qvh --version | version
 
 
