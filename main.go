@@ -116,6 +116,13 @@ The commands work as following:
 
 	diagnostics, _ := arguments.Bool("diagnostics")
 	if diagnostics {
+		logfile, err := os.OpenFile(fmt.Sprintf("logfile-%d.log", time.Now().Unix()), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err == nil {
+			log.SetOutput(logfile)
+		} else {
+			log.Info("Failed to log to file, using default stderr")
+		}
+
 		outfile, err := arguments.String("<outfile>")
 		if err != nil {
 			printErrJSON(err, "Missing <outfile> parameter. Please specify a valid path like '/home/me/out.json'")
@@ -222,6 +229,10 @@ func runDiagnostics(outfile string, dump bool, dumpFile string, device screencap
 	}
 	defer metricsFile.Close()
 	consumer := diagnostics.NewDiagnosticsConsumer(metricsFile, time.Second*10)
+	if dump {
+		startWithConsumerDump(consumer, device, dumpFile)
+		return
+	}
 	startWithConsumer(consumer, device, false)
 }
 
@@ -350,6 +361,38 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer, device screen
 	waitForSigInt(stopSignal)
 
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, audioOnly)
+
+	err = adapter.StartReading(device, &mp, stopSignal)
+	consumer.Stop()
+	if err != nil {
+		printErrJSON(err, "failed connecting to usb")
+	}
+}
+
+func startWithConsumerDump(consumer screencapture.CmSampleBufConsumer, device screencapture.IosDevice, dumpPath string) {
+	var err error
+	device, err = screencapture.EnableQTConfig(device)
+	if err != nil {
+		printErrJSON(err, "Error enabling QT config")
+		return
+	}
+
+	inboundMessagesFile, err := os.Create("inbound-" + dumpPath)
+	if err != nil {
+		log.Fatalf("Could not open file: %v", err)
+	}
+	defer inboundMessagesFile.Close()
+	outboundMessagesFile, err := os.Create("outbound-" + dumpPath)
+	if err != nil {
+		log.Fatalf("Could not open file: %v", err)
+	}
+	defer outboundMessagesFile.Close()
+	log.Debug("Start dumping all binary transfer")
+	adapter := screencapture.UsbAdapter{Dump: true, DumpInWriter: inboundMessagesFile, DumpOutWriter: outboundMessagesFile}
+	stopSignal := make(chan interface{})
+	waitForSigInt(stopSignal)
+
+	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, false)
 
 	err = adapter.StartReading(device, &mp, stopSignal)
 	consumer.Stop()

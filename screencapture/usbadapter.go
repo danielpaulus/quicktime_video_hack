@@ -13,7 +13,10 @@ import (
 
 //UsbAdapter reads and writes from AV Quicktime USB Bulk endpoints
 type UsbAdapter struct {
-	outEndpoint *gousb.OutEndpoint
+	outEndpoint   *gousb.OutEndpoint
+	Dump          bool
+	DumpOutWriter io.Writer
+	DumpInWriter  io.Writer
 }
 
 //WriteDataToUsb implements the UsbWriter interface and sends the byte array to the usb bulk endpoint.
@@ -21,6 +24,12 @@ func (usbAdapter *UsbAdapter) WriteDataToUsb(bytes []byte) {
 	_, err := usbAdapter.outEndpoint.Write(bytes)
 	if err != nil {
 		log.Error("failed sending to usb", err)
+	}
+	if usbAdapter.Dump {
+		_, err := usbAdapter.DumpOutWriter.Write(bytes)
+		if err != nil {
+			log.Fatal("Failed dumping data:%v", err)
+		}
 	}
 }
 
@@ -111,6 +120,12 @@ func (usbAdapter *UsbAdapter) StartReading(device IosDevice, receiver UsbDataRec
 				log.Errorf("Failed reading payload with err:%s only received: %d/%d bytes", err, n, length)
 				close(stopSignal)
 				return
+			}
+			if usbAdapter.Dump {
+				_, err := usbAdapter.DumpInWriter.Write(dataBuffer)
+				if err != nil {
+					log.Fatal("Failed dumping data:%v", err)
+				}
 			}
 			receiver.ReceiveData(dataBuffer)
 		}
