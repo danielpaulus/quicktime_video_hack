@@ -7,7 +7,7 @@
 
 Release 0.6
 
-- qvh without Gstreamer is finally stable. I ran it for 16 hours straight on parallel devices and it worked flawlessly.
+- qvh without Gstreamer is finally stable on MacOSX. I ran it for 16 hours straight on parallel devices and it worked flawlessly.
 - before a 1.0 Release I need to see if Gstreamer is stable enough and maybe fix or switch to ffmpeg
 - Linux support is still a bit broken
 
