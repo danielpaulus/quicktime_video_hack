@@ -10,6 +10,7 @@ Release 0.6
 - qvh without Gstreamer is finally stable on MacOSX. I ran it for 16 hours straight on parallel devices and it worked flawlessly.
 - before a 1.0 Release I need to see if Gstreamer is stable enough and maybe fix or switch to ffmpeg
 - Linux support is still a bit broken
+- Create an issue if you miss anything
 
 ## 1. What is this?
 
@@ -25,11 +26,6 @@ without needing one of these expensive MacOS X computers or the hard to use Quic
 - You can record video and audio as raw h264 and wave audio in the Apple demonstration mode (Device shows 9:41am, full battery and no cellphone carrier in the status bar)
 - Also you can just grab device audio as wave, ogg or mp3 without the Apple demonstration mode now 🎉
 - You can use custom Gstreamer Pipelines to transcode the AV data into whatever you like
-
-## 1.2 What's next?
-
-I will work on stabilizing Linux support next. On my current ubuntu box I need to disable the Camera mode, kill usbmuxd and restart the tool like 20 times before it works. It's really hard to get going.
-Also, let me know if you have ideas what needs to be added.
 
 ## 2. Installation
 
@@ -49,8 +45,10 @@ Also, let me know if you have ideas what needs to be added.
 ## 3. Usage
 
 - For just displaying the screen run `qvh gstreamer` and it will work.
-- For troubleshooting run `qvh diagnostics metrics.csv --dump=binary.bin` which will log all important and dump everything to files.
 - For just getting raw media output without Gstreamer involved use `qvh record out.h264 out.wav` or `qvh audio out.wav --wav` for audio only
+- For troubleshooting run `qvh diagnostics metrics.csv --dump=binary.bin` which will persist logs to a file, dump all usb transfers and gather metrics.
+- See `qvh gstreamer --examples` for transcoding media or streaming.
+- For creating mp3 or ogg in audio only mode see `qvh audio out.mp3 --mp3` and `qvh audio out.ogg --ogg`
 
 ## 4. Technical Docs/ Roll your own implementation
 
