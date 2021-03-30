@@ -23,3 +23,5 @@ jobs:
         run: go build
       - name: run go test
         run: go test -v ./...
+        env:
+          LINUX_CI: "true"
