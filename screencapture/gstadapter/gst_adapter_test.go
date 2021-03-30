@@ -1,13 +1,27 @@
 package gstadapter_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/gstadapter"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
+func skipCI(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing in CI environment")
+	}
+}
+
 func TestCustomPipelineParsing(t *testing.T) {
+	linuxCI := os.Getenv("LINUX_CI")
+	log.Infof("linuxCI: %s", linuxCI)
+	if linuxCI == "true" {
+		log.Info("Skipping gstreamer test on headless containerized CI")
+		t.SkipNow()
+	}
 
 	_, err := gstadapter.NewWithCustomPipeline("daniel")
 	assert.Error(t, err)

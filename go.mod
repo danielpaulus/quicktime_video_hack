@@ -1,6 +1,6 @@
 module github.com/danielpaulus/quicktime_video_hack
 
-go 1.15
+go 1.16
 
 require (
 	github.com/danielpaulus/gst v0.0.0-20200201205042-e6d2974fceb8
