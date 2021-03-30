@@ -104,7 +104,6 @@ func (usbAdapter *UsbAdapter) StartReading(device IosDevice, receiver UsbDataRec
 	go func() {
 		lengthBuffer := make([]byte, 4)
 		for {
-
 			n, err := io.ReadFull(stream, lengthBuffer)
 			if err != nil {
 				log.Errorf("Failed reading 4bytes length with err:%s only received: %d", err, n)
@@ -118,7 +117,8 @@ func (usbAdapter *UsbAdapter) StartReading(device IosDevice, receiver UsbDataRec
 			n, err = io.ReadFull(stream, dataBuffer)
 			if err != nil {
 				log.Errorf("Failed reading payload with err:%s only received: %d/%d bytes", err, n, length)
-				close(stopSignal)
+				var signal interface{}
+				stopSignal <- signal
 				return
 			}
 			if usbAdapter.Dump {
