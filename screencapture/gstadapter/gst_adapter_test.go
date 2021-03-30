@@ -9,12 +9,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func skipCI(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing in CI environment")
+	}
+}
+
 func TestCustomPipelineParsing(t *testing.T) {
 	linuxCI := os.Getenv("LINUX_CI")
 	log.Infof("linuxCI: %s", linuxCI)
 	if linuxCI == "true" {
 		log.Info("Skipping gstreamer test on headless containerized CI")
-		return
+		t.SkipNow()
 	}
 
 	_, err := gstadapter.NewWithCustomPipeline("daniel")
