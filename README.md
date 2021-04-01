@@ -9,7 +9,7 @@ Release 0.6
 
 - qvh without Gstreamer is finally stable on MacOSX. I ran it for 16 hours straight on parallel devices and it worked flawlessly.
 - before a 1.0 Release I need to see if Gstreamer is stable enough and maybe fix or switch to ffmpeg
-- Linux support needs to be improved. It works but it is hard to get going currently. 
+- Linux support needs to be improved. It works but it is hard to get going currently.
 - Create an issue if you miss anything
 
 ## 1. What is this?
@@ -17,6 +17,8 @@ Release 0.6
 This is an Operating System indepedent implementation for Quicktime Screensharing for iOS devices :-)
 
 [Check out my presentation](https://danielpaulus.github.io/quicktime_video_hack_presentation)
+
+[See me talk about it at GoWayFest](https://www.youtube.com/watch?v=jghi4nCBRwc)
 
 [See a demo on YouTube](https://youtu.be/8v5f_ybSjHk)
 
