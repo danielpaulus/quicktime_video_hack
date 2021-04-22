@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/diagnostics"
@@ -14,7 +15,7 @@ func TestConsumer(t *testing.T) {
 	//buffered channel because Stop will block otherwise
 	waiter := WriteWaiter{make(chan []byte, 100)}
 
-	d := diagnostics.NewDiagnosticsConsumer(waiter, 0)
+	d := diagnostics.NewDiagnosticsConsumer(waiter, time.Millisecond*100)
 	header := <-waiter.written
 	assert.Equal(t, diagnostics.CSVHeader, string(header))
 	audioBytes := 35
