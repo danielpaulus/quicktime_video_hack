@@ -59,7 +59,7 @@ func NewMessageProcessorWithClockBuilder(usbWriter UsbWriter, stopSignal chan in
 func (mp *MessageProcessor) ReceiveData(data []byte) {
 	switch binary.LittleEndian.Uint32(data) {
 	case packet.PingPacketMagic:
-		log.Info("AudioVideo-Stream has started")
+		log.Info("PING received")
 		mp.usbWriter.WriteDataToUsb(packet.NewPingPacketAsBytes())
 		return
 	case packet.SyncPacketMagic:
