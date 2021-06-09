@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	stdlog "log"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
+	"github.com/danielpaulus/go-ios/ios"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/diagnostics"
@@ -69,6 +72,7 @@ The commands work as following:
 		log.Info("Set Debug mode")
 		log.SetLevel(log.DebugLevel)
 	}
+	stdlog.SetOutput(new(LogrusWriter))
 	shouldPrintVersionNoDashes, _ := arguments.Bool("version")
 	shouldPrintVersion, _ := arguments.Bool("--version")
 	if shouldPrintVersionNoDashes || shouldPrintVersion {
@@ -87,6 +91,7 @@ The commands work as following:
 	if err != nil {
 		printErrJSON(err, "no device found to use")
 	}
+	checkDeviceIsPaired(device)
 
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
@@ -440,6 +445,20 @@ func waitForSigInt(stopSignalChannel chan interface{}) {
 	}()
 }
 
+func checkDeviceIsPaired(device screencapture.IosDevice) {
+	dev, err := ios.GetDevice(screencapture.Correct24CharacterSerial(device.SerialNumber))
+	if err != nil {
+		printErrJSON(err, "device not found, is it still connected?")
+		os.Exit(1)
+	}
+	allValues, err := ios.GetValuesPlist(dev)
+	if err != nil {
+		printErrJSON(err, "failed getting deviceinfo, you need to pair the device before running qvh")
+		os.Exit(1)
+	}
+	log.Infof("found %s %s for udid %s", allValues["DeviceName"], allValues["ProductVersion"], dev.Properties.SerialNumber)
+}
+
 func printErrJSON(err error, msg string) {
 	printJSON(map[string]interface{}{
 		"original_error": err.Error(),
@@ -452,4 +471,19 @@ func printJSON(output map[string]interface{}) {
 		log.Fatalf("Broken json serialization, error: %s", err)
 	}
 	println(string(text))
+}
+
+//this is to ban these irritating "2021/04/29 14:27:59 handle_events: error: libusb: interrupted [code -10]" libusb messages
+type LogrusWriter int
+
+const interruptedError = "interrupted [code -10]"
+
+func (LogrusWriter) Write(data []byte) (int, error) {
+	logmessage := string(data)
+	if strings.Contains(logmessage, interruptedError) {
+		log.Tracef("gousb_logs:%s", logmessage)
+		return len(data), nil
+	}
+	log.Infof("gousb_logs:%s", logmessage)
+	return len(data), nil
 }
