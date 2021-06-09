@@ -27,6 +27,7 @@ func main() {
 Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
+  qvh deactivate [--udid=<udid>] [-v]
   qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
   qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
   qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
@@ -44,6 +45,8 @@ The commands work as following:
 	devices		lists iOS devices attached to this host and tells you if video streaming was activated for them
 	
 	activate	enables the video streaming config for the device specified by --udid
+
+	deactivate	disables the video streaming config for the device specified by --udid (in case it is stuck on streaming config)
 
 	record		will start video&audio recording. Video will be saved in a raw h264 file playable by VLC. 
 	            	Audio will be saved in a uncompressed wav file. Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
@@ -95,6 +98,13 @@ The commands work as following:
 		activate(device)
 		return
 	}
+
+	deactivateCommand, _ := arguments.Bool("deactivate")
+	if deactivateCommand {
+		deactivate(device)
+		return
+	}
+
 	audioCommand, _ := arguments.Bool("audio")
 	if audioCommand {
 		outfile, err := arguments.String("<outfile>")
@@ -316,6 +326,20 @@ func activate(device screencapture.IosDevice) {
 	printJSON(map[string]interface{}{
 		"device_activated": device.DetailsMap(),
 	})
+}
+
+func deactivate(device screencapture.IosDevice) {
+        log.Debugf("Disabling device: %v", device)
+        var err error
+        device, err = screencapture.DisableQTConfig(device)
+        if err != nil {
+                printErrJSON(err, "Error disabling QT config")
+                return
+        }
+
+        printJSON(map[string]interface{}{
+                "device_activated": device.DetailsMap(),
+        })
 }
 
 func record(h264FilePath string, wavFilePath string, device screencapture.IosDevice) {
