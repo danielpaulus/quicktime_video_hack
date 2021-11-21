@@ -19,7 +19,7 @@ type ValeriaInterface struct {
 type DataHolder struct {
 	localAudioClock                          coremedia.CMClock
 	deviceAudioClockRef                      packet.CFTypeID
-	needClockRef                             packet.CFTypeID
+	remoteVideoClockRef                      packet.CFTypeID
 	clock                                    coremedia.CMClock
 	startTimeLocalAudioClock                 coremedia.CMTime
 	lastEatFrameReceivedLocalAudioClockTime  coremedia.CMTime
@@ -28,6 +28,7 @@ type DataHolder struct {
 	audioSamplesReceived                     uint64
 	firstAudioTimeTaken                      bool
 	videoSamplesReceived                     uint64
+	localVideoClockRef                       packet.CFTypeID
 }
 
 type LocalValeriaApi struct {
@@ -42,11 +43,11 @@ type LocalValeriaApi struct {
 }
 
 type DeviceValeriaAPI struct {
-	usbAdapter *UsbAdapterNew
+	usbAdapter UsbWriterNew
 	dataHolder DataHolder
 }
 
-func NewValeriaInterface() ValeriaInterface {
+func NewValeriaInterface(usbAdapter UsbWriterNew) ValeriaInterface {
 	dataHolder := DataHolder{}
 	local := LocalValeriaApi{
 		pingChannel:         make(chan error, 1),
@@ -57,13 +58,27 @@ func NewValeriaInterface() ValeriaInterface {
 		dataHolder:          dataHolder,
 		sampleDataChannel:   make(chan coremedia.CMSampleBuffer, 50),
 	}
-	remote := DeviceValeriaAPI{dataHolder: dataHolder}
+	remote := DeviceValeriaAPI{dataHolder: dataHolder, usbAdapter: usbAdapter}
 	valeriaIface := ValeriaInterface{Local: local,
 		errorChannel: make(chan error, 1),
 		closeChannel: make(chan interface{}),
 		Remote:       remote,
 	}
 	return valeriaIface
+}
+
+// StartReadLoop claims&opens the USB Device and starts listening to RPC calls
+// and blocks until ValeriaInterface is closed or an error occurs.
+func (v *ValeriaInterface) StartReadLoop() error {
+	return readLoop(v)
+}
+
+func (d DeviceValeriaAPI) StopAudio() error {
+	return d.usbAdapter.WriteDataToUsb(packet.NewAsynHPA0(d.dataHolder.deviceAudioClockRef))
+}
+
+func (d DeviceValeriaAPI) StopVideo() error {
+	return d.usbAdapter.WriteDataToUsb(packet.NewAsynHPD0())
 }
 
 func (l LocalValeriaApi) AwaitAudioClockRelease() error {
@@ -122,13 +137,14 @@ func (l *LocalValeriaApi) setupAudioClock(deviceClockRef packet.CFTypeID) packet
 var needMessage []byte
 
 func (l *LocalValeriaApi) setupVideoClock(deviceClockRef packet.CFTypeID) packet.CFTypeID {
-	l.dataHolder.needClockRef = deviceClockRef
+	l.dataHolder.remoteVideoClockRef = deviceClockRef
+	l.dataHolder.localVideoClockRef = deviceClockRef + 0x1000AF
 	needMessage = packet.AsynNeedPacketBytes(deviceClockRef)
 	l.videoClockChannel <- nil
-	return deviceClockRef + 0x1000AF
+	return l.dataHolder.localVideoClockRef
 }
 
-func (l LocalValeriaApi) setupMainClock(ref packet.CFTypeID) packet.CFTypeID {
+func (l *LocalValeriaApi) setupMainClock(ref packet.CFTypeID) packet.CFTypeID {
 	clockRef := ref + 0x10000
 	l.dataHolder.clock = coremedia.NewCMClockWithHostTime(clockRef)
 	return clockRef
@@ -204,19 +220,24 @@ func (l LocalValeriaApi) setTimeBase(ref packet.CFTypeID, ref2 packet.CFTypeID) 
 }
 
 func (l LocalValeriaApi) release(clockRef packet.CFTypeID) {
-	if clockRef == l.dataHolder.needClockRef {
+	if clockRef == l.dataHolder.localVideoClockRef {
 		l.videoReleaseChannel <- nil
 		return
 	}
-	if clockRef == l.dataHolder.localAudioClock.ID {
+	if clockRef == l.dataHolder.clock.ID {
 		l.audioReleaseChannel <- nil
 		return
 	}
-	log.Warnf("release for unknown clock received %d", clockRef)
+	log.Warnf(
+		`
+		release for unknown clock received %x -- localaudio:%x remoteaudio:%x
+		 remotevideo:%x localvideo:%x mainclock:%x`,
+		clockRef, l.dataHolder.localAudioClock.ID, l.dataHolder.deviceAudioClockRef,
+		l.dataHolder.remoteVideoClockRef, l.dataHolder.localVideoClockRef, l.dataHolder.clock.ID)
 }
 
 func (d DeviceValeriaAPI) RequestSampleData() error {
-	log.Debugf("Send NEED %x", d.dataHolder.needClockRef)
+	log.Debugf("Send NEED %x", d.dataHolder.remoteVideoClockRef)
 	return d.usbAdapter.WriteDataToUsb(needMessage)
 }
 
@@ -242,20 +263,8 @@ func (d DeviceValeriaAPI) Ping() error {
 	return d.usbAdapter.WriteDataToUsb(packet.NewPingPacketAsBytes())
 }
 
-// StartReadLoop claims&opens the USB Device and starts listening to RPC calls
-// and blocks until ValeriaInterface is closed or an error occurs.
-func (v *ValeriaInterface) StartReadLoop(device IosDevice) error {
-	usbAdapter := &UsbAdapterNew{}
-	err := usbAdapter.InitializeUSB(device)
-	if err != nil {
-		return fmt.Errorf("failed initializing usb with error %v", err)
-	}
-	v.Remote.usbAdapter = usbAdapter
-	return readLoop(v, usbAdapter)
-}
-
 //readLoop reads messages sent by the device and dispatches them to the local api
-func readLoop(v *ValeriaInterface, usbAdapter *UsbAdapterNew) error {
+func readLoop(v *ValeriaInterface) error {
 	for {
 		select {
 		case err := <-v.errorChannel:
@@ -263,23 +272,23 @@ func readLoop(v *ValeriaInterface, usbAdapter *UsbAdapterNew) error {
 		case <-v.closeChannel:
 			return nil
 		default:
-			frame, err := usbAdapter.ReadFrame()
+			frame, err := v.Remote.usbAdapter.ReadFrame()
 			if err != nil {
 				return err
 			}
-			handleFrame(frame, v, usbAdapter)
+			handleFrame(frame, v)
 		}
 
 	}
 }
 
 // Decode Remote rpc calls and forward them to the local Valeria API
-func handleFrame(data []byte, valeria *ValeriaInterface, usbAdapter *UsbAdapterNew) {
+func handleFrame(data []byte, valeria *ValeriaInterface) {
 	switch binary.LittleEndian.Uint32(data) {
 	case packet.PingPacketMagic:
 		valeria.Local.ping()
 	case packet.SyncPacketMagic:
-		err := handleSyncPacket(data, valeria, usbAdapter)
+		err := handleSyncPacket(data, valeria)
 		if err != nil {
 			valeria.errorChannel <- err
 			return
@@ -297,7 +306,7 @@ func handleFrame(data []byte, valeria *ValeriaInterface, usbAdapter *UsbAdapterN
 	}
 }
 
-func handleSyncPacket(data []byte, valeria *ValeriaInterface, adapter *UsbAdapterNew) error {
+func handleSyncPacket(data []byte, valeria *ValeriaInterface) error {
 	switch binary.LittleEndian.Uint32(data[12:]) {
 	case packet.OG:
 		ogPacket, err := packet.NewSyncOgPacketFromBytes(data)
@@ -307,7 +316,7 @@ func handleSyncPacket(data []byte, valeria *ValeriaInterface, adapter *UsbAdapte
 		log.Debugf("Rcv:%s", ogPacket.String())
 		response := valeria.Local.gocmd(ogPacket.Unknown)
 		replyBytes := ogPacket.NewReply(response)
-		return adapter.WriteDataToUsb(replyBytes)
+		return valeria.Remote.usbAdapter.WriteDataToUsb(replyBytes)
 	case packet.CWPA:
 		cwpaPacket, err := packet.NewSyncCwpaPacketFromBytes(data)
 		if err != nil {
@@ -317,7 +326,7 @@ func handleSyncPacket(data []byte, valeria *ValeriaInterface, adapter *UsbAdapte
 		clockRef := valeria.Local.setupAudioClock(cwpaPacket.DeviceClockRef)
 
 		log.Debugf("Send CWPA-RPLY {correlation:%x, clockRef:%x}", cwpaPacket.CorrelationID, clockRef)
-		return adapter.WriteDataToUsb(cwpaPacket.NewReply(clockRef))
+		return valeria.Remote.usbAdapter.WriteDataToUsb(cwpaPacket.NewReply(clockRef))
 
 	case packet.CVRP:
 		cvrpPacket, err := packet.NewSyncCvrpPacketFromBytes(data)
@@ -328,7 +337,7 @@ func handleSyncPacket(data []byte, valeria *ValeriaInterface, adapter *UsbAdapte
 		videoClockRef := valeria.Local.setupVideoClock(cvrpPacket.DeviceClockRef)
 
 		log.Debugf("Send CVRP-RPLY {correlation:%x, clockRef:%x}", cvrpPacket.CorrelationID, videoClockRef)
-		return adapter.WriteDataToUsb(cvrpPacket.NewReply(videoClockRef))
+		return valeria.Remote.usbAdapter.WriteDataToUsb(cvrpPacket.NewReply(videoClockRef))
 	case packet.CLOK:
 		clokPacket, err := packet.NewSyncClokPacketFromBytes(data)
 		if err != nil {
@@ -338,7 +347,7 @@ func handleSyncPacket(data []byte, valeria *ValeriaInterface, adapter *UsbAdapte
 		clockRef := valeria.Local.setupMainClock(clokPacket.ClockRef)
 
 		log.Debugf("Send CLOK-RPLY {correlation:%x, clockRef:%x}", clokPacket.CorrelationID, clockRef)
-		return adapter.WriteDataToUsb(clokPacket.NewReply(clockRef))
+		return valeria.Remote.usbAdapter.WriteDataToUsb(clokPacket.NewReply(clockRef))
 	case packet.TIME:
 		timePacket, err := packet.NewSyncTimePacketFromBytes(data)
 		if err != nil {
@@ -351,7 +360,7 @@ func handleSyncPacket(data []byte, valeria *ValeriaInterface, adapter *UsbAdapte
 			return fmt.Errorf("could not create SYNC TIME REPLY")
 		}
 		log.Debugf("Send TIME-REPLY {correlation:%x, time:%s}", timePacket.CorrelationID, timeToSend)
-		return adapter.WriteDataToUsb(replyBytes)
+		return valeria.Remote.usbAdapter.WriteDataToUsb(replyBytes)
 		//TODO: turn into nice API function
 	case packet.AFMT:
 		afmtPacket, err := packet.NewSyncAfmtPacketFromBytes(data)
@@ -362,7 +371,7 @@ func handleSyncPacket(data []byte, valeria *ValeriaInterface, adapter *UsbAdapte
 
 		replyBytes := afmtPacket.NewReply()
 		log.Debugf("Send AFMT-REPLY {correlation:%x}", afmtPacket.CorrelationID)
-		return adapter.WriteDataToUsb(replyBytes)
+		return valeria.Remote.usbAdapter.WriteDataToUsb(replyBytes)
 	case packet.SKEW:
 		skewPacket, err := packet.NewSyncSkewPacketFromBytes(data)
 		if err != nil {
@@ -370,7 +379,7 @@ func handleSyncPacket(data []byte, valeria *ValeriaInterface, adapter *UsbAdapte
 		}
 		skewValue := valeria.Local.skew()
 		log.Debugf("Rcv:%s Reply:%f", skewPacket.String(), skewValue)
-		return adapter.WriteDataToUsb(skewPacket.NewReply(skewValue))
+		return valeria.Remote.usbAdapter.WriteDataToUsb(skewPacket.NewReply(skewValue))
 	case packet.STOP:
 		stopPacket, err := packet.NewSyncStopPacketFromBytes(data)
 		if err != nil {
@@ -378,7 +387,7 @@ func handleSyncPacket(data []byte, valeria *ValeriaInterface, adapter *UsbAdapte
 		}
 		valeria.Local.stop()
 		log.Debugf("Rcv:%s", stopPacket.String())
-		return adapter.WriteDataToUsb(stopPacket.NewReply())
+		return valeria.Remote.usbAdapter.WriteDataToUsb(stopPacket.NewReply())
 	default:
 		return fmt.Errorf("received unknown sync packet type: %x", data)
 	}

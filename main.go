@@ -97,7 +97,7 @@ The commands work as following:
 		return
 	}
 
-	testcmd,_ := arguments.Bool("test")
+	testcmd, _ := arguments.Bool("test")
 	if testcmd {
 		test(device)
 		return
@@ -335,19 +335,30 @@ func test(device screencapture.IosDevice) {
 		return
 	}
 
-	valeriaInterface := screencapture.NewValeriaInterface()
+	usbAdapter := &screencapture.UsbAdapterNew{}
+	err = usbAdapter.InitializeUSB(device)
+	if err != nil {
+		printErrJSON(err, "failed initializing usb with error")
+		return
+	}
+
+	valeriaInterface := screencapture.NewValeriaInterface(usbAdapter)
+	defer CloseAll(usbAdapter, valeriaInterface)
 	go func() {
-		err := valeriaInterface.StartReadLoop(device)
+		err := valeriaInterface.StartReadLoop()
 		log.Info("Valeria read loop stopped.")
 		if err != nil {
 			log.Errorf("Valeria read loop stopped with error %v", err)
 		}
 	}()
+
 	err = valeriaInterface.Local.AwaitPing()
 	if err != nil {
-		log.Fatalf("ping timed out failed", err)
+		log.Errorf("ping timed out failed", err)
+		return
 	}
 	log.Info("Ping received, responding..")
+
 	err = valeriaInterface.Remote.Ping()
 	fatalIfErr(err, "failed sending Ping")
 	log.Info("Handshake complete, awaiting audio clock sync")
@@ -377,10 +388,38 @@ func test(device screencapture.IosDevice) {
 			log.Infof(buf.String())
 		}
 	}()
-	log.Info("press ctrl+c to stop")
-	stopSignal := make(chan interface{})
-	waitForSigInt(stopSignal)
-	<-stopSignal
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+}
+
+func CloseAll(usbAdapter *screencapture.UsbAdapterNew, valeriaInterface screencapture.ValeriaInterface) {
+	log.Info("stopping audio")
+	err := valeriaInterface.Remote.StopAudio()
+	if err != nil {
+		log.Errorf("error stopping audio", err)
+	}
+
+	log.Info("stopping video")
+	err = valeriaInterface.Remote.StopVideo()
+	if err != nil {
+		log.Errorf("error stopping video", err)
+	}
+	log.Info("awaiting audio release")
+	err = valeriaInterface.Local.AwaitAudioClockRelease()
+	if err != nil {
+		log.Errorf("error waiting audio clock release", err)
+	}
+
+	log.Info("awaiting video release")
+	err = valeriaInterface.Local.AwaitVideoClockRelease()
+	if err != nil {
+		log.Errorf("error waiting video clock release", err)
+	}
+
+	log.Info("shutting down usbadapter")
+	err = usbAdapter.Close()
+	log.Info("Stream closed successfullly, good bye :-)")
 }
 
 func record(h264FilePath string, wavFilePath string, device screencapture.IosDevice) {
@@ -502,7 +541,7 @@ func checkDeviceIsPaired(device screencapture.IosDevice) {
 
 func fatalIfErr(err error, msg string) {
 	if err != nil {
-		log.Fatalf("%s: %v", msg, err)
+		log.Errorf("%s: %v", msg, err)
 	}
 }
 func printErrJSON(err error, msg string) {
