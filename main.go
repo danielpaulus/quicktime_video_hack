@@ -6,7 +6,6 @@ import (
 	"fmt"
 	stdlog "log"
 	"os"
-	"os/signal"
 	"strings"
 	"time"
 
@@ -94,12 +93,6 @@ The commands work as following:
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
 		activate(device)
-		return
-	}
-
-	testcmd, _ := arguments.Bool("test")
-	if testcmd {
-		test(device)
 		return
 	}
 
@@ -234,7 +227,7 @@ func recordAudioGst(outfile string, device screencapture.IosDevice, audiotype st
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, device, true)
+	screencapture.StartWithConsumer(gStreamer, device, true)
 }
 
 func runDiagnostics(outfile string, dump bool, dumpFile string, device screencapture.IosDevice) {
@@ -246,10 +239,10 @@ func runDiagnostics(outfile string, dump bool, dumpFile string, device screencap
 	defer metricsFile.Close()
 	consumer := diagnostics.NewDiagnosticsConsumer(metricsFile, time.Second*10)
 	if dump {
-		startWithConsumerDump(consumer, device, dumpFile)
+		screencapture.StartWithConsumerDump(consumer, device, dumpFile)
 		return
 	}
-	startWithConsumer(consumer, device, false)
+	screencapture.StartWithConsumer(consumer, device, false)
 }
 
 func recordAudioWav(outfile string, device screencapture.IosDevice) {
@@ -276,7 +269,7 @@ func recordAudioWav(outfile string, device screencapture.IosDevice) {
 		}
 
 	}()
-	startWithConsumer(wavFileWriter, device, true)
+	screencapture.StartWithConsumer(wavFileWriter, device, true)
 }
 
 func startGStreamerWithCustomPipeline(device screencapture.IosDevice, pipelineString string) {
@@ -286,13 +279,13 @@ func startGStreamerWithCustomPipeline(device screencapture.IosDevice, pipelineSt
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, device, false)
+	screencapture.StartWithConsumer(gStreamer, device, false)
 }
 
 func startGStreamer(device screencapture.IosDevice) {
 	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer, device, false)
+	screencapture.StartWithConsumer(gStreamer, device, false)
 }
 
 // Just dump a list of what was discovered to the console
@@ -324,102 +317,6 @@ func activate(device screencapture.IosDevice) {
 	printJSON(map[string]interface{}{
 		"device_activated": device.DetailsMap(),
 	})
-}
-
-func test(device screencapture.IosDevice) {
-	log.SetLevel(log.DebugLevel)
-	var err error
-	device, err = screencapture.EnableQTConfig(device)
-	if err != nil {
-		printErrJSON(err, "Error enabling QT config")
-		return
-	}
-
-	usbAdapter := &screencapture.UsbAdapterNew{}
-	err = usbAdapter.InitializeUSB(device)
-	if err != nil {
-		printErrJSON(err, "failed initializing usb with error")
-		return
-	}
-
-	valeriaInterface := screencapture.NewValeriaInterface(usbAdapter)
-	defer CloseAll(usbAdapter, valeriaInterface)
-	go func() {
-		err := valeriaInterface.StartReadLoop()
-		log.Info("Valeria read loop stopped.")
-		if err != nil {
-			log.Errorf("Valeria read loop stopped with error %v", err)
-		}
-	}()
-
-	err = valeriaInterface.Local.AwaitPing()
-	if err != nil {
-		log.Errorf("ping timed out failed", err)
-		return
-	}
-	log.Info("Ping received, responding..")
-
-	err = valeriaInterface.Remote.Ping()
-	fatalIfErr(err, "failed sending Ping")
-	log.Info("Handshake complete, awaiting audio clock sync")
-	err = valeriaInterface.Local.AwaitAudioClockSync()
-	if err != nil {
-		log.Fatalf("audio clock sync failed", err)
-	}
-	log.Info("audio clock sync ok, enabling video")
-	err = valeriaInterface.Remote.EnableVideo()
-	fatalIfErr(err, "failed enabling video")
-	log.Infof("enabling audio")
-	err = valeriaInterface.Remote.EnableAudio()
-	fatalIfErr(err, "failed enabling audio")
-	log.Info("awaiting video clock sync")
-	err = valeriaInterface.Local.AwaitVideoClockSync()
-	fatalIfErr(err, "failed waiting for video clock sync")
-	log.Info("sending initial sample data request")
-	err = valeriaInterface.Remote.RequestSampleData()
-	fatalIfErr(err, "failed requesting sample data")
-	go func() {
-		for {
-			buf := valeriaInterface.Local.ReadSampleBuffer()
-			err := valeriaInterface.Remote.RequestSampleData()
-			if err != nil {
-				log.Fatalf("failed sending need")
-			}
-			log.Infof(buf.String())
-		}
-	}()
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	<-c
-}
-
-func CloseAll(usbAdapter *screencapture.UsbAdapterNew, valeriaInterface screencapture.ValeriaInterface) {
-	log.Info("stopping audio")
-	err := valeriaInterface.Remote.StopAudio()
-	if err != nil {
-		log.Errorf("error stopping audio", err)
-	}
-
-	log.Info("stopping video")
-	err = valeriaInterface.Remote.StopVideo()
-	if err != nil {
-		log.Errorf("error stopping video", err)
-	}
-	log.Info("awaiting audio release")
-	err = valeriaInterface.Local.AwaitAudioClockRelease()
-	if err != nil {
-		log.Errorf("error waiting audio clock release", err)
-	}
-
-	log.Info("awaiting video release")
-	err = valeriaInterface.Local.AwaitVideoClockRelease()
-	if err != nil {
-		log.Errorf("error waiting video clock release", err)
-	}
-
-	log.Info("shutting down usbadapter")
-	err = usbAdapter.Close()
-	log.Info("Stream closed successfullly, good bye :-)")
 }
 
 func record(h264FilePath string, wavFilePath string, device screencapture.IosDevice) {
@@ -457,72 +354,7 @@ func record(h264FilePath string, wavFilePath string, device screencapture.IosDev
 		}
 
 	}()
-	startWithConsumer(writer, device, false)
-}
-
-func startWithConsumer(consumer screencapture.CmSampleBufConsumer, device screencapture.IosDevice, audioOnly bool) {
-	var err error
-	device, err = screencapture.EnableQTConfig(device)
-	if err != nil {
-		printErrJSON(err, "Error enabling QT config")
-		return
-	}
-
-	adapter := screencapture.UsbAdapter{}
-	stopSignal := make(chan interface{})
-	waitForSigInt(stopSignal)
-
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, audioOnly)
-
-	err = adapter.StartReading(device, &mp, stopSignal)
-	consumer.Stop()
-	if err != nil {
-		printErrJSON(err, "failed connecting to usb")
-	}
-}
-
-func startWithConsumerDump(consumer screencapture.CmSampleBufConsumer, device screencapture.IosDevice, dumpPath string) {
-	var err error
-	device, err = screencapture.EnableQTConfig(device)
-	if err != nil {
-		printErrJSON(err, "Error enabling QT config")
-		return
-	}
-
-	inboundMessagesFile, err := os.Create("inbound-" + dumpPath)
-	if err != nil {
-		log.Fatalf("Could not open file: %v", err)
-	}
-	defer inboundMessagesFile.Close()
-	outboundMessagesFile, err := os.Create("outbound-" + dumpPath)
-	if err != nil {
-		log.Fatalf("Could not open file: %v", err)
-	}
-	defer outboundMessagesFile.Close()
-	log.Debug("Start dumping all binary transfer")
-	adapter := screencapture.UsbAdapter{Dump: true, DumpInWriter: inboundMessagesFile, DumpOutWriter: outboundMessagesFile}
-	stopSignal := make(chan interface{})
-	waitForSigInt(stopSignal)
-
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, false)
-
-	err = adapter.StartReading(device, &mp, stopSignal)
-	consumer.Stop()
-	if err != nil {
-		printErrJSON(err, "failed connecting to usb")
-	}
-}
-
-func waitForSigInt(stopSignalChannel chan interface{}) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		for sig := range c {
-			log.Debugf("Signal received: %s", sig)
-			var stopSignal interface{}
-			stopSignalChannel <- stopSignal
-		}
-	}()
+	screencapture.StartWithConsumer(writer, device, false)
 }
 
 func checkDeviceIsPaired(device screencapture.IosDevice) {
@@ -539,11 +371,6 @@ func checkDeviceIsPaired(device screencapture.IosDevice) {
 	log.Infof("found %s %s for udid %s", allValues["DeviceName"], allValues["ProductVersion"], dev.Properties.SerialNumber)
 }
 
-func fatalIfErr(err error, msg string) {
-	if err != nil {
-		log.Errorf("%s: %v", msg, err)
-	}
-}
 func printErrJSON(err error, msg string) {
 	printJSON(map[string]interface{}{
 		"original_error": err.Error(),

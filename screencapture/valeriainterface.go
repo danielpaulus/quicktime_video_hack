@@ -166,6 +166,7 @@ func (l LocalValeriaApi) skew() float64 {
 		l.dataHolder.lastEatFrameReceivedDeviceAudioClockTime)
 }
 
+//TODO: make this closeable to prevent goroutine leaks
 //ReadSampleBuffer blocks until a buffer is received or the interface is closed
 func (l LocalValeriaApi) ReadSampleBuffer() coremedia.CMSampleBuffer {
 	return <-l.sampleDataChannel
