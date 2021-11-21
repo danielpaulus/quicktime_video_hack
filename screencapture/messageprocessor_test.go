@@ -83,9 +83,9 @@ func TestMessageProcessorRespondsCorrectlyToSyncMessages(t *testing.T) {
 			description: "Expect correct reply for cwpa",
 		},
 		{
-			receivedData:  loadFromFile("og-request")[4:],
-			expectedReply: [][]byte{loadFromFile("og-reply")},
-			description:   "Expect correct reply for og",
+			receivedData:  loadFromFile("gocmd-request")[4:],
+			expectedReply: [][]byte{loadFromFile("gocmd-reply")},
+			description:   "Expect correct reply for gocmd",
 		},
 		{
 			receivedData:  loadFromFile("stop-request")[4:],
