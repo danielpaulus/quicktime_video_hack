@@ -83,7 +83,7 @@ func (mp *MessageProcessor) handleSyncPacket(data []byte) {
 		}
 		log.Debugf("Rcv:%s", ogPacket.String())
 
-		replyBytes := ogPacket.NewReply()
+		replyBytes := ogPacket.NewReply(0)
 		log.Debugf("Send OG-REPLY {correlation:%x}", ogPacket.CorrelationID)
 		mp.usbWriter.WriteDataToUsb(replyBytes)
 	case packet.CWPA:

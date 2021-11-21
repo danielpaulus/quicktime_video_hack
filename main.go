@@ -32,6 +32,7 @@ Usage:
   qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
   qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>]
   qvh --version | version
+  qvh test
 
 
 Options:
@@ -88,13 +89,20 @@ The commands work as following:
 	if err != nil {
 		printErrJSON(err, "no device found to use")
 	}
-	checkDeviceIsPaired(device)
+	//checkDeviceIsPaired(device)
 
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
 		activate(device)
 		return
 	}
+
+	testcmd,_ := arguments.Bool("test")
+	if testcmd {
+		test(device)
+		return
+	}
+
 	audioCommand, _ := arguments.Bool("audio")
 	if audioCommand {
 		outfile, err := arguments.String("<outfile>")
@@ -318,6 +326,63 @@ func activate(device screencapture.IosDevice) {
 	})
 }
 
+func test(device screencapture.IosDevice) {
+	log.SetLevel(log.DebugLevel)
+	var err error
+	device, err = screencapture.EnableQTConfig(device)
+	if err != nil {
+		printErrJSON(err, "Error enabling QT config")
+		return
+	}
+
+	valeriaInterface := screencapture.NewValeriaInterface()
+	go func() {
+		err := valeriaInterface.StartReadLoop(device)
+		log.Info("Valeria read loop stopped.")
+		if err != nil {
+			log.Errorf("Valeria read loop stopped with error %v", err)
+		}
+	}()
+	err = valeriaInterface.Local.AwaitPing()
+	if err != nil {
+		log.Fatalf("ping timed out failed", err)
+	}
+	log.Info("Ping received, responding..")
+	err = valeriaInterface.Remote.Ping()
+	fatalIfErr(err, "failed sending Ping")
+	log.Info("Handshake complete, awaiting audio clock sync")
+	err = valeriaInterface.Local.AwaitAudioClockSync()
+	if err != nil {
+		log.Fatalf("audio clock sync failed", err)
+	}
+	log.Info("audio clock sync ok, enabling video")
+	err = valeriaInterface.Remote.EnableVideo()
+	fatalIfErr(err, "failed enabling video")
+	log.Infof("enabling audio")
+	err = valeriaInterface.Remote.EnableAudio()
+	fatalIfErr(err, "failed enabling audio")
+	log.Info("awaiting video clock sync")
+	err = valeriaInterface.Local.AwaitVideoClockSync()
+	fatalIfErr(err, "failed waiting for video clock sync")
+	log.Info("sending initial sample data request")
+	err = valeriaInterface.Remote.RequestSampleData()
+	fatalIfErr(err, "failed requesting sample data")
+	go func() {
+		for {
+			buf := valeriaInterface.Local.ReadSampleBuffer()
+			err := valeriaInterface.Remote.RequestSampleData()
+			if err != nil {
+				log.Fatalf("failed sending need")
+			}
+			log.Infof(buf.String())
+		}
+	}()
+	log.Info("press ctrl+c to stop")
+	stopSignal := make(chan interface{})
+	waitForSigInt(stopSignal)
+	<-stopSignal
+}
+
 func record(h264FilePath string, wavFilePath string, device screencapture.IosDevice) {
 	log.Debugf("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
 
@@ -435,6 +500,11 @@ func checkDeviceIsPaired(device screencapture.IosDevice) {
 	log.Infof("found %s %s for udid %s", allValues["DeviceName"], allValues["ProductVersion"], dev.Properties.SerialNumber)
 }
 
+func fatalIfErr(err error, msg string) {
+	if err != nil {
+		log.Fatalf("%s: %v", msg, err)
+	}
+}
 func printErrJSON(err error, msg string) {
 	printJSON(map[string]interface{}{
 		"original_error": err.Error(),

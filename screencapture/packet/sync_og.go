@@ -25,12 +25,12 @@ func NewSyncOgPacketFromBytes(data []byte) (SyncOgPacket, error) {
 }
 
 //NewReply returns a []byte containing the default reply for a SyncOgPacket
-func (sp SyncOgPacket) NewReply() []byte {
+func (sp SyncOgPacket) NewReply(response uint64) []byte {
 	responseBytes := make([]byte, 24)
 	binary.LittleEndian.PutUint32(responseBytes, 24)
 	binary.LittleEndian.PutUint32(responseBytes[4:], ReplyPacketMagic)
 	binary.LittleEndian.PutUint64(responseBytes[8:], sp.CorrelationID)
-	binary.LittleEndian.PutUint64(responseBytes[16:], 0)
+	binary.LittleEndian.PutUint64(responseBytes[16:], response)
 
 	return responseBytes
 
