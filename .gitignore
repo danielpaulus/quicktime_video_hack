@@ -3,6 +3,7 @@ quicktime_video_hack
 *.wav
 *.ogg
 *.mp3
+*.mp4
 # Binaries for programs and plugins
 main
 *.csv
