@@ -1,9 +1,13 @@
 package screencapture
 
 import (
+	"bufio"
+	"fmt"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
+	"time"
 )
 
 func StartWithConsumer(consumer CmSampleBufConsumer, device IosDevice, audioOnly bool) {
@@ -33,22 +37,54 @@ func StartWithConsumer(consumer CmSampleBufConsumer, device IosDevice, audioOnly
 	go func() {
 		for {
 			buf := valeriaInterface.Local.ReadSampleBuffer()
-			err := valeriaInterface.Remote.RequestSampleData()
-			if err != nil {
-				log.Debug("failed sending need")
-				return
-			}
+			go func() {
+				err := valeriaInterface.Remote.RequestSampleData()
+				if err != nil {
+					log.Debug("failed sending need")
+					return
+				}
+			}()
 			err = consumer.Consume(buf)
 			if err != nil {
 				log.Warnf("consumer %v failed to consume buffer %v with error %v", consumer, buf, err)
 			}
 		}
 	}()
+
+	log.Info("wait")
+	time.Sleep(time.Second * 5)
+	log.Info("pause")
+	valeriaInterface.Remote.StopVideo()
+	valeriaInterface.Remote.StopAudio()
+	time.Sleep(time.Second*5)
+	consumer = newWriter("bla%s.h264")
+	log.Info("re enable")
+	valeriaInterface.Remote.EnableAudio()
+	valeriaInterface.Remote.EnableVideo()
+	log.Info("ok")
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
 }
-func StartWithConsumerDump(consumer CmSampleBufConsumer, device IosDevice, dumpPath string){}
+func StartWithConsumerDump(consumer CmSampleBufConsumer, device IosDevice, dumpPath string) {}
+
+func newWriter(basePath string) coremedia.AVFileWriter {
+	h264FilePath := fmt.Sprintf(basePath, "-3")
+	wavFilePath := fmt.Sprintf(basePath, "-3")
+	h264File, err := os.Create(h264FilePath)
+	if err != nil {
+		log.Debugf("Error creating h264File:%s", err)
+		log.Errorf("Could not open h264File '%s'", h264FilePath)
+	}
+	wavFile, err := os.Create(wavFilePath)
+	if err != nil {
+		log.Debugf("Error creating wav file:%s", err)
+		log.Errorf("Could not open wav file '%s'", wavFilePath)
+	}
+
+	return coremedia.NewAVFileWriter(bufio.NewWriter(h264File), bufio.NewWriter(wavFile))
+}
 
 func setupSession(valeriaInterface ValeriaInterface) {
 	err := valeriaInterface.Local.AwaitPing()

@@ -3,13 +3,12 @@ package gstadapter
 import (
 	"encoding/binary"
 	"fmt"
-	"os"
-	"runtime"
-
 	"github.com/danielpaulus/gst"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/lijo-jose/glib"
 	log "github.com/sirupsen/logrus"
+	"os"
+	"runtime"
 )
 
 //GstAdapter contains the AppSrc for accessing Gstreamer.
@@ -36,11 +35,12 @@ func New() *GstAdapter {
 	audioAppSrc := setUpAudioPipelineBase(pl)
 	setupLivePlayAudio(pl)
 
-	pl.SetState(gst.STATE_PLAYING)
 	runGlibMainLoop()
+	pl.SetState(gst.STATE_PLAYING)
+
 
 	log.Info("Gstreamer is running!")
-	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
+	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true, pipeline: pl}
 
 	return &gsta
 }
@@ -220,6 +220,8 @@ func checkElem(e *gst.Element, name string) {
 
 //Consume will transfer AV data into a Gstreamer AppSrc
 func (gsta *GstAdapter) Consume(buf coremedia.CMSampleBuffer) error {
+	s, _, _:=gsta.pipeline.GetState(200)
+	log.Info(s.String())
 	if buf.MediaType == coremedia.MediaTypeSound {
 		if gsta.firstAudioSample {
 			gsta.firstAudioSample = false

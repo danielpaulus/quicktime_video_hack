@@ -40,6 +40,7 @@ type LocalValeriaApi struct {
 	sampleDataChannel   chan coremedia.CMSampleBuffer
 	audioReleaseChannel chan error
 	videoReleaseChannel chan error
+	consumer            CmSampleBufConsumer
 }
 
 type DeviceValeriaAPI struct {
@@ -49,6 +50,8 @@ type DeviceValeriaAPI struct {
 
 func NewValeriaInterface(usbAdapter UsbWriterNew) ValeriaInterface {
 	dataHolder := DataHolder{}
+
+	remote := DeviceValeriaAPI{dataHolder: dataHolder, usbAdapter: usbAdapter}
 	local := LocalValeriaApi{
 		pingChannel:         make(chan error, 1),
 		audioClockChannel:   make(chan error, 1),
@@ -56,9 +59,9 @@ func NewValeriaInterface(usbAdapter UsbWriterNew) ValeriaInterface {
 		audioReleaseChannel: make(chan error, 1),
 		videoReleaseChannel: make(chan error, 1),
 		dataHolder:          dataHolder,
-		sampleDataChannel:   make(chan coremedia.CMSampleBuffer, 50),
+		sampleDataChannel:   make(chan coremedia.CMSampleBuffer, 100),
+		remote: remote,
 	}
-	remote := DeviceValeriaAPI{dataHolder: dataHolder, usbAdapter: usbAdapter}
 	valeriaIface := ValeriaInterface{Local: local,
 		errorChannel: make(chan error, 1),
 		closeChannel: make(chan interface{}),
@@ -185,6 +188,7 @@ func (l LocalValeriaApi) receiveAudioSample(buf coremedia.CMSampleBuffer) {
 	}
 
 	l.sampleDataChannel <- buf
+	//l.consumer.Consume(buf)
 	if log.IsLevelEnabled(log.DebugLevel) {
 		l.dataHolder.audioSamplesReceived++
 		if l.dataHolder.audioSamplesReceived%100 == 0 {
@@ -195,6 +199,9 @@ func (l LocalValeriaApi) receiveAudioSample(buf coremedia.CMSampleBuffer) {
 
 func (l LocalValeriaApi) feed(buf coremedia.CMSampleBuffer) {
 	l.sampleDataChannel <- buf
+//l.consumer.Consume(buf)
+
+
 	if log.IsLevelEnabled(log.DebugLevel) {
 		l.dataHolder.videoSamplesReceived++
 		if l.dataHolder.videoSamplesReceived%500 == 0 {
@@ -245,6 +252,7 @@ func (d DeviceValeriaAPI) RequestSampleData() error {
 func (d DeviceValeriaAPI) EnableVideo() error {
 	deviceInfo := packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict())
 	log.Debug("Sending ASYN HPD1")
+	//TODO: sending once is enough
 	err := d.usbAdapter.WriteDataToUsb(deviceInfo)
 	if err != nil {
 		return err

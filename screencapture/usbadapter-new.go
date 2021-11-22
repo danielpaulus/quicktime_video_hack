@@ -1,9 +1,11 @@
 package screencapture
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -26,7 +28,8 @@ type UsbAdapterNew struct {
 
 //WriteDataToUsb implements the UsbWriter interface and sends the byte array to the usb bulk endpoint.
 func (usbAdapter *UsbAdapterNew) WriteDataToUsb(bytes []byte) error {
-	_, err := usbAdapter.outEndpoint.Write(bytes)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*2)
+	_, err := usbAdapter.outEndpoint.WriteContext(ctx, bytes)
 	if err != nil {
 		return err
 	}
