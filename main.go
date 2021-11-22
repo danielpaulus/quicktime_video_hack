@@ -191,13 +191,28 @@ func startWithConsumer(consumer screencapture.CmSampleBufConsumer, device screen
 		return
 	}
 
-	adapter := screencapture.UsbAdapter{}
+	adapter := screencapture.UsbAdapterNew{}
 	stopSignal := make(chan interface{})
 	waitForSigInt(stopSignal)
 
+	err = adapter.InitializeUSB(device)
+	if err != nil {
+		log.Fatalf("failed initializing usb with error %v for device %v", err, device)
+	}
+
 	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, audioOnly)
 
-	err = adapter.StartReading(device, &mp, stopSignal)
+	//err = adapter.StartReading(device, &mp, stopSignal)
+	go func() {
+		for {
+			frame, err := adapter.ReadFrame()
+			if err != nil {
+				return
+			}
+			mp.ReceiveData(frame)
+		}
+	}()
+<-stopSignal
 	consumer.Stop()
 	if err != nil {
 		printErrJSON(err, "failed connecting to usb")

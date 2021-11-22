@@ -36,8 +36,9 @@ func New() *GstAdapter {
 	audioAppSrc := setUpAudioPipelineBase(pl)
 	setupLivePlayAudio(pl)
 
-	pl.SetState(gst.STATE_PLAYING)
 	runGlibMainLoop()
+	pl.SetState(gst.STATE_PLAYING)
+
 
 	log.Info("Gstreamer is running!")
 	gsta := GstAdapter{videoAppSrc: videoAppSrc, audioAppSrc: audioAppSrc, firstAudioSample: true}
