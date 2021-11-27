@@ -179,6 +179,15 @@ The commands work as following:
 }
 
 func runtest(device screencapture.IosDevice) {
+
+	/*
+	 gst-launch-1.0 -v videotestsrc ! gdppay ! shmsink socket-path=/tmp/blah shm-size=2000000
+
+	 gst-launch-1.0 shmsrc socket-path=/tmp/blah ! gdpdepay ! queue ! videoconvert ! autovideosink
+
+	curl http://example.com:8000/stream1.ogg ! gst-launch fdsrc fd=0 ! decodebin ! autoaudiosink
+
+	*/
 	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
 	startWithConsumer(gStreamer, device, false)
