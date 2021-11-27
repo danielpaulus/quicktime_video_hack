@@ -7,10 +7,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
-	"time"
+	"syscall"
 )
 
+var writerCount = 0
+
 func StartWithConsumer(consumer CmSampleBufConsumer, device IosDevice, audioOnly bool) {
+	consumer, vidfile, audiofile := newWriter()
 	var err error
 	device, err = EnableQTConfig(device)
 	if err != nil {
@@ -51,27 +54,51 @@ func StartWithConsumer(consumer CmSampleBufConsumer, device IosDevice, audioOnly
 		}
 	}()
 
-	log.Info("wait")
-	time.Sleep(time.Second * 5)
-	log.Info("pause")
-	valeriaInterface.Remote.StopVideo()
-	valeriaInterface.Remote.StopAudio()
-	time.Sleep(time.Second*5)
-	consumer = newWriter("bla%s.h264")
-	log.Info("re enable")
-	valeriaInterface.Remote.EnableAudio()
-	valeriaInterface.Remote.EnableVideo()
-	log.Info("ok")
-
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	<-c
+	signal.Notify(c, syscall.SIGINT)
+	signal.Notify(c, syscall.SIGUSR1)
+	signal.Notify(c, syscall.SIGUSR2)
+	signal.Notify(c, syscall.SIGTERM)
+	for {
+
+		sig := <-c
+		switch sig {
+		case syscall.SIGUSR1:
+			//pause
+			log.Info("pause")
+			valeriaInterface.Remote.StopVideo()
+			valeriaInterface.Remote.StopAudio()
+            vidfile.Close()
+			stat, err := audiofile.Stat()
+			if err != nil {
+				log.Fatal("Could not get wav file stats", err)
+			}
+			err = coremedia.WriteWavHeader(int(stat.Size()), audiofile)
+			if err != nil {
+				log.Fatalf("Error writing wave header %s might be invalid. %s", audiofile, err.Error())
+			}
+			err = audiofile.Close()
+			if err != nil {
+				log.Fatalf("Error closing wave file. '%s' might be invalid. %s", audiofile, err.Error())
+			}
+		case syscall.SIGUSR2:
+			//resume
+			consumer, vidfile, audiofile = newWriter()
+			log.Info("resume")
+			valeriaInterface.Remote.EnableAudio()
+			valeriaInterface.Remote.EnableVideo()
+		default:
+			return
+		}
+	}
 }
+
 func StartWithConsumerDump(consumer CmSampleBufConsumer, device IosDevice, dumpPath string) {}
 
-func newWriter(basePath string) coremedia.AVFileWriter {
-	h264FilePath := fmt.Sprintf(basePath, "-3")
-	wavFilePath := fmt.Sprintf(basePath, "-3")
+func newWriter() (coremedia.AVFileWriter, *os.File, *os.File) {
+	h264FilePath := fmt.Sprintf("video-%03d.h264", writerCount)
+	wavFilePath := fmt.Sprintf("audio-%03d.wav", writerCount)
+	writerCount++
 	h264File, err := os.Create(h264FilePath)
 	if err != nil {
 		log.Debugf("Error creating h264File:%s", err)
@@ -83,7 +110,7 @@ func newWriter(basePath string) coremedia.AVFileWriter {
 		log.Errorf("Could not open wav file '%s'", wavFilePath)
 	}
 
-	return coremedia.NewAVFileWriter(bufio.NewWriter(h264File), bufio.NewWriter(wavFile))
+	return coremedia.NewAVFileWriter(bufio.NewWriter(h264File), bufio.NewWriter(wavFile)), h264File, wavFile
 }
 
 func setupSession(valeriaInterface ValeriaInterface) {

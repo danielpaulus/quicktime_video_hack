@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	stdlog "log"
@@ -26,7 +25,7 @@ func main() {
 Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
-  qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
+  qvh record [--udid=<udid>] [-v]
   qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
   qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
   qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>]
@@ -144,17 +143,8 @@ The commands work as following:
 
 	recordCommand, _ := arguments.Bool("record")
 	if recordCommand {
-		h264FilePath, err := arguments.String("<h264file>")
-		if err != nil {
-			printErrJSON(err, "Missing <h264file> parameter. Please specify a valid path like '/home/me/out.h264'")
-			return
-		}
-		waveFilePath, err := arguments.String("<wavfile>")
-		if err != nil {
-			printErrJSON(err, "Missing <wavfile> parameter. Please specify a valid path like '/home/me/out.raw'")
-			return
-		}
-		record(h264FilePath, waveFilePath, device)
+
+		record("", "", device)
 	}
 	gstreamerCommand, _ := arguments.Bool("gstreamer")
 	if gstreamerCommand {
@@ -322,19 +312,8 @@ func activate(device screencapture.IosDevice) {
 func record(h264FilePath string, wavFilePath string, device screencapture.IosDevice) {
 	log.Debugf("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
 
-	h264File, err := os.Create(h264FilePath)
-	if err != nil {
-		log.Debugf("Error creating h264File:%s", err)
-		log.Errorf("Could not open h264File '%s'", h264FilePath)
-	}
-	wavFile, err := os.Create(wavFilePath)
-	if err != nil {
-		log.Debugf("Error creating wav file:%s", err)
-		log.Errorf("Could not open wav file '%s'", wavFilePath)
-	}
 
-	writer := coremedia.NewAVFileWriter(bufio.NewWriter(h264File), bufio.NewWriter(wavFile))
-
+/*
 	defer func() {
 		stat, err := wavFile.Stat()
 		if err != nil {
@@ -353,8 +332,8 @@ func record(h264FilePath string, wavFilePath string, device screencapture.IosDev
 			log.Fatalf("Error closing h264File '%s'. %s", h264FilePath, err.Error())
 		}
 
-	}()
-	screencapture.StartWithConsumer(writer, device, false)
+	}()*/
+	screencapture.StartWithConsumer(nil, device, false)
 }
 
 func checkDeviceIsPaired(device screencapture.IosDevice) {
