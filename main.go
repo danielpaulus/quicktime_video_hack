@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	stdlog "log"
 	"os"
-	"os/signal"
 	"strings"
 	"time"
 
@@ -27,11 +25,12 @@ func main() {
 Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
-  qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
+  qvh record [--udid=<udid>] [-v]
   qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
   qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
   qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>]
   qvh --version | version
+  qvh test
 
 
 Options:
@@ -88,13 +87,14 @@ The commands work as following:
 	if err != nil {
 		printErrJSON(err, "no device found to use")
 	}
-	checkDeviceIsPaired(device)
+	//checkDeviceIsPaired(device)
 
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
 		activate(device)
 		return
 	}
+
 	audioCommand, _ := arguments.Bool("audio")
 	if audioCommand {
 		outfile, err := arguments.String("<outfile>")
@@ -143,17 +143,8 @@ The commands work as following:
 
 	recordCommand, _ := arguments.Bool("record")
 	if recordCommand {
-		h264FilePath, err := arguments.String("<h264file>")
-		if err != nil {
-			printErrJSON(err, "Missing <h264file> parameter. Please specify a valid path like '/home/me/out.h264'")
-			return
-		}
-		waveFilePath, err := arguments.String("<wavfile>")
-		if err != nil {
-			printErrJSON(err, "Missing <wavfile> parameter. Please specify a valid path like '/home/me/out.raw'")
-			return
-		}
-		record(h264FilePath, waveFilePath, device)
+
+		record("", "", device)
 	}
 	gstreamerCommand, _ := arguments.Bool("gstreamer")
 	if gstreamerCommand {
@@ -226,7 +217,7 @@ func recordAudioGst(outfile string, device screencapture.IosDevice, audiotype st
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, device, true)
+	screencapture.StartWithConsumer(gStreamer, device, true)
 }
 
 func runDiagnostics(outfile string, dump bool, dumpFile string, device screencapture.IosDevice) {
@@ -238,10 +229,10 @@ func runDiagnostics(outfile string, dump bool, dumpFile string, device screencap
 	defer metricsFile.Close()
 	consumer := diagnostics.NewDiagnosticsConsumer(metricsFile, time.Second*10)
 	if dump {
-		startWithConsumerDump(consumer, device, dumpFile)
+		screencapture.StartWithConsumerDump(consumer, device, dumpFile)
 		return
 	}
-	startWithConsumer(consumer, device, false)
+	screencapture.StartWithConsumer(consumer, device, false)
 }
 
 func recordAudioWav(outfile string, device screencapture.IosDevice) {
@@ -268,7 +259,7 @@ func recordAudioWav(outfile string, device screencapture.IosDevice) {
 		}
 
 	}()
-	startWithConsumer(wavFileWriter, device, true)
+	screencapture.StartWithConsumer(wavFileWriter, device, true)
 }
 
 func startGStreamerWithCustomPipeline(device screencapture.IosDevice, pipelineString string) {
@@ -278,13 +269,13 @@ func startGStreamerWithCustomPipeline(device screencapture.IosDevice, pipelineSt
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, device, false)
+	screencapture.StartWithConsumer(gStreamer, device, false)
 }
 
 func startGStreamer(device screencapture.IosDevice) {
 	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer, device, false)
+	screencapture.StartWithConsumer(gStreamer, device, false)
 }
 
 // Just dump a list of what was discovered to the console
@@ -321,19 +312,8 @@ func activate(device screencapture.IosDevice) {
 func record(h264FilePath string, wavFilePath string, device screencapture.IosDevice) {
 	log.Debugf("Writing video output to:'%s' and audio to: %s", h264FilePath, wavFilePath)
 
-	h264File, err := os.Create(h264FilePath)
-	if err != nil {
-		log.Debugf("Error creating h264File:%s", err)
-		log.Errorf("Could not open h264File '%s'", h264FilePath)
-	}
-	wavFile, err := os.Create(wavFilePath)
-	if err != nil {
-		log.Debugf("Error creating wav file:%s", err)
-		log.Errorf("Could not open wav file '%s'", wavFilePath)
-	}
 
-	writer := coremedia.NewAVFileWriter(bufio.NewWriter(h264File), bufio.NewWriter(wavFile))
-
+/*
 	defer func() {
 		stat, err := wavFile.Stat()
 		if err != nil {
@@ -352,73 +332,8 @@ func record(h264FilePath string, wavFilePath string, device screencapture.IosDev
 			log.Fatalf("Error closing h264File '%s'. %s", h264FilePath, err.Error())
 		}
 
-	}()
-	startWithConsumer(writer, device, false)
-}
-
-func startWithConsumer(consumer screencapture.CmSampleBufConsumer, device screencapture.IosDevice, audioOnly bool) {
-	var err error
-	device, err = screencapture.EnableQTConfig(device)
-	if err != nil {
-		printErrJSON(err, "Error enabling QT config")
-		return
-	}
-
-	adapter := screencapture.UsbAdapter{}
-	stopSignal := make(chan interface{})
-	waitForSigInt(stopSignal)
-
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, audioOnly)
-
-	err = adapter.StartReading(device, &mp, stopSignal)
-	consumer.Stop()
-	if err != nil {
-		printErrJSON(err, "failed connecting to usb")
-	}
-}
-
-func startWithConsumerDump(consumer screencapture.CmSampleBufConsumer, device screencapture.IosDevice, dumpPath string) {
-	var err error
-	device, err = screencapture.EnableQTConfig(device)
-	if err != nil {
-		printErrJSON(err, "Error enabling QT config")
-		return
-	}
-
-	inboundMessagesFile, err := os.Create("inbound-" + dumpPath)
-	if err != nil {
-		log.Fatalf("Could not open file: %v", err)
-	}
-	defer inboundMessagesFile.Close()
-	outboundMessagesFile, err := os.Create("outbound-" + dumpPath)
-	if err != nil {
-		log.Fatalf("Could not open file: %v", err)
-	}
-	defer outboundMessagesFile.Close()
-	log.Debug("Start dumping all binary transfer")
-	adapter := screencapture.UsbAdapter{Dump: true, DumpInWriter: inboundMessagesFile, DumpOutWriter: outboundMessagesFile}
-	stopSignal := make(chan interface{})
-	waitForSigInt(stopSignal)
-
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, false)
-
-	err = adapter.StartReading(device, &mp, stopSignal)
-	consumer.Stop()
-	if err != nil {
-		printErrJSON(err, "failed connecting to usb")
-	}
-}
-
-func waitForSigInt(stopSignalChannel chan interface{}) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		for sig := range c {
-			log.Debugf("Signal received: %s", sig)
-			var stopSignal interface{}
-			stopSignalChannel <- stopSignal
-		}
-	}()
+	}()*/
+	screencapture.StartWithConsumer(nil, device, false)
 }
 
 func checkDeviceIsPaired(device screencapture.IosDevice) {
