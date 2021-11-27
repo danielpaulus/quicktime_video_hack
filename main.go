@@ -31,7 +31,9 @@ Usage:
   qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
   qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
   qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>]
+  qvh test
   qvh --version | version
+  qvh test
 
 
 Options:
@@ -88,13 +90,14 @@ The commands work as following:
 	if err != nil {
 		printErrJSON(err, "no device found to use")
 	}
-	checkDeviceIsPaired(device)
+	//checkDeviceIsPaired(device)
 
 	activateCommand, _ := arguments.Bool("activate")
 	if activateCommand {
 		activate(device)
 		return
 	}
+
 	audioCommand, _ := arguments.Bool("audio")
 	if audioCommand {
 		outfile, err := arguments.String("<outfile>")
@@ -140,7 +143,11 @@ The commands work as following:
 		runDiagnostics(outfile, dump != "", dump, device)
 		return
 	}
-
+	test, _ := arguments.Bool("test")
+	if test {
+		runtest(device)
+		return
+	}
 	recordCommand, _ := arguments.Bool("record")
 	if recordCommand {
 		h264FilePath, err := arguments.String("<h264file>")
@@ -169,6 +176,68 @@ The commands work as following:
 		}
 		startGStreamerWithCustomPipeline(device, gstPipeline)
 	}
+}
+
+func runtest(device screencapture.IosDevice) {
+
+	/*
+	 gst-launch-1.0 -v videotestsrc ! gdppay ! shmsink socket-path=/tmp/blah shm-size=2000000
+
+	 gst-launch-1.0 shmsrc socket-path=/tmp/blah ! gdpdepay ! queue ! videoconvert ! autovideosink
+
+	curl http://example.com:8000/stream1.ogg ! gst-launch fdsrc fd=0 ! decodebin ! autoaudiosink
+
+	*/
+	log.Debug("Starting Gstreamer")
+	gStreamer := gstadapter.New()
+	startWithConsumer(gStreamer, device, false)
+}
+func startWithConsumer(consumer screencapture.CmSampleBufConsumer, device screencapture.IosDevice, audioOnly bool) {
+	var err error
+	device, err = screencapture.EnableQTConfig(device)
+	if err != nil {
+		printErrJSON(err, "Error enabling QT config")
+		return
+	}
+
+	adapter := screencapture.UsbAdapterNew{}
+	stopSignal := make(chan interface{})
+	waitForSigInt(stopSignal)
+
+	err = adapter.InitializeUSB(device)
+	if err != nil {
+		log.Fatalf("failed initializing usb with error %v for device %v", err, device)
+	}
+
+	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, audioOnly)
+
+	//err = adapter.StartReading(device, &mp, stopSignal)
+	go func() {
+		for {
+			frame, err := adapter.ReadFrame()
+			if err != nil {
+				return
+			}
+			mp.ReceiveData(frame)
+		}
+	}()
+<-stopSignal
+	consumer.Stop()
+	if err != nil {
+		printErrJSON(err, "failed connecting to usb")
+	}
+}
+
+func waitForSigInt(stopSignalChannel chan interface{}) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			log.Debugf("Signal received: %s", sig)
+			var stopSignal interface{}
+			stopSignalChannel <- stopSignal
+		}
+	}()
 }
 
 //findDevice grabs the first device on the host for a empty --udid
@@ -226,7 +295,7 @@ func recordAudioGst(outfile string, device screencapture.IosDevice, audiotype st
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, device, true)
+	screencapture.StartWithConsumer(gStreamer, device, true)
 }
 
 func runDiagnostics(outfile string, dump bool, dumpFile string, device screencapture.IosDevice) {
@@ -238,10 +307,10 @@ func runDiagnostics(outfile string, dump bool, dumpFile string, device screencap
 	defer metricsFile.Close()
 	consumer := diagnostics.NewDiagnosticsConsumer(metricsFile, time.Second*10)
 	if dump {
-		startWithConsumerDump(consumer, device, dumpFile)
+		screencapture.StartWithConsumerDump(consumer, device, dumpFile)
 		return
 	}
-	startWithConsumer(consumer, device, false)
+	screencapture.StartWithConsumer(consumer, device, false)
 }
 
 func recordAudioWav(outfile string, device screencapture.IosDevice) {
@@ -268,7 +337,7 @@ func recordAudioWav(outfile string, device screencapture.IosDevice) {
 		}
 
 	}()
-	startWithConsumer(wavFileWriter, device, true)
+	screencapture.StartWithConsumer(wavFileWriter, device, true)
 }
 
 func startGStreamerWithCustomPipeline(device screencapture.IosDevice, pipelineString string) {
@@ -278,13 +347,13 @@ func startGStreamerWithCustomPipeline(device screencapture.IosDevice, pipelineSt
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, device, false)
+	screencapture.StartWithConsumer(gStreamer, device, false)
 }
 
 func startGStreamer(device screencapture.IosDevice) {
 	log.Debug("Starting Gstreamer")
 	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer, device, false)
+	screencapture.StartWithConsumer(gStreamer, device, false)
 }
 
 // Just dump a list of what was discovered to the console
@@ -353,72 +422,7 @@ func record(h264FilePath string, wavFilePath string, device screencapture.IosDev
 		}
 
 	}()
-	startWithConsumer(writer, device, false)
-}
-
-func startWithConsumer(consumer screencapture.CmSampleBufConsumer, device screencapture.IosDevice, audioOnly bool) {
-	var err error
-	device, err = screencapture.EnableQTConfig(device)
-	if err != nil {
-		printErrJSON(err, "Error enabling QT config")
-		return
-	}
-
-	adapter := screencapture.UsbAdapter{}
-	stopSignal := make(chan interface{})
-	waitForSigInt(stopSignal)
-
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, audioOnly)
-
-	err = adapter.StartReading(device, &mp, stopSignal)
-	consumer.Stop()
-	if err != nil {
-		printErrJSON(err, "failed connecting to usb")
-	}
-}
-
-func startWithConsumerDump(consumer screencapture.CmSampleBufConsumer, device screencapture.IosDevice, dumpPath string) {
-	var err error
-	device, err = screencapture.EnableQTConfig(device)
-	if err != nil {
-		printErrJSON(err, "Error enabling QT config")
-		return
-	}
-
-	inboundMessagesFile, err := os.Create("inbound-" + dumpPath)
-	if err != nil {
-		log.Fatalf("Could not open file: %v", err)
-	}
-	defer inboundMessagesFile.Close()
-	outboundMessagesFile, err := os.Create("outbound-" + dumpPath)
-	if err != nil {
-		log.Fatalf("Could not open file: %v", err)
-	}
-	defer outboundMessagesFile.Close()
-	log.Debug("Start dumping all binary transfer")
-	adapter := screencapture.UsbAdapter{Dump: true, DumpInWriter: inboundMessagesFile, DumpOutWriter: outboundMessagesFile}
-	stopSignal := make(chan interface{})
-	waitForSigInt(stopSignal)
-
-	mp := screencapture.NewMessageProcessor(&adapter, stopSignal, consumer, false)
-
-	err = adapter.StartReading(device, &mp, stopSignal)
-	consumer.Stop()
-	if err != nil {
-		printErrJSON(err, "failed connecting to usb")
-	}
-}
-
-func waitForSigInt(stopSignalChannel chan interface{}) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		for sig := range c {
-			log.Debugf("Signal received: %s", sig)
-			var stopSignal interface{}
-			stopSignalChannel <- stopSignal
-		}
-	}()
+	screencapture.StartWithConsumer(writer, device, false)
 }
 
 func checkDeviceIsPaired(device screencapture.IosDevice) {

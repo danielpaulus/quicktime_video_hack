@@ -16,5 +16,11 @@ type UsbDataReceiver interface {
 
 //UsbWriter can be used to send data to a USB Endpoint
 type UsbWriter interface {
-	WriteDataToUsb(data []byte)
+	WriteDataToUsb(data []byte) error
+}
+
+//UsbWriter can be used to send data to a USB Endpoint
+type UsbWriterNew interface {
+	WriteDataToUsb(data []byte) error
+	ReadFrame() ([]byte, error)
 }
