@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/danielpaulus/quicktime_video_hack/screencapture/udpsink"
 	stdlog "log"
 	"os"
 	"os/signal"
@@ -14,7 +15,6 @@ import (
 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
 	"github.com/danielpaulus/quicktime_video_hack/screencapture/diagnostics"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/gstadapter"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -112,10 +112,10 @@ The commands work as following:
 			return
 		}
 		if ogg {
-			recordAudioGst(outfile, device, gstadapter.OGG)
+
 			return
 		}
-		recordAudioGst(outfile, device, gstadapter.MP3)
+
 		return
 	}
 
@@ -219,16 +219,6 @@ func printExamples() {
 	fmt.Print(examples)
 }
 
-func recordAudioGst(outfile string, device screencapture.IosDevice, audiotype string) {
-	log.Debug("Starting Gstreamer with audio pipeline")
-	gStreamer, err := gstadapter.NewWithAudioPipeline(outfile, audiotype)
-	if err != nil {
-		printErrJSON(err, "Failed creating custom pipeline")
-		return
-	}
-	startWithConsumer(gStreamer, device, true)
-}
-
 func runDiagnostics(outfile string, dump bool, dumpFile string, device screencapture.IosDevice) {
 	log.Debugf("diagnostics mode: %s  dump:%t %s device:%s", outfile, dump, dumpFile, device.SerialNumber)
 	metricsFile, err := os.Create(outfile)
@@ -272,19 +262,14 @@ func recordAudioWav(outfile string, device screencapture.IosDevice) {
 }
 
 func startGStreamerWithCustomPipeline(device screencapture.IosDevice, pipelineString string) {
-	log.Debug("Starting Gstreamer with custom pipeline")
-	gStreamer, err := gstadapter.NewWithCustomPipeline(pipelineString)
-	if err != nil {
-		printErrJSON(err, "Failed creating custom pipeline")
-		return
-	}
-	startWithConsumer(gStreamer, device, false)
+
 }
 
 func startGStreamer(device screencapture.IosDevice) {
 	log.Debug("Starting Gstreamer")
-	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer, device, false)
+	//gStreamer := gstadapter.New()
+	udpsink := udpsink.New("localhost:10001", "localhost:10000")
+	startWithConsumer(udpsink, device, false)
 }
 
 // Just dump a list of what was discovered to the console

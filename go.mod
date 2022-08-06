@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/danielpaulus/go-ios v1.0.13
-	github.com/danielpaulus/gst v0.0.0-20200201205042-e6d2974fceb8
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/google/gousb v2.1.0+incompatible
 	github.com/lijo-jose/glib v0.0.0-20191012030101-93ee72d7d646
