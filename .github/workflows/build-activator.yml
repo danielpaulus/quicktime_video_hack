@@ -1,0 +1,14 @@
+on: [push]
+
+name: Build Activator Test
+jobs:
+  build_windows_activator:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: compile
+        run: |
+          cmake -Bbuild -H.
+          cmake --build build --target all        
+        working-directory: ./windows_activator
