@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <windows.h>
 #include "./libusb-win32-bin-1.2.6.0/include/lusb0_usb.h"
 
 int openDev(char *serial);
