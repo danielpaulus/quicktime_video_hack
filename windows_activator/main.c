@@ -6,7 +6,7 @@
 int openDev(char *serial);
 
 #if INTPTR_MAX == INT64_MAX
-#pragma comment(lib, "./libusb-win32-bin-1.2.6.0/lib/msvc_x64/libusb.lib")
+#pragma comment(lib, "../libusb-win32-bin-1.2.6.0/lib/msvc_x64/libusb.lib")
 #elif INTPTR_MAX == INT32_MAX
 #pragma comment(lib,"libusb-win32-bin-1.2.6.0/lib/msvc/libusb.lib")
 #else
