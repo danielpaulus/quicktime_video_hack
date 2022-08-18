@@ -68,7 +68,7 @@ int openDev(char *deviceSerial) {
                     printf("error usb_control_msg: %d", code);
                 }
                 printf("sleep");
-                sleep(1);
+                Sleep(1000);
                 printf("done");
                 return code;
             }
