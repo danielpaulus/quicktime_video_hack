@@ -10,5 +10,5 @@ jobs:
       - name: compile
         run: |
           md build
-          cmake --build build --config --target all        
+          cmake --build build --target windows_activator -j 12        
         working-directory: ./windows_activator
