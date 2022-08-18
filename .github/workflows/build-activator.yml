@@ -13,3 +13,7 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Debug -S "./" -B build
           cmake --build build --target windows_activator -j 12        
         working-directory: ./windows_activator
+      - uses: actions/upload-artifact@v3
+        with:
+          name: my-artifact
+          path: ./windows_activator\build\Debug\windows_activator.exe
