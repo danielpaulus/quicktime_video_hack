@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <unistd.h>
 #include <string.h>
 #include "libusb-win32-bin-1.2.6.0/include/lusb0_usb.h"
 
