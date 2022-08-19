@@ -17,15 +17,15 @@ int openDev(char *serial);
 #define activate_device = "s"
 
 int main(int argc, char **argv) {
-    if (argc == 0) {
+    if (argc < 2) {
         printf("no arguments passed, need device serial");
         return 1;
     }
-    if (argc > 1) {
+    if (argc > 2) {
         printf("invalid arguments passed, need device serial");
         return 1;
     }
-    return openDev(argv[0]);
+    return openDev(argv[1]);
 }
 
 int openDev(char *deviceSerial) {
@@ -44,6 +44,7 @@ int openDev(char *deviceSerial) {
     }
     for (bus = usb_get_busses(); bus; bus = bus->next) {
         for (dev = bus->devices; dev; dev = dev->next) {
+            printf("checking device pid: %x vid: %x ", dev->descriptor.idProduct, dev->descriptor.idVendor);
             udh = usb_open(dev);
             if (udh == 0) {
                 printf("error usb_open: pid: %x vid: %x ", dev->descriptor.idProduct, dev->descriptor.idVendor);
