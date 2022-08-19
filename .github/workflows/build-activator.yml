@@ -11,7 +11,7 @@ jobs:
         run: |
           md build
           cmake -DCMAKE_BUILD_TYPE=Release -S "./" -B build
-          cmake --build build --target windows_activator -j 12        
+          cmake --build build --target windows_activator -j 12 --config Release        
         working-directory: ./windows_activator
       - uses: actions/upload-artifact@v3
         with:
