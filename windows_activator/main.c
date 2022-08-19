@@ -25,6 +25,8 @@ int main(int argc, char **argv) {
         printf("invalid arguments passed, need device serial");
         return 1;
     }
+    usb_init();
+    usb_set_debug(255);
     return openDev(argv[1]);
 }
 
