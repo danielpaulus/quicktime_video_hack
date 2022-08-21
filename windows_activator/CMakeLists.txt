@@ -4,3 +4,5 @@ project(windows_activator C)
 set(CMAKE_C_STANDARD 99)
 
 add_executable(windows_activator main.c)
+
+target_link_libraries(windows_activator ${CMAKE_CURRENT_SOURCE_DIR}/libusb-win32-bin-1.2.6.0/lib/msvc_x64/libusb.lib)
