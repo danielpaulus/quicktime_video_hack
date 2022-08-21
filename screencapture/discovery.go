@@ -164,10 +164,13 @@ func PrintDeviceDetails(devices []IosDevice) []map[string]interface{} {
 
 func isValidIosDevice(desc *gousb.DeviceDesc) bool {
 	log.Infof("descriptor: %+v", desc)
-	muxConfigIndex, _ := findConfigurations(desc)
+	muxConfigIndex, qtConfig := findConfigurations(desc)
+	log.Infof("configs: %d %d", muxConfigIndex, qtConfig)
 	if muxConfigIndex == -1 {
+		log.Infof("don't open")
 		return false
 	}
+	log.Infof("open")
 	return true
 }
 
