@@ -10,7 +10,7 @@ jobs:
       - name: compile
         run: |
           md build
-          cmake -DCMAKE_BUILD_TYPE=Release -S "./" -B build
+          cmake -S "./" -B build
           cmake --build build --target windows_activator -j 12 --config Release
           dir build/Release/*
           dir build/x64/Release/*        
