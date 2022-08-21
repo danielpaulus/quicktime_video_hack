@@ -120,11 +120,11 @@ func findIosDevices(ctx *gousb.Context, validDeviceChecker func(desc *gousb.Devi
 		return validDeviceChecker(desc)
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("OpenDevices: %w", err)
 	}
 	iosDevices, err := mapToIosDevice(devices)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("mapToIosDevice: %w", err)
 	}
 
 	return iosDevices, nil
