@@ -120,7 +120,7 @@ func findIosDevices(ctx *gousb.Context, validDeviceChecker func(desc *gousb.Devi
 		return validDeviceChecker(desc)
 	})
 	if err != nil {
-		return nil, fmt.Errorf("OpenDevices: %w", err)
+		log.Warnf("OpenDevices showed some errors, this might be a problem: %v", err)
 	}
 	iosDevices, err := mapToIosDevice(devices)
 	if err != nil {
