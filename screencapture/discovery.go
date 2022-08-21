@@ -163,6 +163,7 @@ func PrintDeviceDetails(devices []IosDevice) []map[string]interface{} {
 }
 
 func isValidIosDevice(desc *gousb.DeviceDesc) bool {
+	log.Infof("descriptor: %+v", desc)
 	muxConfigIndex, _ := findConfigurations(desc)
 	if muxConfigIndex == -1 {
 		return false
