@@ -11,4 +11,4 @@ set_property(TARGET bar PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/l
 
 add_executable(windows_activator main.c)
 
-target_link_libraries(windows_activator bar)
+target_link_libraries(windows_activator c:/libusb0.dll)
