@@ -53,6 +53,37 @@ func EnableQTConfig(device IosDevice) (IosDevice, error) {
 	return device, err
 }
 
+func DisableQTConfig(device IosDevice) (IosDevice, error) {
+        usbSerial := device.SerialNumber
+        ctx := gousb.NewContext()
+        usbDevice, err := OpenDevice(ctx, device)
+        if err != nil {
+                return IosDevice{}, err
+        }
+        if !isValidIosDeviceWithActiveQTConfig(usbDevice.Desc) {
+            log.Debugf("Skipping %s because it is already deactivated", usbSerial)
+            return device, nil
+        }
+
+        confignum, _ := usbDevice.ActiveConfigNum()
+        log.Debugf("Config is active: %d, QT config is: %d", confignum, device.QTConfigIndex)
+
+        for i := 0; i < 20; i++{
+            sendQTDisableConfigControlRequest(usbDevice)
+            log.Debugf("Resetting device config (#%d)", i + 1)
+            _, err := usbDevice.Config(device.UsbMuxConfigIndex)
+            if err != nil {
+                log.Warn(err)
+            }
+        }
+
+        confignum, _ = usbDevice.ActiveConfigNum()
+        log.Debugf("Config is active: %d, QT config is: %d", confignum, device.QTConfigIndex)
+
+
+        return device, err
+}
+
 func sendQTConfigControlRequest(device *gousb.Device) {
 	response := make([]byte, 0)
 	val, err := device.Control(0x40, 0x52, 0x00, 0x02, response)
