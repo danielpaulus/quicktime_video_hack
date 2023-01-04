@@ -1,7 +1,9 @@
+//go:build darwin
 // +build darwin
 
 package gstadapter
 
+/*
 import "github.com/danielpaulus/gst"
 
 func setupLivePlayAudio(pl *gst.Pipeline) {
@@ -51,3 +53,4 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	queue3.Link(sink)
 	return asrc
 }
+*/

@@ -30,7 +30,7 @@ Usage:
   qvh deactivate [--udid=<udid>] [-v]
   qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
   qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
-  qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
+  qvh gstreamer [--examples] [--udid=<udid>] [-v]
   qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>]
   qvh --version | version
 
@@ -57,8 +57,7 @@ The commands work as following:
 
 	gstreamer	If no additional param is provided, qvh will open a new window and push AV data to gstreamer.
 			If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
-			If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
-			displaying audio and video in a window. 
+			
 
 	diagnostics	The diagnostics mode is added for running longterm tests to debug and ensure stability. 
 			It will log several metrics and debug logs. Optionally specify a dump file with the --dump option that
@@ -122,10 +121,10 @@ The commands work as following:
 			return
 		}
 		if ogg {
-			recordAudioGst(outfile, device, gstadapter.OGG)
+			//	recordAudioGst(outfile, device, gstadapter.OGG) TODO: fixme
 			return
 		}
-		recordAudioGst(outfile, device, gstadapter.MP3)
+		//recordAudioGst(outfile, device, gstadapter.MP3) TODO: fixme
 		return
 	}
 
@@ -172,12 +171,8 @@ The commands work as following:
 			printExamples()
 			return
 		}
-		gstPipeline, _ := arguments.String("--pipeline")
-		if gstPipeline == "" {
-			startGStreamer(device)
-			return
-		}
-		startGStreamerWithCustomPipeline(device, gstPipeline)
+		startGStreamer(device)
+		return
 	}
 }
 
@@ -230,13 +225,13 @@ func printExamples() {
 }
 
 func recordAudioGst(outfile string, device screencapture.IosDevice, audiotype string) {
-	log.Debug("Starting Gstreamer with audio pipeline")
+	/*log.Debug("Starting Gstreamer with audio pipeline")
 	gStreamer, err := gstadapter.NewWithAudioPipeline(outfile, audiotype)
 	if err != nil {
 		printErrJSON(err, "Failed creating custom pipeline")
 		return
 	}
-	startWithConsumer(gStreamer, device, true)
+	startWithConsumer(gStreamer, device, true)*/
 }
 
 func runDiagnostics(outfile string, dump bool, dumpFile string, device screencapture.IosDevice) {
@@ -281,20 +276,15 @@ func recordAudioWav(outfile string, device screencapture.IosDevice) {
 	startWithConsumer(wavFileWriter, device, true)
 }
 
-func startGStreamerWithCustomPipeline(device screencapture.IosDevice, pipelineString string) {
-	log.Debug("Starting Gstreamer with custom pipeline")
-	gStreamer, err := gstadapter.NewWithCustomPipeline(pipelineString)
-	if err != nil {
-		printErrJSON(err, "Failed creating custom pipeline")
-		return
-	}
-	startWithConsumer(gStreamer, device, false)
-}
-
 func startGStreamer(device screencapture.IosDevice) {
 	log.Debug("Starting Gstreamer")
-	gStreamer := gstadapter.New()
-	startWithConsumer(gStreamer, device, false)
+	tcpServerWriter, err := gstadapter.StartTcpWriter()
+	if err != nil {
+		printErrJSON(err, "Failed starting TCP servers")
+		return
+	}
+	log.Fatalf("boom")
+	startWithConsumer(tcpServerWriter, device, false)
 }
 
 // Just dump a list of what was discovered to the console
@@ -329,17 +319,17 @@ func activate(device screencapture.IosDevice) {
 }
 
 func deactivate(device screencapture.IosDevice) {
-        log.Debugf("Disabling device: %v", device)
-        var err error
-        device, err = screencapture.DisableQTConfig(device)
-        if err != nil {
-                printErrJSON(err, "Error disabling QT config")
-                return
-        }
+	log.Debugf("Disabling device: %v", device)
+	var err error
+	device, err = screencapture.DisableQTConfig(device)
+	if err != nil {
+		printErrJSON(err, "Error disabling QT config")
+		return
+	}
 
-        printJSON(map[string]interface{}{
-                "device_activated": device.DetailsMap(),
-        })
+	printJSON(map[string]interface{}{
+		"device_activated": device.DetailsMap(),
+	})
 }
 
 func record(h264FilePath string, wavFilePath string, device screencapture.IosDevice) {

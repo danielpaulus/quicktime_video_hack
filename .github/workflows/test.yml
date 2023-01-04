@@ -5,12 +5,12 @@ jobs:
   test_on_mac:
     runs-on: macos-latest
     steps:
-      - name: install gstreamer
-        run: brew install libusb pkg-config gstreamer gst-plugins-bad gst-plugins-good gst-plugins-base gst-plugins-ugly
+      #- name: install gstreamer
+      #  run:  brew install libusb pkg-config gstreamer gst-plugins-bad gst-plugins-good gst-plugins-base gst-plugins-ugly
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16.x
+          go-version: 1.19.x
       - name: Checkout code
         uses: actions/checkout@v2
       - name: compile
@@ -23,17 +23,17 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16.x
+          go-version: 1.19.x
       - name: Checkout code
         uses: actions/checkout@v2
       - name: update
         run: sudo apt-get update
       - name: install libusb
         run: sudo apt-get install -y libusb-1.0-0-dev
-      - name: installlibglib
-        run: sudo apt-get install -y libglib2.0-dev
-      - name: install gstreamer
-        run: sudo apt-get install -y libgstreamer1.0-0 libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+      #- name: installlibglib
+      #  run: sudo apt-get install -y libglib2.0-dev
+      #- name: install gstreamer
+      #  run: sudo apt-get install -y libgstreamer1.0-0 libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
       - name: compile
         run: go build
       - name: run go test

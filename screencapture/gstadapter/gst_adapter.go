@@ -1,5 +1,6 @@
 package gstadapter
 
+/*
 import (
 	"encoding/binary"
 	"fmt"
@@ -310,3 +311,4 @@ func prependMarker(nalu []byte, length uint32) []byte {
 	copy(naluWithAnnexBMarker[4:], nalu)
 	return naluWithAnnexBMarker
 }
+*/
