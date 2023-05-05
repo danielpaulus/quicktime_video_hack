@@ -40,14 +40,14 @@ func EnableQTConfig(device IosDevice) (IosDevice, error) {
 		device, err = device.ReOpen(ctx)
 		if err != nil {
 			log.Debugf("device not found:%s", err)
-			continue
+		} else {
+			break
 		}
 		i++
 		if i > 10 {
 			log.Debug("Failed activating config")
 			return IosDevice{}, fmt.Errorf("could not activate Quicktime Config for %s", usbSerial)
 		}
-		break
 	}
 	log.Debugf("QTConfig for %s activated", usbSerial)
 	return device, err
