@@ -120,11 +120,11 @@ func findIosDevices(ctx *gousb.Context, validDeviceChecker func(desc *gousb.Devi
 		return validDeviceChecker(desc)
 	})
 	if err != nil {
-		return nil, err
+		log.Warnf("OpenDevices showed some errors, this might be a problem: %v %v", err, devices)
 	}
 	iosDevices, err := mapToIosDevice(devices)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("mapToIosDevice: %w", err)
 	}
 
 	return iosDevices, nil
@@ -163,10 +163,14 @@ func PrintDeviceDetails(devices []IosDevice) []map[string]interface{} {
 }
 
 func isValidIosDevice(desc *gousb.DeviceDesc) bool {
-	muxConfigIndex, _ := findConfigurations(desc)
+	log.Infof("descriptor: %+v", desc)
+	muxConfigIndex, qtConfig := findConfigurations(desc)
+	log.Infof("configs: %d %d", muxConfigIndex, qtConfig)
 	if muxConfigIndex == -1 {
+		log.Infof("don't open")
 		return false
 	}
+	log.Infof("open")
 	return true
 }
 

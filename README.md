@@ -5,6 +5,11 @@
 [![codecov](https://codecov.io/gh/danielpaulus/quicktime_video_hack/branch/master/graph/badge.svg)](https://codecov.io/gh/danielpaulus/quicktime_video_hack)
 [![Go Report](https://goreportcard.com/badge/github.com/danielpaulus/quicktime_video_hack)](https://goreportcard.com/report/github.com/danielpaulus/quicktime_video_hack)
 
+
+windows notes:
+https://github.com/google/gousb/issues/69
+
+
 Release 0.6
 
 - qvh without Gstreamer is finally stable on MacOSX. I ran it for 16 hours straight on parallel devices and it worked flawlessly.

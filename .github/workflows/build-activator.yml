@@ -1,0 +1,21 @@
+on: [push]
+
+name: Build Activator Test
+jobs:
+  build_windows_activator:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: compile
+        run: |
+          md build
+          cmake -S "./" -B build
+          cmake --build build --target windows_activator -j 12 --config Release
+          dir build/Release/*
+          dir build/x64/Release/*        
+        working-directory: ./windows_activator
+      - uses: actions/upload-artifact@v3
+        with:
+          name: my-artifact
+          path: ./windows_activator\build\Release\windows_activator.exe
