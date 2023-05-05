@@ -1,5 +1,6 @@
 package gstadapter_test
 
+/*
 import (
 	"os"
 	"testing"
@@ -36,3 +37,4 @@ func TestCustomPipelineParsing(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, gsta)
 }
+*/

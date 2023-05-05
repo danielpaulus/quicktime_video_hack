@@ -1,7 +1,9 @@
+//go:build linux
 // +build linux
 
 package gstadapter
 
+/*
 import "github.com/danielpaulus/gst"
 
 func setupLivePlayAudio(pl *gst.Pipeline) {
@@ -9,7 +11,7 @@ func setupLivePlayAudio(pl *gst.Pipeline) {
 	/*hack: I do not know why, but audio on my linux box wont play when using a simple wavpars.
 	On MAC OS it works without any problems though. A hacky workaround to get audio playing that I came up with was
 	to encode audio into ogg/vorbis and directly decode it again.
-	*/
+*/ /*
 
 	vorbisenc := gst.ElementFactoryMake("vorbisenc", "vorbisenc_01")
 	checkElem(vorbisenc, "vorbisenc_01")
@@ -79,3 +81,4 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	queue3.Link(sink)
 	return asrc
 }
+*/
